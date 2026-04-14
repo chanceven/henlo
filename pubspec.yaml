@@ -1,0 +1,38 @@
+name: petapp
+description: A new Flutter project.
+
+publish_to: 'none' # Remove this line if you want to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.5
+  google_fonts: ^6.3.2
+  supabase_flutter: ^2.10.3
+  file_picker: ^8.0.0
+  image_picker: ^0.8.7+6
+  google_maps_flutter: ^2.13.1
+  geocoding: ^4.0.0
+  geolocator: ^14.0.2
+  intl: ^0.18.1
+  uuid: ^4.5.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  # Assets (icons and logo) inside lib/assets/
+  assets:
+    - lib/assets/icons/paw.png
+    - lib/assets/icons/grooming.png
+    - lib/assets/images/logo.png

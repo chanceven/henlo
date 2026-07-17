@@ -60,5 +60,9 @@
 
 	<key>NSLocationWhenInUseUsageDescription</key>
 <string>We need your location to show nearby pawtners.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+<string>We need access to your photo library so you can upload photos of your pet.</string>
+	<key>NSCameraUsageDescription</key>
+<string>We need access to your camera so you can take photos of your pet.</string>
 </dict>
 </plist>

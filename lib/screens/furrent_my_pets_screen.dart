@@ -28,10 +28,8 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
       final user = supabase.auth.currentUser;
       if (user == null) throw "No user found";
 
-      final resp = await supabase
-          .from('pets')
-          .select()
-          .eq('furrent_id', user.id);
+      final resp =
+          await supabase.from('pets').select().eq('furrent_id', user.id);
 
       setState(() {
         pets = resp;
@@ -72,23 +70,27 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
     return "${years}y ${months}m";
   }
 
-  // -----------------------
-  // DELETE PET
-  // -----------------------
   Future<void> deletePet(String petId) async {
     try {
       await supabase.from('pets').delete().eq('id', petId);
 
-      // Show toast
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Pet deleted successfully!",
-              style: TextStyle(color: Color(0xFF6E4B3A)),
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              24,
             ),
-            backgroundColor: Color(0xFFFFDDDD),
-            duration: Duration(seconds: 2),
+            content: Text(
+              'Pet deleted successfully',
+              style: GoogleFonts.dosis(
+                color: const Color(0xFFDDC7A9),
+              ),
+            ),
+            backgroundColor: const Color(0xFF6E4B3A),
           ),
         );
       }
@@ -112,9 +114,6 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
     );
   }
 
-  // ------------------------
-  // PET CARD WITH SWIPE LEFT DELETE + SMOOTH ANIMATION
-  // ------------------------
   Widget _petCard(Map<String, dynamic> pet) {
     final age = calculateAge(pet['birth_date']);
     final breed = (pet['breed']?.isNotEmpty == true) ? pet['breed'] : 'N/A';
@@ -149,7 +148,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 child: styledText("Delete",
-                    fontSize: 16, color: const Color(0xFFFF3B30)),
+                    fontSize: 16, color: const Color(0xFF8B0000)),
               ),
             ],
           ),
@@ -163,7 +162,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
       background: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFFF3B30),
+          color: const Color(0xFF8B0000),
           borderRadius: BorderRadius.circular(14),
         ),
         alignment: Alignment.centerRight,
@@ -305,11 +304,11 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                   itemCount: pets.length,
                   itemBuilder: (_, i) => _petCard(pets[i]),
                 ),
-
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 20),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.fromLTRB(
+            16, 0, 16, 24 + MediaQuery.of(context).padding.bottom),
         child: SizedBox(
-          width: MediaQuery.of(context).size.width - 32,
+          width: double.infinity,
           height: 50,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -338,7 +337,6 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
           ),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

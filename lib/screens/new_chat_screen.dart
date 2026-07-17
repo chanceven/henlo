@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -74,14 +76,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
     if (currentUser == null) return;
 
     final String furrentId =
-        widget.currentUserType == "furrent"
-            ? currentUser.id
-            : otherUser['id'];
+        widget.currentUserType == "furrent" ? currentUser.id : otherUser['id'];
 
     final String pawtnerId =
-        widget.currentUserType == "pawtner"
-            ? currentUser.id
-            : otherUser['id'];
+        widget.currentUserType == "pawtner" ? currentUser.id : otherUser['id'];
 
     final existingConversation = await supabase
         .from('conversations')
@@ -109,22 +107,21 @@ class _NewChatScreenState extends State<NewChatScreen> {
       conversation = newConversation;
     }
 
-    final displayName =
-        (widget.currentUserType == "furrent" &&
-                otherUser['business_name'] != null &&
-                otherUser['business_name'].toString().trim().isNotEmpty)
-            ? otherUser['business_name']
-            : (otherUser['full_name'] ?? 'Unknown User');
+    final displayName = (widget.currentUserType == "furrent" &&
+            otherUser['business_name'] != null &&
+            otherUser['business_name'].toString().trim().isNotEmpty)
+        ? otherUser['business_name']
+        : (otherUser['full_name'] ?? 'Unknown User');
 
     final convoReturned = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChatScreen(
-          conversationId: conversation['id'],
-          otherUserId: otherUser['id'],
-          otherUserName: displayName,
-          otherUserAvatar: otherUser['profile_picture_url'] ?? '',
-        ),
+            conversationId: conversation['id'],
+            otherUserId: otherUser['id'],
+            otherUserName: displayName,
+            otherUserAvatar: otherUser['profile_picture_url'] ?? '',
+            currentUserType: widget.currentUserType),
       ),
     );
 
@@ -155,8 +152,8 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: customText('New Chat',
-            fontSize: 24, fontWeight: FontWeight.w600),
+        title:
+            customText('New Chat', fontSize: 24, fontWeight: FontWeight.w600),
         backgroundColor: const Color(0xFFF8F8F8),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
@@ -181,11 +178,15 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     });
                   }
                 },
-                style: const TextStyle(color: Color(0xFF6E4B3A)),
+                style: GoogleFonts.dosis(
+                  color: const Color(0xFF6E4B3A),
+                ),
                 decoration: InputDecoration(
                   hintText: hintText,
-                    hintStyle: const TextStyle(
-                      color: Color(0xFFAAAAAA),
+                  hintStyle: GoogleFonts.dosis(
+                    color: const Color(0xFFBDBDBD),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
                   ),
                   prefixIcon:
                       const Icon(Icons.search, color: Color(0xFF6E4B3A)),
@@ -223,10 +224,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundImage:
-                                  user['profile_picture_url'] != null
-                                      ? NetworkImage(user['profile_picture_url'])
-                                      : null,
+                              backgroundImage: user['profile_picture_url'] !=
+                                      null
+                                  ? NetworkImage(user['profile_picture_url'])
+                                  : null,
                               backgroundColor: const Color(0xFFDDC7A9),
                               child: user['profile_picture_url'] == null
                                   ? const Icon(Icons.person,
@@ -234,16 +235,14 @@ class _NewChatScreenState extends State<NewChatScreen> {
                                   : null,
                             ),
                             title: customText(displayName,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500),
+                                fontSize: 16, fontWeight: FontWeight.w500),
                             onTap: () => _startChat(user),
                           );
                         },
                       )
                     : noResults
                         ? Center(
-                            child: customText('No users found',
-                                fontSize: 16))
+                            child: customText('No users found', fontSize: 16))
                         : const SizedBox.shrink()
                 : const SizedBox.shrink(),
           ),

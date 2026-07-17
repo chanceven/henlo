@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -30,11 +32,8 @@ class _SplashScreenState extends State<SplashScreen> {
     final userId = session.user.id;
 
     // 🔍 Check if user exists in "furrents"
-    final furrent = await supabase
-        .from('furrents')
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
+    final furrent =
+        await supabase.from('furrents').select().eq('id', userId).maybeSingle();
 
     if (furrent != null) {
       Navigator.pushReplacementNamed(context, '/furrent_dashboard');
@@ -42,11 +41,8 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     // 🔍 Check if user exists in "pawtners"
-    final pawtner = await supabase
-        .from('pawtners')
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
+    final pawtner =
+        await supabase.from('pawtners').select().eq('id', userId).maybeSingle();
 
     if (pawtner != null) {
       Navigator.pushReplacementNamed(context, '/pawtner_dashboard');

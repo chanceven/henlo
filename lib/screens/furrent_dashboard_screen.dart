@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -33,12 +35,15 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
     {'service_name': 'Training', 'service_type': 'training'},
   ];
 
+  int _unreadMessagesCount = 0;
+  int _unreadNotificationsCount = 0;
   late RealtimeChannel _bookingsChannel;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadUnreadCount();
     _setupRealtimeBookings();
   }
 
@@ -97,34 +102,59 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
     }
   }
 
-void _setupRealtimeBookings() {
-  final user = supabase.auth.currentUser;
-  if (user == null) return;
+  Future<void> _loadUnreadCount() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
 
-  _bookingsChannel = supabase
-      .channel('bookings-${user.id}')
-      .onPostgresChanges(
-        schema: 'public',
-        table: 'bookings',
-        event: PostgresChangeEvent.all,
-        filter: PostgresChangeFilter(
-          type: PostgresChangeFilterType.eq,
-          column: 'furrent_id',
-          value: user.id,
-        ),
-        callback: (payload) async {
-          debugPrint('Realtime booking change detected');
+    final data = await supabase
+        .from('conversations')
+        .select('unread_count_furrent')
+        .eq('furrent_id', user.id);
 
-          // VERY IMPORTANT — wait for DB commit + joins
-          await Future.delayed(const Duration(milliseconds: 300));
+    final count = (data as List).fold<int>(0, (sum, row) {
+      return sum + ((row['unread_count_furrent'] ?? 0) as num).toInt();
+    });
 
-          if (mounted) {
-            _loadData();
-          }
-        },
-      )
-      .subscribe();
-}
+    final notifData = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+    setState(() {
+      _unreadMessagesCount = count;
+      _unreadNotificationsCount = (notifData as List).length;
+    });
+  }
+
+  void _setupRealtimeBookings() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    _bookingsChannel = supabase
+        .channel('bookings-${user.id}')
+        .onPostgresChanges(
+          schema: 'public',
+          table: 'bookings',
+          event: PostgresChangeEvent.all,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'furrent_id',
+            value: user.id,
+          ),
+          callback: (payload) async {
+            debugPrint('Realtime booking change detected');
+
+            // VERY IMPORTANT — wait for DB commit + joins
+            await Future.delayed(const Duration(milliseconds: 300));
+
+            if (mounted) {
+              _loadData();
+            }
+          },
+        )
+        .subscribe();
+  }
 
   void _onNavTapped(int index) {
     setState(() => _selectedNavIndex = index);
@@ -138,8 +168,8 @@ void _setupRealtimeBookings() {
     return Text(
       text,
       style: GoogleFonts.dosis(
-        textStyle: TextStyle(
-            fontSize: fontSize, fontWeight: fontWeight, color: color),
+        textStyle:
+            TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color),
       ),
       textAlign: textAlign,
     );
@@ -193,7 +223,9 @@ void _setupRealtimeBookings() {
           ),
           const SizedBox(height: 8),
           customText(service,
-              fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF6E4B3A)),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6E4B3A)),
         ],
       ),
     );
@@ -231,13 +263,14 @@ void _setupRealtimeBookings() {
                             onTap: () {
                               Navigator.pushNamed(context, '/search');
                             },
-                            child: const AbsorbPointer(
+                            child: AbsorbPointer(
                               child: TextField(
                                 decoration: InputDecoration(
                                   hintText: 'Search for services or pawtners',
-                                  hintStyle: TextStyle(
-                                    color: Color(0xFFAAAAAA),
+                                  hintStyle: GoogleFonts.dosis(
+                                    color: const Color(0xFFBDBDBD),
                                     fontSize: 16,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                   border: InputBorder.none,
                                 ),
@@ -249,7 +282,6 @@ void _setupRealtimeBookings() {
                     ),
                   ),
                   const SizedBox(height: 18),
-
                   customText('Services Offered',
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -264,7 +296,6 @@ void _setupRealtimeBookings() {
                     }).toList(),
                   ),
                   const SizedBox(height: 20),
-
                   customText('Upcoming Bookings',
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -293,362 +324,520 @@ void _setupRealtimeBookings() {
                                     .format(scheduledStart)
                                 : '';
 
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => FurrentBookingDetailsScreen(
-                                        booking: booking,
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        FurrentBookingDetailsScreen(
+                                      booking: booking,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFFFF),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                        color: Color(0x33000000),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2))
+                                  ],
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 90,
+                                      height: 90,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: const Color(0xFF6E4B3A),
+                                        image:
+                                            pawtner?['profile_picture_url'] !=
+                                                    null
+                                                ? DecorationImage(
+                                                    image: NetworkImage(pawtner![
+                                                        'profile_picture_url']),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
+                                      ),
+                                      child: pawtner?['profile_picture_url'] ==
+                                              null
+                                          ? const Icon(Icons.person,
+                                              color: Color(0xFFDDC7A9),
+                                              size: 40)
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          customText(
+                                            service?['service_type'] ?? '',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          customText(
+                                            pawtner?['business_name'] ?? '',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          customText(
+                                            'Pet: ${pet?['name'] ?? ''}',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          customText(
+                                            formattedDate,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w400,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  );
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFFFFF),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                          color: Color(0x33000000),
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2))
-                                    ],
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        width: 90,
-                                        height: 90,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(12),
-                                          color: const Color(0xFF6E4B3A),
-                                          image: pawtner?['profile_picture_url'] != null
-                                              ? DecorationImage(
-                                                  image: NetworkImage(pawtner!['profile_picture_url']),
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : null,
-                                        ),
-                                        child: pawtner?['profile_picture_url'] == null
-                                            ? const Icon(Icons.person, color: Color(0xFFDDC7A9), size: 40)
-                                            : null,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            customText(
-                                              service?['service_type'] ?? '',
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF6E4B3A),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            customText(
-                                              pawtner?['business_name'] ?? '',
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF6E4B3A),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            customText(
-                                              'Pet: ${pet?['name'] ?? ''}',
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF6E4B3A),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            customText(
-                                              formattedDate,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w400,
-                                              color: const Color(0xFF6E4B3A),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Column(
-                                        children: [
-                                          ElevatedButton(
-                                            onPressed: () async {
-                                              final confirmed = await showDialog<bool>(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  backgroundColor: const Color(0xFFF8F8F8),
-                                                  insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-                                                  contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                                                  content: SizedBox(
-                                                    height: 140,
+                                    Column(
+                                      children: [
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            final confirmed =
+                                                await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                backgroundColor:
+                                                    const Color(0xFFF8F8F8),
+                                                insetPadding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 20),
+                                                contentPadding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        24, 20, 24, 0),
+                                                content: SizedBox(
+                                                  height: 140,
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        'Are you sure you want to cancel this booking?',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: GoogleFonts.dosis(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 15,
+                                                            color: const Color(
+                                                                0xFF6E4B3A)),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Text(
+                                                        'This action cannot be undone.',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: GoogleFonts.dosis(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            fontSize: 15,
+                                                            color: const Color(
+                                                                0xFF6E4B3A)),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 20),
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          SizedBox(
+                                                            width: 140,
+                                                            height: 40,
+                                                            child:
+                                                                ElevatedButton(
+                                                              style:
+                                                                  ElevatedButton
+                                                                      .styleFrom(
+                                                                backgroundColor:
+                                                                    const Color(
+                                                                        0xFF6E4B3A),
+                                                                shape:
+                                                                    RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              8),
+                                                                ),
+                                                              ),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                      context,
+                                                                      false),
+                                                              child: Text(
+                                                                'Keep Booking',
+                                                                style:
+                                                                    GoogleFonts
+                                                                        .dosis(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  fontSize: 15,
+                                                                  color: const Color(
+                                                                      0xFFDDC7A9),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 12),
+                                                          SizedBox(
+                                                            width: 140,
+                                                            height: 40,
+                                                            child:
+                                                                ElevatedButton(
+                                                              style:
+                                                                  ElevatedButton
+                                                                      .styleFrom(
+                                                                backgroundColor:
+                                                                    const Color(
+                                                                        0xFF8B0000),
+                                                                shape:
+                                                                    RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              8),
+                                                                ),
+                                                              ),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                      context,
+                                                                      true),
+                                                              child: Text(
+                                                                'Confirm',
+                                                                style:
+                                                                    GoogleFonts
+                                                                        .dosis(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  fontSize: 15,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+
+                                            if (confirmed != true) return;
+
+                                            final reasonController =
+                                                TextEditingController();
+                                            final reasonSubmitted =
+                                                await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => Dialog(
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                insetPadding: EdgeInsets.zero,
+                                                child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 16),
+                                                  child: Container(
+                                                    padding: const EdgeInsets
+                                                        .fromLTRB(
+                                                        24, 20, 24, 24),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                          0xFFF8F8F8),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                      boxShadow: const [
+                                                        BoxShadow(
+                                                          color:
+                                                              Color(0x33000000),
+                                                          blurRadius: 4,
+                                                          offset: Offset(0, 2),
+                                                        ),
+                                                      ],
+                                                    ),
                                                     child: Column(
-                                                      mainAxisSize: MainAxisSize.min,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
                                                       children: [
                                                         Text(
-                                                          'Are you sure you want to cancel this booking?',
-                                                          textAlign: TextAlign.center,
-                                                          style: GoogleFonts.dosis(
-                                                              fontWeight: FontWeight.w600,
-                                                              fontSize: 15,
-                                                              color: const Color(0xFF6E4B3A)),
+                                                          'Why are you cancelling this booking?',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style:
+                                                              GoogleFonts.dosis(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            fontSize: 16,
+                                                            color: const Color(
+                                                                0xFF6E4B3A),
+                                                          ),
                                                         ),
-                                                        const SizedBox(height: 8),
-                                                        Text(
-                                                          'This action cannot be undone.',
-                                                          textAlign: TextAlign.center,
-                                                          style: GoogleFonts.dosis(
-                                                              fontWeight: FontWeight.w500,
-                                                              fontSize: 15,
-                                                              color: const Color(0xFF6E4B3A)),
+                                                        const SizedBox(
+                                                            height: 12),
+                                                        TextField(
+                                                          controller:
+                                                              reasonController,
+                                                          maxLines: 3,
+                                                          decoration:
+                                                              InputDecoration(
+                                                            hintText:
+                                                                'Enter your reason for cancellation',
+                                                            hintStyle:
+                                                                GoogleFonts
+                                                                    .dosis(
+                                                              fontSize: 14,
+                                                              color: const Color(
+                                                                  0xFFAAAAAA),
+                                                            ),
+                                                            border:
+                                                                OutlineInputBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              borderSide:
+                                                                  const BorderSide(
+                                                                      color: Color(
+                                                                          0xFF6E4B3A),
+                                                                      width:
+                                                                          1.5),
+                                                            ),
+                                                            enabledBorder:
+                                                                OutlineInputBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              borderSide:
+                                                                  const BorderSide(
+                                                                      color: Color(
+                                                                          0xFF6E4B3A),
+                                                                      width:
+                                                                          1.5),
+                                                            ),
+                                                            focusedBorder:
+                                                                OutlineInputBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                              borderSide:
+                                                                  const BorderSide(
+                                                                      color: Color(
+                                                                          0xFF6E4B3A),
+                                                                      width: 2),
+                                                            ),
+                                                            contentPadding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        12,
+                                                                    vertical:
+                                                                        8),
+                                                          ),
+                                                          style:
+                                                              GoogleFonts.dosis(
+                                                            fontSize: 14,
+                                                            color: const Color(
+                                                                0xFF6E4B3A),
+                                                          ),
                                                         ),
-                                                        const SizedBox(height: 20),
-                                                        Row(
-                                                          mainAxisAlignment: MainAxisAlignment.center,
-                                                          children: [
-                                                            SizedBox(
-                                                              width: 140,
-                                                              height: 40,
-                                                              child: ElevatedButton(
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor: const Color(0xFF6E4B3A),
-                                                                  shape: RoundedRectangleBorder(
-                                                                    borderRadius: BorderRadius.circular(8),
-                                                                  ),
-                                                                ),
-                                                                onPressed: () => Navigator.pop(context, false),
-                                                                child: Text(
-                                                                  'Keep Booking',
-                                                                  style: GoogleFonts.dosis(
-                                                                    fontWeight: FontWeight.w600,
-                                                                    fontSize: 15,
-                                                                    color: const Color(0xFFDDC7A9),
-                                                                  ),
-                                                                ),
+                                                        const SizedBox(
+                                                            height: 16),
+                                                        SizedBox(
+                                                          width: 140,
+                                                          height: 40,
+                                                          child: ElevatedButton(
+                                                            style:
+                                                                ElevatedButton
+                                                                    .styleFrom(
+                                                              backgroundColor:
+                                                                  const Color(
+                                                                      0xFF8B0000),
+                                                              shape:
+                                                                  RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
                                                               ),
                                                             ),
-                                                            const SizedBox(width: 12),
-                                                            SizedBox(
-                                                              width: 140,
-                                                              height: 40,
-                                                              child: ElevatedButton(
-                                                                style: ElevatedButton.styleFrom(
-                                                                  backgroundColor: const Color(0xFF8B0000),
-                                                                  shape: RoundedRectangleBorder(
-                                                                    borderRadius: BorderRadius.circular(8),
-                                                                  ),
-                                                                ),
-                                                                onPressed: () => Navigator.pop(context, true),
-                                                                child: Text(
-                                                                  'Confirm',
-                                                                  style: GoogleFonts.dosis(
-                                                                    fontWeight: FontWeight.w600,
-                                                                    fontSize: 15,
-                                                                    color: Colors.white,
-                                                                  ),
-                                                                ),
+                                                            onPressed: () {
+                                                              if (reasonController
+                                                                  .text
+                                                                  .trim()
+                                                                  .isEmpty) {
+                                                                return;
+                                                              }
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  true);
+                                                            },
+                                                            child: Text(
+                                                              'Submit',
+                                                              style: GoogleFonts
+                                                                  .dosis(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                fontSize: 15,
+                                                                color: Colors
+                                                                    .white,
                                                               ),
                                                             ),
-                                                          ],
+                                                          ),
                                                         ),
                                                       ],
                                                     ),
                                                   ),
                                                 ),
-                                              );
-
-                                              if (confirmed != true) return;
-
-                                              final reasonController = TextEditingController();
-                                              final reasonSubmitted = await showDialog<bool>(
-                                                context: context,
-                                                builder: (context) => Dialog(
-                                                  backgroundColor: Colors.transparent,
-                                                  insetPadding: EdgeInsets.zero,
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                    child: Container(
-                                                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(0xFFF8F8F8),
-                                                        borderRadius: BorderRadius.circular(12),
-                                                        boxShadow: const [
-                                                          BoxShadow(
-                                                            color: Color(0x33000000),
-                                                            blurRadius: 4,
-                                                            offset: Offset(0, 2),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      child: Column(
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          Text(
-                                                            'Why are you cancelling this booking?',
-                                                            textAlign: TextAlign.center,
-                                                            style: GoogleFonts.dosis(
-                                                              fontWeight: FontWeight.w500,
-                                                              fontSize: 16,
-                                                              color: const Color(0xFF6E4B3A),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(height: 12),
-                                                          TextField(
-                                                            controller: reasonController,
-                                                            maxLines: 3,
-                                                            decoration: InputDecoration(
-                                                              hintText: 'Enter your reason for cancellation',
-                                                              hintStyle: GoogleFonts.dosis(
-                                                                fontSize: 14,
-                                                                color: const Color(0xFFAAAAAA),
-                                                              ),
-                                                              border: OutlineInputBorder(
-                                                                borderRadius: BorderRadius.circular(8),
-                                                                borderSide: const BorderSide(
-                                                                    color: Color(0xFF6E4B3A), width: 1.5),
-                                                              ),
-                                                              enabledBorder: OutlineInputBorder(
-                                                                borderRadius: BorderRadius.circular(8),
-                                                                borderSide: const BorderSide(
-                                                                    color: Color(0xFF6E4B3A), width: 1.5),
-                                                              ),
-                                                              focusedBorder: OutlineInputBorder(
-                                                                borderRadius: BorderRadius.circular(8),
-                                                                borderSide: const BorderSide(
-                                                                    color: Color(0xFF6E4B3A), width: 2),
-                                                              ),
-                                                              contentPadding: const EdgeInsets.symmetric(
-                                                                  horizontal: 12, vertical: 8),
-                                                            ),
-                                                            style: GoogleFonts.dosis(
-                                                              fontSize: 14,
-                                                              color: const Color(0xFF6E4B3A),
-                                                            ),
-                                                          ),
-                                                          const SizedBox(height: 16),
-                                                          SizedBox(
-                                                            width: 140,
-                                                            height: 40,
-                                                            child: ElevatedButton(
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor: const Color(0xFF8B0000),
-                                                                shape: RoundedRectangleBorder(
-                                                                  borderRadius: BorderRadius.circular(8),
-                                                                ),
-                                                              ),
-                                                              onPressed: () {
-                                                                if (reasonController.text.trim().isEmpty) return;
-                                                                Navigator.pop(context, true);
-                                                              },
-                                                              child: Text(
-                                                                'Submit',
-                                                                style: GoogleFonts.dosis(
-                                                                  fontWeight: FontWeight.w600,
-                                                                  fontSize: 15,
-                                                                  color: Colors.white,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-
-                                              if (reasonSubmitted != true) return;
-
-                                              final bookingId = booking['id'];
-                                              try {
-                                                await supabase.from('bookings').update({
-                                                  'status': 'Cancelled',
-                                                  'cancelled_reason': reasonController.text.trim(),
-                                                  'cancelled_at': DateTime.now().toIso8601String(),
-                                                }).eq('id', bookingId);
-
-                                                setState(() {
-                                                  bookingsUpcoming.removeWhere((b) => b['id'] == bookingId);
-                                                  booking['status'] = 'Cancelled';
-                                                  booking['cancelled_reason'] = reasonController.text.trim();
-                                                  booking['cancelled_at'] = DateTime.now().toIso8601String();
-                                                });
-
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('Booking cancelled.')),
-                                                );
-                                              } catch (e) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('Failed to cancel booking.')),
-                                                );
-                                              }
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF8B0000),
-                                              minimumSize: const Size(100, 32),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
                                               ),
-                                              padding: EdgeInsets.zero,
+                                            );
+
+                                            if (reasonSubmitted != true) return;
+
+                                            final bookingId = booking['id'];
+                                            try {
+                                              await supabase
+                                                  .from('bookings')
+                                                  .update({
+                                                'status': 'Cancelled',
+                                                'cancelled_reason':
+                                                    reasonController.text
+                                                        .trim(),
+                                                'cancelled_at': DateTime.now()
+                                                    .toIso8601String(),
+                                                'cancelled_by': 'Furrent',
+                                              }).eq('id', bookingId);
+
+                                              setState(() {
+                                                bookingsUpcoming.removeWhere(
+                                                    (b) =>
+                                                        b['id'] == bookingId);
+                                                booking['status'] = 'Cancelled';
+                                                booking['cancelled_reason'] =
+                                                    reasonController.text
+                                                        .trim();
+                                                booking['cancelled_at'] =
+                                                    DateTime.now()
+                                                        .toIso8601String();
+                                              });
+
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Booking cancelled.')),
+                                              );
+                                            } catch (e) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Failed to cancel booking.')),
+                                              );
+                                            }
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF8B0000),
+                                            minimumSize: const Size(100, 32),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
-                                            child: const Center(
-                                              child: Text(
-                                                'Cancel',
-                                                style: TextStyle(
-                                                  color: Color(0xFFFFFFFF),
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                softWrap: false,
-                                                overflow: TextOverflow.visible,
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                          child: const Center(
+                                            child: Text(
+                                              'Cancel',
+                                              style: TextStyle(
+                                                color: Color(0xFFFFFFFF),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
                                               ),
+                                              softWrap: false,
+                                              overflow: TextOverflow.visible,
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => FurrentRescheduleScreen(
-                                                    bookingId: booking['id'],
-                                                    pawtnerId: booking['pawtner_id'],
-                                                    serviceId: booking['service_id'],
-                                                    petId: booking['pet_id'],
-                                                  ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    FurrentRescheduleScreen(
+                                                  bookingId: booking['id'],
+                                                  pawtnerId:
+                                                      booking['pawtner_id'],
+                                                  serviceId:
+                                                      booking['service_id'],
+                                                  petId: booking['pet_id'],
                                                 ),
-                                              );
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF6E4B3A),
-                                              minimumSize: const Size(100, 32),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
                                               ),
-                                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF6E4B3A),
+                                            minimumSize: const Size(100, 32),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                             ),
-                                            child: const Align(
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                'Reschedule',
-                                                style: TextStyle(
-                                                  color: Color(0xFFDDC7A9),
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                softWrap: false,
-                                                overflow: TextOverflow.visible,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 4),
+                                          ),
+                                          child: const Align(
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              'Reschedule',
+                                              style: TextStyle(
+                                                color: Color(0xFFDDC7A9),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
                                               ),
+                                              softWrap: false,
+                                              overflow: TextOverflow.visible,
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              );
+                              ),
+                            );
                           },
                         ),
                   const SizedBox(height: 24),
@@ -680,15 +869,41 @@ void _setupRealtimeBookings() {
       body: getBody(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedNavIndex,
-        onTap: _onNavTapped,
+        onTap: (index) {
+          _onNavTapped(index);
+          if (index == 2) _loadUnreadCount();
+        },
         selectedItemColor: const Color(0xFF6E4B3A),
         unselectedItemColor: const Color(0xFFBBBBBB),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
+        type: BottomNavigationBarType.fixed,
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          const BottomNavigationBarItem(
               icon: Icon(Icons.book_online), label: 'Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            label: 'Messages',
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.message),
+                if (_unreadMessagesCount > 0 || _unreadNotificationsCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );

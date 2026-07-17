@@ -1,33 +1,47 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'signin_screen.dart'; // import your SignInScreen
+import 'signin_screen.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+class ResetPasswordScreen extends StatefulWidget {
+  const ResetPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final TextEditingController emailController = TextEditingController();
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+  final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
 
-  @override
-  void dispose() {
-    emailController.dispose();
-    super.dispose();
-  }
-
-  // Send reset link via Supabase
-  Future<void> _submitReset() async {
-    final email = emailController.text.trim();
-    if (email.isEmpty) {
+  Future<void> _updatePassword() async {
+    final password = passwordController.text.trim();
+    if (password.isEmpty || password.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email')),
+        const SnackBar(content: Text('Password must be at least 8 characters')),
+      );
+      return;
+    }
+
+    if (password.length > 32) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must not exceed 32 characters')),
+      );
+      return;
+    }
+
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Password must contain at least one number')),
+      );
+      return;
+    }
+
+    if (!password.contains(RegExp(r'[a-zA-Z]'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Password must contain at least one letter')),
       );
       return;
     }
@@ -35,17 +49,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => isLoading = true);
 
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(
-        email,
-        redirectTo: 'io.supabase.petapp://login-callback/',
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: password),
       );
 
-      // Success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reset link sent! Check your email.')),
+        const SnackBar(content: Text('Password updated successfully!')),
       );
 
-      // Redirect to SignInScreen after 2 seconds
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
           Navigator.pushReplacement(
@@ -63,33 +74,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
-  InputDecoration buildInputDecoration(String hint, IconData icon) {
-    return InputDecoration(
-      prefixIcon: Icon(icon, color: const Color(0xFF6E4B3A)),
-      hintText: hint,
-      hintStyle: GoogleFonts.dosis(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        color: Colors.grey[400],
-      ),
-      enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
-      ),
-      focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
-      ),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         title: Text(
-          'Forgot Password',
+          'Reset Password',
           style: GoogleFonts.dosis(
             textStyle: const TextStyle(
               fontSize: 24,
@@ -108,7 +99,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'Enter your email to reset your password',
+              'Enter your new password',
               textAlign: TextAlign.center,
               style: GoogleFonts.dosis(
                 textStyle: const TextStyle(
@@ -119,26 +110,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
             const SizedBox(height: 32),
-
-            // Email Field
             TextField(
-              controller: emailController,
-              decoration: buildInputDecoration('Email', Icons.email),
-              style: GoogleFonts.dosis(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.lock, color: Color(0xFF6E4B3A)),
+                hintText: 'New Password',
+                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
+                enabledBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
+                ),
+                focusedBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
+                ),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              style: const TextStyle(
+                color: Color(0xFF6E4B3A),
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF6E4B3A),
               ),
             ),
-
-            const SizedBox(height: 80), // button lower on screen
-
-            // Reset Password Button
+            const SizedBox(height: 80),
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: isLoading ? null : _submitReset,
+                onPressed: isLoading ? null : _updatePassword,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6E4B3A),
                   foregroundColor: const Color(0xFFDDC7A9),
@@ -147,11 +146,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                 ),
                 child: isLoading
-                    ? const CircularProgressIndicator(
-                        color: Color(0xFFDDC7A9),
-                      )
+                    ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
                     : Text(
-                        'Reset Password',
+                        'Update Password',
                         style: GoogleFonts.dosis(
                           textStyle: const TextStyle(
                             fontSize: 18,

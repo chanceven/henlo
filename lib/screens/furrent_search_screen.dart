@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'furrent_pawtner_detail_screen.dart';
 
@@ -39,7 +40,8 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
       // Search services
       final services = await supabase
           .from('services')
-          .select('id, service_name, service_type, pawtner_id, pawtners!inner(business_name)')
+          .select(
+              'id, service_name, service_type, pawtner_id, pawtners!inner(business_name)')
           .ilike('service_name', '%$query%')
           .limit(10);
 
@@ -104,10 +106,16 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
           autofocus: true,
           onChanged: _onSearchChanged,
           textInputAction: TextInputAction.search,
-          style: const TextStyle(color: primaryColor),
-          decoration: const InputDecoration(
+          style: GoogleFonts.dosis(
+            color: primaryColor,
+          ),
+          decoration: InputDecoration(
             hintText: 'Search for services or pawtners',
-            hintStyle: TextStyle(color: Color(0xFFAAAAAA)),
+            hintStyle: GoogleFonts.dosis(
+              color: const Color(0xFFBDBDBD),
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
             border: InputBorder.none,
           ),
         ),
@@ -121,7 +129,8 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
                   itemBuilder: (context, index) {
                     final item = results[index];
 
-                    final isService = item['subtitle'] != ''; // service vs pawtner
+                    final isService =
+                        item['subtitle'] != ''; // service vs pawtner
 
                     return GestureDetector(
                       onTap: () {
@@ -147,15 +156,18 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             item['title'] ?? '',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF6E4B3A)),
+                            style: GoogleFonts.dosis(
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6E4B3A),
+                            ),
                           ),
                         ),
                         subtitle: isService
                             ? Text(
                                 item['subtitle'] ?? '',
-                                style: const TextStyle(color: Color(0xFF6E4B3A)),
+                                style: GoogleFonts.dosis(
+                                  color: const Color(0xFF6E4B3A),
+                                ),
                               )
                             : null,
                       ),

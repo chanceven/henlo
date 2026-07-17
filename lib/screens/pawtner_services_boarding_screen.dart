@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -103,7 +105,7 @@ class _PawtnerServicesBoardingScreenState
                 style: GoogleFonts.dosis(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
-                    color: Colors.white),
+                    color: const Color(0xFFF8F8F8)),
               ),
             ),
           ),
@@ -118,12 +120,11 @@ class _PawtnerServicesBoardingScreenState
           .delete()
           .eq('service_id', serviceId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Service deleted successfully'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Service deleted successfully',
+            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+        backgroundColor: const Color(0xFFDDC7A9),
+      ));
 
       fetchBoardingServices();
     }
@@ -228,14 +229,14 @@ class _PawtnerServicesBoardingScreenState
                                         child: ElevatedButton(
                                           style: ElevatedButton.styleFrom(
                                               backgroundColor:
-                                                  const Color(0xFF6E4B3A)),
+                                                  const Color(0xFF8B0000)),
                                           onPressed: () {
                                             deleteService(service['id']);
                                           },
                                           child: Text(
                                             'Delete Service',
                                             style: GoogleFonts.dosis(
-                                                color: const Color(0xFFDDC7A9),
+                                                color: const Color(0xFFF8F8F8),
                                                 fontWeight: FontWeight.w600),
                                           ),
                                         ),
@@ -286,7 +287,8 @@ class _PawtnerServicesBoardingScreenState
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const PawtnerAddServiceScreen()),
+                              builder: (_) => const PawtnerAddServiceScreen(
+                                  preselectedServiceType: 'Boarding')),
                         );
                         fetchBoardingServices();
                       },

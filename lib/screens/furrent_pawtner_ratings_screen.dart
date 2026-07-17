@@ -40,32 +40,30 @@ class _FurrentPawtnerRatingsScreenState
       pawtner = pawtnerResponse as Map<String, dynamic>?;
 
       final reviewResponse = await supabase
-        .from('bookings')
-        .select('''
+          .from('bookings')
+          .select('''
           rating,
           review_comment,
-          updated_at,
+          reviewed_at,
           services:service_id (
-            service_type
+            service_name
           ),
           furrents:furrent_id (
             full_name,
             profile_picture_url
           )
         ''')
-        .eq('pawtner_id', widget.pawtnerId)
-        .not('rating', 'is', null)
-        .order('updated_at', ascending: false);
+          .eq('pawtner_id', widget.pawtnerId)
+          .not('rating', 'is', null)
+          .order('reviewed_at', ascending: false);
 
       reviews = (reviewResponse as List)
           .map((e) => e as Map<String, dynamic>)
           .toList();
 
       if (reviews.isNotEmpty) {
-        final ratings =
-            reviews.map((e) => e['rating'] as int).toList();
-        averageRating =
-            ratings.reduce((a, b) => a + b) / ratings.length;
+        final ratings = reviews.map((e) => e['rating'] as int).toList();
+        averageRating = ratings.reduce((a, b) => a + b) / ratings.length;
       } else {
         averageRating = 0.0;
       }
@@ -121,7 +119,6 @@ class _FurrentPawtnerRatingsScreenState
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: filters.map((rating) {
-
           final isSelected = selectedFilter == rating;
 
           return Expanded(
@@ -132,53 +129,50 @@ class _FurrentPawtnerRatingsScreenState
                 });
               },
               child: Container(
-                height: 36,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF6E4B3A)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF6E4B3A),
+                  height: 36,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF6E4B3A) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF6E4B3A),
+                    ),
                   ),
-                ),
-                child: rating == 0
-                    ? Text(
-                        'All',
-                        style: GoogleFonts.dosis(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? const Color(0xFFDDC7A9)
-                              : const Color(0xFF6E4B3A),
-                        ),
-                      )
-                    : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.star,
-                      size: 14,
-                      color: isSelected
-                          ? const Color(0xFFDDC7A9)
-                          : const Color(0xFF6E4B3A),
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '$rating',
-                      style: GoogleFonts.dosis(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : const Color(0xFF6E4B3A),
-                      ),
-                    ),
-                  ],
-                )
-              ),
+                  child: rating == 0
+                      ? Text(
+                          'All',
+                          style: GoogleFonts.dosis(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? const Color(0xFFDDC7A9)
+                                : const Color(0xFF6E4B3A),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.star,
+                              size: 14,
+                              color: isSelected
+                                  ? const Color(0xFFDDC7A9)
+                                  : const Color(0xFF6E4B3A),
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              '$rating',
+                              style: GoogleFonts.dosis(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF6E4B3A),
+                              ),
+                            ),
+                          ],
+                        )),
             ),
           );
         }).toList(),
@@ -202,11 +196,10 @@ class _FurrentPawtnerRatingsScreenState
     final rating = review['rating'] ?? 0;
     final comment = review['review_comment'] ?? '';
     final service = review['services'] as Map<String, dynamic>?;
-    final serviceType = service?['service_type'] ?? '';
-    final createdAt = review['updated_at'] != null
-    ? DateFormat('d MMM yyyy')
-        .format(DateTime.parse(review['updated_at']))
-    : '';
+    final serviceName = service?['service_name'] ?? '';
+    final createdAt = review['reviewed_at'] != null
+        ? DateFormat('d MMM yyyy').format(DateTime.parse(review['reviewed_at']))
+        : '';
 
     final gallery = review['gallery'] as List?;
     final images = gallery != null && gallery.isNotEmpty
@@ -230,36 +223,33 @@ class _FurrentPawtnerRatingsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-
-            Text(
-              reviewerName,
-              style: GoogleFonts.dosis(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF6E4B3A),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                reviewerName,
+                style: GoogleFonts.dosis(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF6E4B3A),
+                ),
               ),
-            ),
-
-            Row(
-              children: List.generate(5, (index) {
-                return Icon(
-                  Icons.star,
-                  size: 16,
-                  color: index < rating
-                      ? const Color(0xFF6E4B3A)
-                      : const Color(0xFFCCCCCC),
-                );
-              }),
-            ),
-
-          ],
-        ),
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    Icons.star,
+                    size: 16,
+                    color: index < rating
+                        ? const Color(0xFF6E4B3A)
+                        : const Color(0xFFCCCCCC),
+                  );
+                }),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
-          comment,
+            comment,
             style: GoogleFonts.dosis(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -271,7 +261,7 @@ class _FurrentPawtnerRatingsScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                serviceType,
+                serviceName,
                 style: GoogleFonts.dosis(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
@@ -354,14 +344,12 @@ class _FurrentPawtnerRatingsScreenState
             : Column(
                 children: [
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                     child: _buildHeader(),
                   ),
                   _buildFilterBar(),
-
                   const SizedBox(height: 8),
-
                   Expanded(
                     child: reviews.isEmpty
                         ? Center(

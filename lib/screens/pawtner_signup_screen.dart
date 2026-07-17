@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pawtner_business_details_screen.dart';
@@ -26,6 +27,13 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
   bool _showPassword = false;
   bool _showConfirm = false;
 
+  bool _isValidContactNumber(String value) {
+    final trimmed = value.trim();
+    return RegExp(
+      r'^(09[0-9]{9}|(\+63|63)9[0-9]{9})$',
+    ).hasMatch(trimmed);
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -36,89 +44,106 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
     super.dispose();
   }
 
-  void _showTopToast(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(top: 16, left: 16, right: 16),
-        backgroundColor: isError ? const Color(0xFFFF3B30) : const Color(0xFF000000),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   InputDecoration buildInputDecoration(String hint, IconData icon) {
     return InputDecoration(
       prefixIcon: Icon(icon, color: const Color(0xFF6E4B3A)),
       hintText: hint,
-      hintStyle: TextStyle(
-        color: Colors.grey[400],
+      hintStyle: GoogleFonts.dosis(
         fontSize: 16,
         fontWeight: FontWeight.w400,
+        color: Colors.grey[400],
       ),
       enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.5),
+        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1),
       ),
       focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.5),
+        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1),
       ),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
     );
   }
 
   Future<void> _continue() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_passwordCtrl.text != _confirmCtrl.text) {
-      _showTopToast("Passwords do not match", isError: true);
-      return;
-    }
 
     setState(() => _isLoading = true);
 
+    final email = _emailCtrl.text.trim().toLowerCase();
+
     try {
-      final res = await supabase.auth.signUp(
-        email: _emailCtrl.text.trim(),
+      final response = await supabase.auth.signUp(
+        email: email,
         password: _passwordCtrl.text.trim(),
       );
 
-      final user = res.user;
-      if (user == null) throw Exception("Sign up failed");
+      final user = response.user;
+      final session = response.session;
+
+      if (user == null ||
+          (session == null &&
+              (user.identities == null || user.identities!.isEmpty))) {
+        if (!mounted) return;
+
+        setState(() => _isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "This email is already registered. Please sign in instead.",
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+            ),
+            backgroundColor: const Color(0xFF6E4B3A),
+          ),
+        );
+
+        return;
+      }
 
       if (!mounted) return;
+      setState(() => _isLoading = false);
 
-      // Navigate to Business Details and await for data return
-      final result = await Navigator.push(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PawtnerBusinessDetailsScreen(
             name: _nameCtrl.text.trim(),
-            email: _emailCtrl.text.trim(),
+            email: email,
             contact: _contactCtrl.text.trim(),
+            password: _passwordCtrl.text.trim(),
           ),
         ),
       );
+    } on AuthException catch (e) {
+      if (!mounted) return;
 
-      // If user navigates back from Business Details, retain data
-      if (result != null && result is Map<String, dynamic>) {
-        _nameCtrl.text = result['name'] ?? _nameCtrl.text;
-        _emailCtrl.text = result['email'] ?? _emailCtrl.text;
-        _contactCtrl.text = result['contact'] ?? _contactCtrl.text;
-      }
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
+      );
     } catch (e) {
-      _showTopToast(e.toString().replaceFirst('Exception: ', ''), isError: true);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Something went wrong. Try again."),
+          backgroundColor: Color(0xFF6E4B3A),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8F8F8),
         elevation: 0,
         leading: const BackButton(
           color: Color(0xFF6E4B3A),
@@ -126,7 +151,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
         title: Text(
           'Sign Up',
           style: GoogleFonts.dosis(
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF6E4B3A),
           ),
@@ -152,75 +177,161 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                             children: [
                               TextFormField(
                                 controller: _nameCtrl,
-                                decoration: buildInputDecoration('Full Name', Icons.person),
-                                style: const TextStyle(
-                                  color: Color(0xFF6E4B3A),
+                                decoration: buildInputDecoration(
+                                    'Full Name', Icons.person),
+                                style: GoogleFonts.dosis(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6E4B3A),
                                 ),
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _emailCtrl,
                                 keyboardType: TextInputType.emailAddress,
-                                decoration: buildInputDecoration('Email', Icons.email),
-                                style: const TextStyle(
-                                  color: Color(0xFF6E4B3A),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter your email';
+                                  }
+
+                                  final emailRegex =
+                                      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+                                  if (!emailRegex.hasMatch(value.trim())) {
+                                    return 'Please enter a valid email';
+                                  }
+
+                                  return null;
+                                },
+                                decoration: buildInputDecoration(
+                                  'Email',
+                                  Icons.email,
+                                ),
+                                style: GoogleFonts.dosis(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6E4B3A),
                                 ),
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _contactCtrl,
                                 keyboardType: TextInputType.phone,
-                                decoration: buildInputDecoration('Contact Number', Icons.phone),
-                                style: const TextStyle(
-                                  color: Color(0xFF6E4B3A),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[\d+]'),
+                                  ),
+                                  LengthLimitingTextInputFormatter(13),
+                                ],
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter your contact number';
+                                  }
+
+                                  if (!_isValidContactNumber(value.trim())) {
+                                    return 'Please enter a valid contact number';
+                                  }
+
+                                  return null;
+                                },
+                                decoration: buildInputDecoration(
+                                  'Contact Number',
+                                  Icons.phone,
+                                ),
+                                style: GoogleFonts.dosis(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6E4B3A),
                                 ),
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _passwordCtrl,
                                 obscureText: !_showPassword,
-                                decoration: buildInputDecoration('Password', Icons.lock)
-                                    .copyWith(
+                                maxLength: 32,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter your password';
+                                  }
+
+                                  if (value.trim().length < 8) {
+                                    return 'Password must be at least 8 characters';
+                                  }
+
+                                  if (value.trim().length > 32) {
+                                    return 'Password must not exceed 32 characters';
+                                  }
+
+                                  if (!value
+                                      .trim()
+                                      .contains(RegExp(r'[0-9]'))) {
+                                    return 'Password must contain at least one number';
+                                  }
+
+                                  if (!value
+                                      .trim()
+                                      .contains(RegExp(r'[a-zA-Z]'))) {
+                                    return 'Password must contain at least one letter';
+                                  }
+
+                                  return null;
+                                },
+                                decoration: buildInputDecoration(
+                                  'Password',
+                                  Icons.lock,
+                                ).copyWith(
+                                  counterText: '',
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _showPassword ? Icons.visibility_off : Icons.visibility,
+                                      _showPassword
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
                                       color: const Color(0xFF6E4B3A),
                                     ),
-                                    onPressed: () =>
-                                        setState(() => _showPassword = !_showPassword),
+                                    onPressed: () => setState(
+                                        () => _showPassword = !_showPassword),
                                   ),
                                 ),
-                                style: const TextStyle(
-                                  color: Color(0xFF6E4B3A),
+                                style: GoogleFonts.dosis(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6E4B3A),
                                 ),
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _confirmCtrl,
                                 obscureText: !_showConfirm,
-                                decoration: buildInputDecoration('Confirm Password', Icons.lock)
-                                    .copyWith(
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please confirm your password';
+                                  }
+
+                                  if (value != _passwordCtrl.text) {
+                                    return 'Passwords do not match';
+                                  }
+
+                                  return null;
+                                },
+                                decoration: buildInputDecoration(
+                                  'Confirm Password',
+                                  Icons.lock,
+                                ).copyWith(
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _showConfirm ? Icons.visibility_off : Icons.visibility,
+                                      _showConfirm
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
                                       color: const Color(0xFF6E4B3A),
                                     ),
-                                    onPressed: () =>
-                                        setState(() => _showConfirm = !_showConfirm),
+                                    onPressed: () => setState(
+                                        () => _showConfirm = !_showConfirm),
                                   ),
                                 ),
-                                style: const TextStyle(
-                                  color: Color(0xFF6E4B3A),
+                                style: GoogleFonts.dosis(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6E4B3A),
                                 ),
                               ),
                             ],
@@ -266,7 +377,8 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                                   ),
                                 ),
                                 children: [
-                                  const TextSpan(text: "Already have an account? "),
+                                  const TextSpan(
+                                      text: "Already have an account? "),
                                   TextSpan(
                                     text: "Sign In",
                                     style: const TextStyle(
@@ -278,7 +390,8 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                                         Navigator.pushReplacement(
                                           context,
                                           MaterialPageRoute(
-                                              builder: (_) => const SignInScreen()),
+                                              builder: (_) =>
+                                                  const SignInScreen()),
                                         );
                                       },
                                   ),

@@ -20,7 +20,12 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
   List<Map<String, dynamic>> cancelledBookings = [];
   List<Map<String, dynamic>> missedBookings = [];
 
-  int selectedTabIndex = 0; // 0: Upcoming, 1: Completed, 2: Cancelled, 3: Missed
+  int selectedTabIndex = 0;
+  int selectedPastFilter = 0;
+
+  final TextEditingController searchController = TextEditingController();
+
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -37,13 +42,12 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
 
       final bookingsQuery = await supabase
           .from('bookings')
-          .select(
-            '''
+          .select('''
             *,
-            pets(type, name, profile_picture_url),
-            services(service_type, service_name)
-            '''
-          )
+pets(type, name, profile_picture_url),
+services(service_type, service_name),
+furrents(full_name)
+            ''')
           .eq('pawtner_id', user.id)
           .order('scheduled_start', ascending: true);
 
@@ -54,7 +58,8 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
 
       for (var b in bookingsQuery as List) {
         final booking = b as Map<String, dynamic>;
-        final scheduledStart = DateTime.tryParse(booking['scheduled_start'] ?? '') ?? now;
+        final scheduledStart =
+            DateTime.tryParse(booking['scheduled_start'] ?? '') ?? now;
         final status = (booking['status'] ?? '').toString().toLowerCase();
 
         if (status == 'cancelled') {
@@ -63,9 +68,11 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
           missed.add(booking);
         } else {
           final today = DateTime(now.year, now.month, now.day);
-          final bookingDate = DateTime(scheduledStart.year, scheduledStart.month, scheduledStart.day);
+          final bookingDate = DateTime(
+              scheduledStart.year, scheduledStart.month, scheduledStart.day);
 
-          if (bookingDate.isAtSameMomentAs(today) || bookingDate.isAfter(today)) {
+          if (bookingDate.isAtSameMomentAs(today) ||
+              bookingDate.isAfter(today)) {
             booking['status'] = 'Upcoming';
             upcoming.add(booking);
           } else {
@@ -131,7 +138,8 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
     return Text(
       text,
       style: GoogleFonts.dosis(
-        textStyle: TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color),
+        textStyle:
+            TextStyle(fontSize: fontSize, fontWeight: fontWeight, color: color),
       ),
       textAlign: textAlign,
     );
@@ -139,21 +147,52 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['Upcoming', 'Completed', 'Cancelled', 'Missed'];
+    final tabs = ['Upcoming', 'Past'];
 
     List<Map<String, dynamic>> bookingsToShow;
-    switch (selectedTabIndex) {
-      case 1:
-        bookingsToShow = completedBookings;
-        break;
-      case 2:
-        bookingsToShow = cancelledBookings;
-        break;
-      case 3:
-        bookingsToShow = missedBookings;
-        break;
-      default:
-        bookingsToShow = upcomingBookings;
+
+    if (selectedTabIndex == 0) {
+      bookingsToShow = upcomingBookings;
+    } else {
+      switch (selectedPastFilter) {
+        case 1:
+          bookingsToShow = cancelledBookings;
+          break;
+        case 2:
+          bookingsToShow = missedBookings;
+          break;
+        default:
+          bookingsToShow = completedBookings;
+      }
+    }
+
+    if (searchQuery.isNotEmpty) {
+      final allBookings = [
+        ...upcomingBookings,
+        ...completedBookings,
+        ...cancelledBookings,
+        ...missedBookings,
+      ];
+
+      bookingsToShow = allBookings.where((booking) {
+        final pet = booking['pets'] as Map<String, dynamic>?;
+
+        final service = booking['services'] as Map<String, dynamic>?;
+
+        final furrent = booking['furrents'] as Map<String, dynamic>?;
+
+        final petName = (pet?['name'] ?? '').toString().toLowerCase();
+
+        final serviceName =
+            (service?['service_name'] ?? '').toString().toLowerCase();
+
+        final furrentName =
+            (furrent?['full_name'] ?? '').toString().toLowerCase();
+
+        return petName.contains(searchQuery.toLowerCase()) ||
+            serviceName.contains(searchQuery.toLowerCase()) ||
+            furrentName.contains(searchQuery.toLowerCase());
+      }).toList();
     }
 
     return Scaffold(
@@ -179,6 +218,53 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x14000000),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          searchQuery = value;
+                        });
+                      },
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFF6E4B3A),
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Search bookings',
+                        hintStyle: GoogleFonts.dosis(
+                            color: const Color(0xFFBDBDBD),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF6E4B3A),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFFFFFFF),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: List.generate(tabs.length, (index) {
@@ -213,22 +299,65 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
                   }),
                 ),
                 const SizedBox(height: 16),
+                if (selectedTabIndex == 1) ...[
+                  Row(
+                    children: List.generate(3, (index) {
+                      final pastTabs = ['Completed', 'Cancelled', 'Missed'];
+                      final isSelected = selectedPastFilter == index;
+
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              setState(() => selectedPastFilter = index),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFDDC7A9)
+                                  : const Color(0xFFF2F2F2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Center(
+                              child: Text(
+                                pastTabs[index],
+                                style: GoogleFonts.dosis(
+                                  fontSize: 16,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: const Color(0xFF6E4B3A),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Expanded(
                   child: bookingsToShow.isEmpty
                       ? Center(
-                          child: customText('No bookings', fontSize: 16, color: const Color(0xFF6E4B3A)),
+                          child: customText('No bookings',
+                              fontSize: 16, color: const Color(0xFF6E4B3A)),
                         )
                       : ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: bookingsToShow.length,
                           itemBuilder: (context, index) {
                             final booking = bookingsToShow[index];
-                            final pet = booking['pets'] as Map<String, dynamic>?;
-                            final service = booking['services'] as Map<String, dynamic>?;
+                            final pet =
+                                booking['pets'] as Map<String, dynamic>?;
+                            final service =
+                                booking['services'] as Map<String, dynamic>?;
 
-                            final scheduledStart = DateTime.tryParse(booking['scheduled_start'] ?? '');
+                            final scheduledStart = DateTime.tryParse(
+                                booking['scheduled_start'] ?? '');
                             final formattedDate = scheduledStart != null
-                                ? DateFormat('MMM d, h:mm a').format(scheduledStart)
+                                ? DateFormat('MMM d, h:mm a')
+                                    .format(scheduledStart)
                                 : '';
 
                             return Container(
@@ -256,19 +385,22 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
                                       color: const Color(0xFFDDC7A9),
                                       image: pet?['profile_picture_url'] != null
                                           ? DecorationImage(
-                                              image: NetworkImage(pet!['profile_picture_url']),
+                                              image: NetworkImage(
+                                                  pet!['profile_picture_url']),
                                               fit: BoxFit.cover,
                                             )
                                           : null,
                                     ),
                                     child: pet?['profile_picture_url'] == null
-                                        ? const Icon(Icons.pets, color: Color(0xFF6E4B3A), size: 40)
+                                        ? const Icon(Icons.pets,
+                                            color: Color(0xFF6E4B3A), size: 40)
                                         : null,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         customText(
                                           service?['service_type'] ?? '',
@@ -292,17 +424,19 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             customText(
                                               formattedDate,
-                                              fontSize: 14, 
+                                              fontSize: 14,
                                               fontWeight: FontWeight.w400,
                                               color: const Color(0xFF6E4B3A),
                                             ),
                                             TextButton(
                                               onPressed: () async {
-                                                final result = await Navigator.push(
+                                                final result =
+                                                    await Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
                                                     builder: (_) =>
@@ -319,14 +453,16 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
                                                 padding: EdgeInsets.zero,
                                                 minimumSize: const Size(0, 0),
                                                 tapTargetSize:
-                                                    MaterialTapTargetSize.shrinkWrap,
+                                                    MaterialTapTargetSize
+                                                        .shrinkWrap,
                                               ),
                                               child: Text(
                                                 'View Details',
                                                 style: GoogleFonts.dosis(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w600,
-                                                  color: const Color(0xFF6E4B3A),
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
                                                 ),
                                               ),
                                             ),

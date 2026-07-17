@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -50,7 +52,17 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
     } catch (e) {
       debugPrint('Error fetching FAQs: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load FAQs')),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          content: Text(
+            'Failed to load FAQs',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
       );
     } finally {
       setState(() => isLoading = false);
@@ -98,24 +110,42 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    height: 40, // smaller height
-                    child: TextField(
-                      onChanged: (value) =>
-                          setState(() => searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: 'Search',
-                        hintStyle: const TextStyle(
-                            color: Color(0xFFBDBDBD), fontSize: 16),
-                        fillColor: Colors.white,
-                        filled: true,
-                        prefixIcon:
-                            const Icon(Icons.search, color: Color(0xFF6E4B3A)),
-                        contentPadding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: SizedBox(
+                      height: 40, // smaller height
+                      child: TextField(
+                        style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
+                        ),
+                        onChanged: (value) =>
+                            setState(() => searchQuery = value),
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle: GoogleFonts.dosis(
+                            color: const Color(0xFFBDBDBD),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          fillColor: const Color(0xFFFFFFFF),
+                          filled: true,
+                          prefixIcon: const Icon(Icons.search,
+                              color: Color(0xFF6E4B3A)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),
@@ -133,8 +163,8 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
                       : ListView(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           children: filteredFaqs.entries
-                              .map((entry) => _buildCategorySection(
-                                  entry.key, entry.value))
+                              .map((entry) =>
+                                  _buildCategorySection(entry.key, entry.value))
                               .toList(),
                         ),
                 ),
@@ -143,7 +173,8 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
     );
   }
 
-  Widget _buildCategorySection(String category, List<Map<String, dynamic>> faqs) {
+  Widget _buildCategorySection(
+      String category, List<Map<String, dynamic>> faqs) {
     final isExpanded = expandedCategories[category] ?? true;
 
     return Column(
@@ -152,7 +183,8 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
         GestureDetector(
           onTap: () {
             setState(() {
-              expandedCategories[category] = !(expandedCategories[category] ?? true);
+              expandedCategories[category] =
+                  !(expandedCategories[category] ?? true);
             });
           },
           child: Container(
@@ -179,8 +211,7 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
             ),
           ),
         ),
-        if (isExpanded)
-          ...faqs.map((faq) => _buildFAQTile(faq)).toList(),
+        if (isExpanded) ...faqs.map((faq) => _buildFAQTile(faq)).toList(),
         const SizedBox(height: 16),
       ],
     );
@@ -190,20 +221,27 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: _highlightText(faq['question'] ?? 'No question'),
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: const Color(0xFFF8F8F8),
-            child: _highlightText(faq['answer'] ?? 'No answer'),
-          ),
-        ],
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dividerColor: const Color(0xFF6E4B3A),
+        ),
+        child: ExpansionTile(
+          iconColor: const Color(0xFF6E4B3A),
+          collapsedIconColor: const Color(0xFF6E4B3A),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          title: _highlightText(faq['question'] ?? 'No question'),
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: const Color(0xFFF8F8F8),
+              child: _highlightText(faq['answer'] ?? 'No answer'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -212,9 +250,9 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
   Widget _highlightText(String text) {
     if (searchQuery.isEmpty) {
       return Text(
-      text,
-      style: GoogleFonts.dosis(fontSize: 16, color: const Color(0xFF6E4B3A)),
-    );
+        text,
+        style: GoogleFonts.dosis(fontSize: 16, color: const Color(0xFF6E4B3A)),
+      );
     }
 
     final query = searchQuery.toLowerCase();

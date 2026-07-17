@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -62,53 +64,55 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
     }
   }
 
-Future<void> submitReview() async {
-  final user = supabase.auth.currentUser;
-  if (user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('User not logged in')),
-    );
-    return;
+  Future<void> submitReview() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
+      return;
+    }
+
+    if (rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please select a rating before submitting.')),
+      );
+      return;
+    }
+
+    try {
+      await supabase.from('bookings').update({
+        'rating': rating.toInt(),
+        'review_comment': reviewController.text.trim(),
+        'reviewed': true,
+      }).eq('id', widget.bookingId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review submitted successfully!')),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      debugPrint('Error submitting review: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Failed to submit review. Please try again.')),
+      );
+    }
   }
-
-  if (rating == 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please select a rating before submitting.')),
-    );
-    return;
-  }
-
-  try {
-    await supabase
-        .from('bookings')
-        .update({
-          'rating': rating.toInt(),
-          'review_comment': reviewController.text.trim(),
-          'reviewed': true,
-        })
-        .eq('id', widget.bookingId);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Review submitted successfully!')),
-    );
-
-    Navigator.pop(context,true);
-  } catch (e) {
-    debugPrint('Error submitting review: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Failed to submit review. Please try again.')),
-    );
-  }
-}
 
   @override
   Widget build(BuildContext context) {
-    final pawtnerName = bookingData?['pawtners']?['business_name']?.toString().isNotEmpty == true
-        ? bookingData!['pawtners']!['business_name']
-        : bookingData?['pawtners']?['full_name'] ?? '';
+    final pawtnerName =
+        bookingData?['pawtners']?['business_name']?.toString().isNotEmpty ==
+                true
+            ? bookingData!['pawtners']!['business_name']
+            : bookingData?['pawtners']?['full_name'] ?? '';
     final serviceName = bookingData?['services']?['service_name'] ?? '';
     final scheduledStart = bookingData?['scheduled_start'] != null
-        ? DateFormat('MMM d, h:mm a').format(DateTime.parse(bookingData!['scheduled_start']))
+        ? DateFormat('MMM d, h:mm a')
+            .format(DateTime.parse(bookingData!['scheduled_start']))
         : '';
     final profileUrl = bookingData?['pawtners']?['profile_picture_url'];
 
@@ -162,7 +166,8 @@ Future<void> submitReview() async {
                                 : null,
                           ),
                           child: profileUrl == null
-                              ? const Icon(Icons.person, color: Color(0xFFDDC7A9), size: 28)
+                              ? const Icon(Icons.person,
+                                  color: Color(0xFFDDC7A9), size: 28)
                               : null,
                         ),
                         const SizedBox(width: 12),
@@ -245,17 +250,21 @@ Future<void> submitReview() async {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF6E4B3A), width: 1),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF6E4B3A), width: 1),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF6E4B3A), width: 1),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF6E4B3A), width: 1),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF6E4B3A), width: 1),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF6E4B3A), width: 1),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
                     ),
                   ),
                   const SizedBox(height: 120),

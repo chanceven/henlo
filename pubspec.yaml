@@ -12,15 +12,21 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.5
+  firebase_core: ^3.15.2
+  firebase_messaging: ^15.2.10
   google_fonts: ^6.3.2
   supabase_flutter: ^2.10.3
   file_picker: ^8.0.0
   image_picker: ^0.8.7+6
   google_maps_flutter: ^2.13.1
+  url_launcher: ^6.3.0
   geocoding: ^4.0.0
   geolocator: ^14.0.2
   intl: ^0.18.1
   uuid: ^4.5.2
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  dio: ^5.4.0
 
 dev_dependencies:
   flutter_test:
@@ -36,3 +42,4 @@ flutter:
     - lib/assets/icons/paw.png
     - lib/assets/icons/grooming.png
     - lib/assets/images/logo.png
+    - lib/assets/images/henlo_logo_v4.png

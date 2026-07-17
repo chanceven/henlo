@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,15 +12,16 @@ class FurrentPawtnerDetailScreen extends StatefulWidget {
   final String pawtnerId;
   final String? initialServiceId;
 
-  const FurrentPawtnerDetailScreen({super.key, required this.pawtnerId, this.initialServiceId});
+  const FurrentPawtnerDetailScreen(
+      {super.key, required this.pawtnerId, this.initialServiceId});
 
   @override
   State<FurrentPawtnerDetailScreen> createState() =>
       _FurrentPawtnerDetailScreenState();
 }
 
-class _FurrentPawtnerDetailScreenState
-    extends State<FurrentPawtnerDetailScreen> with TickerProviderStateMixin {
+class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
+    with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
   bool isLoading = true;
   Map<String, dynamic>? pawtner;
@@ -155,15 +158,12 @@ class _FurrentPawtnerDetailScreenState
   Future<void> _loadFurrentPets() async {
     try {
       final currentUserId = supabase.auth.currentUser!.id;
-      final response = await supabase
-          .from('pets')
-          .select()
-          .eq('furrent_id', currentUserId);
+      final response =
+          await supabase.from('pets').select().eq('furrent_id', currentUserId);
 
       setState(() {
-        furrentPets = (response as List)
-            .map((e) => e as Map<String, dynamic>)
-            .toList();
+        furrentPets =
+            (response as List).map((e) => e as Map<String, dynamic>).toList();
       });
     } catch (e) {
       debugPrint('Error loading furrent pets: $e');
@@ -178,6 +178,7 @@ class _FurrentPawtnerDetailScreenState
           .eq('pawtner_id', pawtnerId)
           .not('rating', 'is', null);
 
+      debugPrint('Rating raw response for pawtner $pawtnerId: $reviewResponse');
       final ratings =
           (reviewResponse as List).map((e) => e['rating'] as int).toList();
 
@@ -248,7 +249,9 @@ class _FurrentPawtnerDetailScreenState
                                               pawtnerId: pawtner!['id'],
                                               serviceId: serviceId,
                                               petId: pet['id'],
-                                              pawtnerName: pawtner!['business_name'] ?? pawtner!['full_name'],
+                                              pawtnerName:
+                                                  pawtner!['business_name'] ??
+                                                      pawtner!['full_name'],
                                             ),
                                           ),
                                         );
@@ -376,7 +379,7 @@ class _FurrentPawtnerDetailScreenState
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF6E4B3A),
-                      ),
+                      ).copyWith(fontFamilyFallback: const ['Roboto', 'Arial']),
                     ),
                   ),
                 ],
@@ -433,27 +436,30 @@ class _FurrentPawtnerDetailScreenState
     );
   }
 
-  Widget _buildHeader() {
+Widget _buildHeader() {
     if (pawtner == null) return const SizedBox();
+    return _buildHeaderInner();
+  }
 
+  Widget _buildHeaderInner() {
     final businessName = pawtner?['business_name'] ?? '';
     final pawtnerFullName = pawtner?['full_name'] ?? 'Pawtner';
-    final displayName = businessName.isNotEmpty ? businessName : pawtnerFullName;
+    final displayName =
+        businessName.isNotEmpty ? businessName : pawtnerFullName;
 
     final ratingFuture = _getAverageRating(widget.pawtnerId);
     final businessAddress = pawtner?['business_address'] ?? '';
-    final city = pawtner?['city'] ?? '';
     final availableAreas = pawtner?['available_areas'] ?? '';
 
-    final fullAddress = [businessAddress, city]
-        .where((e) => e.toString().trim().isNotEmpty)
-        .join(', ');
+    final fullAddress = businessAddress.toString().trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
+Text(
           displayName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.dosis(
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -471,8 +477,8 @@ class _FurrentPawtnerDetailScreenState
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        FurrentPawtnerRatingsScreen(pawtnerId: widget.pawtnerId),
+                    builder: (_) => FurrentPawtnerRatingsScreen(
+                        pawtnerId: widget.pawtnerId),
                   ),
                 );
               },
@@ -506,8 +512,10 @@ class _FurrentPawtnerDetailScreenState
         ),
         const SizedBox(height: 8),
         if (fullAddress.isNotEmpty)
-          Text(
+Text(
             'Shop Location: $fullAddress',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.dosis(
               fontSize: 16,
               fontWeight: FontWeight.w400,
@@ -675,8 +683,7 @@ class _FurrentPawtnerDetailScreenState
                                             'No services available',
                                             style: GoogleFonts.dosis(
                                                 fontSize: 16,
-                                                color: const Color(
-                                                    0xFF6E4B3A)),
+                                                color: const Color(0xFF6E4B3A)),
                                           ),
                                         )
                                       : ListView.builder(
@@ -712,7 +719,7 @@ class _FurrentPawtnerDetailScreenState
                 ),
                 if (pawtner != null)
                   Positioned(
-                    bottom: 16,
+                    bottom: 16 + MediaQuery.of(context).padding.bottom,
                     left: 16,
                     right: 16,
                     child: GestureDetector(
@@ -732,21 +739,27 @@ class _FurrentPawtnerDetailScreenState
                         if (existing != null) {
                           conversationId = existing['id'];
                         } else {
-                          final inserted = await supabase.from('conversations').insert({
-                            'furrent_id': currentUserId,
-                            'pawtner_id': pawtnerId,
-                            'last_message': '',
-                            'last_message_at': DateTime.now().toIso8601String(),
-                          }).select().single();
+                          final inserted = await supabase
+                              .from('conversations')
+                              .insert({
+                                'furrent_id': currentUserId,
+                                'pawtner_id': pawtnerId,
+                                'last_message': '',
+                                'last_message_at':
+                                    DateTime.now().toIso8601String(),
+                              })
+                              .select()
+                              .single();
 
                           conversationId = inserted['id'];
                         }
 
                         if (!mounted) return;
 
-                        final displayName = (pawtner!['business_name'] ?? '').isNotEmpty
-                            ? pawtner!['business_name']
-                            : pawtner!['full_name'];
+                        final displayName =
+                            (pawtner!['business_name'] ?? '').isNotEmpty
+                                ? pawtner!['business_name']
+                                : pawtner!['full_name'];
 
                         Navigator.push(
                           context,
@@ -755,7 +768,9 @@ class _FurrentPawtnerDetailScreenState
                               conversationId: conversationId,
                               otherUserId: pawtnerId,
                               otherUserName: displayName,
-                              otherUserAvatar: pawtner!['profile_picture_url'] ?? '',
+                              otherUserAvatar:
+                                  pawtner!['profile_picture_url'] ?? '',
+                              currentUserType: 'furrent',
                             ),
                           ),
                         );

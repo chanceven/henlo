@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FurrentContactUsScreen extends StatefulWidget {
   const FurrentContactUsScreen({super.key});
@@ -28,8 +29,8 @@ class _FurrentContactUsScreenState extends State<FurrentContactUsScreen> {
 
   bool get isFormValid {
     final nameValid = _nameController.text.trim().isNotEmpty;
-    final emailFieldValid =
-        _emailController.text.trim().isNotEmpty && _isEmailValid(_emailController.text.trim());
+    final emailFieldValid = _emailController.text.trim().isNotEmpty &&
+        _isEmailValid(_emailController.text.trim());
     final subjectValid = _subjectController.text.trim().isNotEmpty;
     final messageValid = _messageController.text.trim().isNotEmpty;
     return nameValid && emailFieldValid && subjectValid && messageValid;
@@ -37,7 +38,8 @@ class _FurrentContactUsScreenState extends State<FurrentContactUsScreen> {
 
   void _validateForm() {
     setState(() {
-      emailValid = _emailController.text.isEmpty || _isEmailValid(_emailController.text.trim());
+      emailValid = _emailController.text.isEmpty ||
+          _isEmailValid(_emailController.text.trim());
     });
   }
 
@@ -75,32 +77,35 @@ class _FurrentContactUsScreenState extends State<FurrentContactUsScreen> {
             _buildEmailField(_emailController, 'Email'),
             _buildTextField(_subjectController, 'Subject'),
             _buildMessageField(_messageController, 'Enter your message'),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6E4B3A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: isFormValid && !isSubmitting ? _submitForm : null,
-                child: isSubmitting
-                    ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
-                    : Text(
-                        'Submit',
-                        style: GoogleFonts.dosis(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFDDC7A9),
-                        ),
-                      ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.fromLTRB(
+            16, 0, 16, 24 + MediaQuery.of(context).padding.bottom),
+        child: SizedBox(
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6E4B3A),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            const SizedBox(height: 24),
-          ],
+            onPressed: isFormValid && !isSubmitting ? _submitForm : null,
+            child: isSubmitting
+                ? const CircularProgressIndicator(
+                    color: Color(0xFFDDC7A9),
+                  )
+                : Text(
+                    'Submit',
+                    style: GoogleFonts.dosis(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFDDC7A9),
+                    ),
+                  ),
+          ),
         ),
       ),
     );
@@ -110,15 +115,20 @@ class _FurrentContactUsScreenState extends State<FurrentContactUsScreen> {
       {TextInputType keyboardType = TextInputType.text}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      color: Colors.white,
+      color: const Color(0xFFFFFFFF),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(color: Color(0xFF6E4B3A)),
+        style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: TextStyle(color: Colors.grey[500]),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          hintStyle: GoogleFonts.dosis(
+            color: const Color(0xFFBDBDBD),
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF6E4B3A), width: 1),
@@ -136,7 +146,8 @@ class _FurrentContactUsScreenState extends State<FurrentContactUsScreen> {
     );
   }
 
-  Widget _buildEmailField(TextEditingController controller, String placeholder) {
+  Widget _buildEmailField(
+      TextEditingController controller, String placeholder) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,26 +156,36 @@ class _FurrentContactUsScreenState extends State<FurrentContactUsScreen> {
             padding: const EdgeInsets.only(bottom: 4, left: 4),
             child: Text(
               'Please enter a valid email',
-              style: TextStyle(color: Colors.red[700], fontSize: 12),
+              style: GoogleFonts.dosis(
+                color: const Color(0xFF8B0000),
+                fontSize: 12,
+              ),
             ),
           ),
-        _buildTextField(controller, placeholder, keyboardType: TextInputType.emailAddress),
+        _buildTextField(controller, placeholder,
+            keyboardType: TextInputType.emailAddress),
       ],
     );
   }
 
-  Widget _buildMessageField(TextEditingController controller, String placeholder) {
+  Widget _buildMessageField(
+      TextEditingController controller, String placeholder) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      color: Colors.white,
+      color: const Color(0xFFFFFFFF),
       child: TextField(
         controller: controller,
         maxLines: 6,
-        style: const TextStyle(color: Color(0xFF6E4B3A)),
+        style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: TextStyle(color: Colors.grey[500]),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          hintStyle: GoogleFonts.dosis(
+            color: const Color(0xFFBDBDBD),
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF6E4B3A), width: 1),
@@ -182,24 +203,64 @@ class _FurrentContactUsScreenState extends State<FurrentContactUsScreen> {
     );
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     setState(() => isSubmitting = true);
 
-    // Placeholder for submission logic (Supabase, email API, etc.)
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      await Supabase.instance.client.functions.invoke(
+        'contact-us',
+        body: {
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'subject': _subjectController.text.trim(),
+          'message': _messageController.text.trim(),
+        },
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          content: Text(
+            'Message submitted successfully',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
+      );
+
+      _nameController.clear();
+      _emailController.clear();
+      _subjectController.clear();
+      _messageController.clear();
+
+      setState(() {
+        emailValid = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          content: Text(
+            'Failed to submit message',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
+      );
+    } finally {
       if (mounted) {
         setState(() => isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Message submitted!')),
-        );
-        _nameController.clear();
-        _emailController.clear();
-        _subjectController.clear();
-        _messageController.clear();
-        setState(() {
-          emailValid = true;
-        });
       }
-    });
+    }
   }
 }

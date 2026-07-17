@@ -57,23 +57,81 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
     try {
       final picker = ImagePicker();
 
-      final source = await showDialog<ImageSource>(
+      final choice = await showModalBottomSheet<String>(
         context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Choose source'),
-          content: const Text('Select image from:'),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(_, ImageSource.camera),
-                child: const Text('Camera')),
-            TextButton(
-                onPressed: () => Navigator.pop(_, ImageSource.gallery),
-                child: const Text('Gallery')),
-          ],
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (_) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading:
+                    const Icon(Icons.photo_library, color: Color(0xFF6E4B3A)),
+                title: customText('Select profile picture',
+                    fontSize: 16, fontWeight: FontWeight.w600),
+                onTap: () => Navigator.pop(_, 'gallery'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF6E4B3A)),
+                title: customText('Take a photo',
+                    fontSize: 16, fontWeight: FontWeight.w600),
+                onTap: () => Navigator.pop(_, 'camera'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Color(0xFF8B0000)),
+                title: customText('Remove profile picture',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF8B0000)),
+                onTap: () => Navigator.pop(_, 'remove'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       );
 
-      if (source == null) return;
+      if (choice == null) return;
+
+      if (choice == 'remove') {
+        final userId = supabase.auth.currentUser!.id;
+        await supabase
+            .from('pawtners')
+            .update({'profile_picture_url': null}).eq('id', userId);
+        setState(() => pawtnerData?['profile_picture_url'] = null);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              content: Text(
+                'Profile picture has been removed',
+                style: GoogleFonts.dosis(
+                  color: const Color(0xFF6E4B3A),
+                ),
+              ),
+              backgroundColor: const Color(0xFFDDC7A9),
+            ),
+          );
+        }
+        if (widget.onProfileUpdated != null) widget.onProfileUpdated!();
+        return;
+      }
+
+      final source =
+          choice == 'camera' ? ImageSource.camera : ImageSource.gallery;
 
       final XFile? image = await picker.pickImage(
         source: source,
@@ -85,29 +143,29 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
       if (image != null) {
         final bytes = await image.readAsBytes();
         final userId = supabase.auth.currentUser!.id;
-        final fileExt = image.name.split('.').last;
-        final filePath = '$userId.$fileExt';
+        final filePath = '$userId/profile.png';
 
         // Upload to Supabase Storage
         await supabase.storage.from('profile_pictures').uploadBinary(
               filePath,
               bytes,
-              fileOptions: const FileOptions(cacheControl: '3600'),
+              fileOptions:
+                  const FileOptions(cacheControl: '3600', upsert: true),
             );
 
         // Get public URL
         final publicUrl =
             supabase.storage.from('profile_pictures').getPublicUrl(filePath);
+        debugPrint('URL: $publicUrl');
 
         // Update Pawtner table
         await supabase
             .from('pawtners')
-            .update({'profile_picture': publicUrl})
-            .eq('id', userId);
+            .update({'profile_picture_url': publicUrl}).eq('id', userId);
 
         setState(() {
           profileImageBytes = bytes;
-          pawtnerData?['profile_picture'] = publicUrl;
+          pawtnerData?['profile_picture_url'] = publicUrl;
         });
 
         // Trigger callback to dashboard
@@ -123,7 +181,8 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
   Widget customText(String text,
       {double fontSize = 14,
       FontWeight fontWeight = FontWeight.normal,
-      Color color = const Color(0xFF6E4B3A)}) {
+      Color color = const Color(0xFF6E4B3A),
+      TextAlign textAlign = TextAlign.start}) {
     return Text(
       text,
       style: GoogleFonts.dosis(
@@ -133,7 +192,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
           color: color,
         ),
       ),
-      textAlign: TextAlign.center,
+      textAlign: textAlign,
     );
   }
 
@@ -194,13 +253,16 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 75,
-                        backgroundColor: pawtnerData?['profile_picture'] != null
-                            ? Colors.transparent
-                            : const Color(0xFFDDC7A9),
-                        backgroundImage: pawtnerData?['profile_picture'] != null
-                            ? NetworkImage(pawtnerData!['profile_picture'])
+                        backgroundColor:
+                            pawtnerData?['profile_picture_url'] != null
+                                ? Colors.transparent
+                                : const Color(0xFFDDC7A9),
+                        backgroundImage: pawtnerData?['profile_picture_url'] !=
+                                null
+                            ? NetworkImage(
+                                '${pawtnerData!['profile_picture_url']}?t=${DateTime.now().millisecondsSinceEpoch}')
                             : null,
-                        child: pawtnerData?['profile_picture'] == null
+                        child: pawtnerData?['profile_picture_url'] == null
                             ? const Icon(Icons.person,
                                 size: 75, color: Color(0xFF6E4B3A))
                             : null,
@@ -306,8 +368,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                       supabase.auth.signOut();
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) => const SignInScreen()),
+                        MaterialPageRoute(builder: (_) => const SignInScreen()),
                         (route) => false,
                       );
                     },

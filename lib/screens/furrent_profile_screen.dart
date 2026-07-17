@@ -119,13 +119,13 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                   const SizedBox(height: 24),
                   CircleAvatar(
                     radius: 75,
-                    backgroundColor: furrentData?['profile_picture'] != null
+                    backgroundColor: furrentData?['profile_picture_url'] != null
                         ? Colors.transparent
                         : const Color(0xFF6E4B3A),
-                    backgroundImage: furrentData?['profile_picture'] != null
-                        ? NetworkImage(furrentData!['profile_picture'])
+                    backgroundImage: furrentData?['profile_picture_url'] != null
+                        ? NetworkImage(furrentData!['profile_picture_url'])
                         : null,
-                    child: furrentData?['profile_picture'] == null
+                    child: furrentData?['profile_picture_url'] == null
                         ? const Icon(Icons.person,
                             size: 75, color: Color(0xFFDDC7A9))
                         : null,
@@ -152,7 +152,7 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                             furrentData: furrentData!,
                             onProfileUpdated: (updated) {
                               setState(() {
-                                furrentData = updated;
+                                furrentData = {...?furrentData, ...updated};
                               });
                             },
                           ),
@@ -198,7 +198,7 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                         MaterialPageRoute(
                           builder: (_) => const FurrentLegalScreen(),
                         ),
-                      );                      
+                      );
                     },
                   ),
                   _buildCard(
@@ -208,8 +208,7 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                       supabase.auth.signOut();
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) => const SignInScreen()),
+                        MaterialPageRoute(builder: (_) => const SignInScreen()),
                         (route) => false,
                       );
                     },

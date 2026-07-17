@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -58,12 +60,12 @@ class _PawtnerServicesScreenState extends State<PawtnerServicesScreen> {
 
   bool isServiceActive(String serviceType) {
     final typeOfServiceRaw = pawtnerData?['service_type'];
-    if (typeOfServiceRaw == null || typeOfServiceRaw.trim().isEmpty) return false;
+    if (typeOfServiceRaw == null || typeOfServiceRaw.trim().isEmpty) {
+      return false;
+    }
 
-    final services = typeOfServiceRaw
-        .split(',')
-        .map((s) => s.trim().toLowerCase())
-        .toList();
+    final services =
+        typeOfServiceRaw.split(',').map((s) => s.trim().toLowerCase()).toList();
 
     return services.contains(serviceType.toLowerCase());
   }
@@ -162,7 +164,9 @@ class _PawtnerServicesScreenState extends State<PawtnerServicesScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
         title: customText('My Services',
-            fontSize: 24, fontWeight: FontWeight.w600, color: const Color(0xFF6E4B3A)),
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF6E4B3A)),
         centerTitle: true,
       ),
       body: isLoading
@@ -171,20 +175,22 @@ class _PawtnerServicesScreenState extends State<PawtnerServicesScreen> {
               children: [
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(16), // <- EXACT PADDING YOU WANTED
+                    padding:
+                        const EdgeInsets.all(16), // <- EXACT PADDING YOU WANTED
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: mainServices.map((service) {
                         final name = service['service_name']!;
                         final type = service['service_type']!;
                         final active = isServiceActive(type);
-                        return _buildServiceButton(name, _iconForService(type), active);
+                        return _buildServiceButton(
+                            name, _iconForService(type), active);
                       }).toList(),
                     ),
                   ),
                 ),
               ],
             ),
-          );
-        }
-      }
+    );
+  }
+}

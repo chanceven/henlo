@@ -1,8 +1,11 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chat_screen.dart';
 import 'new_chat_screen.dart';
+import 'furrent_booking_detail_screen.dart';
 
 class FurrentMessagesScreen extends StatefulWidget {
   const FurrentMessagesScreen({super.key});
@@ -21,6 +24,9 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
   List<Map<String, dynamic>> notifications = [];
 
   bool isLoading = true;
+
+  int unreadChatsCount = 0;
+  int unreadNotificationsCount = 0;
 
   late RealtimeChannel _realtimeChannel;
 
@@ -51,8 +57,10 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
     try {
       final chatData = await supabase
           .from('conversations')
-          .select('*, pawtners(id, full_name, business_name, profile_picture_url)')
+          .select(
+              '*, pawtners(id, full_name, business_name, profile_picture_url)')
           .eq('furrent_id', user.id)
+          .eq('hidden_for_furrent', false)
           .order('last_message_at', ascending: false);
 
       final notificationData = await supabase
@@ -61,9 +69,32 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
           .eq('user_id', user.id)
           .order('created_at', ascending: false);
 
+      int getCount(dynamic value) {
+        if (value == null) return 0;
+        return (value as num).toInt();
+      }
+
+      final unreadChats = chatData.fold<int>(0, (sum, chat) {
+        final isFurrent = chat['furrent_id'] == user.id;
+
+        final count = isFurrent
+            ? chat['unread_count_furrent']
+            : chat['unread_count_pawtner'];
+
+        return sum + getCount(count);
+      });
+
+      final unreadNotifications = notificationData.where((notif) {
+        return notif['is_read'] == false;
+      }).length;
+
       setState(() {
         chats = List<Map<String, dynamic>>.from(chatData);
         notifications = List<Map<String, dynamic>>.from(notificationData);
+
+        unreadChatsCount = unreadChats;
+        unreadNotificationsCount = unreadNotifications;
+
         isLoading = false;
       });
     } catch (e) {
@@ -90,9 +121,15 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
           callback: (payload) async {
             final convo = await supabase
                 .from('conversations')
-                .select('*, pawtners(id, full_name, business_name, profile_picture_url)')
+                .select(
+                    '*, pawtners(id, full_name, business_name, profile_picture_url)')
                 .eq('id', payload.newRecord['id'])
                 .single();
+
+            if (convo['hidden_for_furrent'] == true) {
+              setState(() => chats.removeWhere((c) => c['id'] == convo['id']));
+              return;
+            }
 
             final index = chats.indexWhere((c) => c['id'] == convo['id']);
             if (index != -1) {
@@ -118,9 +155,15 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
           callback: (payload) async {
             final convo = await supabase
                 .from('conversations')
-                .select('*, pawtners(id, full_name, business_name, profile_picture_url)')
+                .select(
+                    '*, pawtners(id, full_name, business_name, profile_picture_url)')
                 .eq('id', payload.newRecord['id'])
                 .single();
+
+            if (convo['hidden_for_furrent'] == true) {
+              setState(() => chats.removeWhere((c) => c['id'] == convo['id']));
+              return;
+            }
 
             final index = chats.indexWhere((c) => c['id'] == convo['id']);
             if (index != -1) {
@@ -150,7 +193,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
           color: color,
         ),
       ),
-      textAlign: TextAlign.center,
+      textAlign: TextAlign.start,
     );
   }
 
@@ -172,21 +215,16 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
 
     if (searchQuery.isNotEmpty) {
       if (selectedTabIndex == 0) {
-        itemsToShow = itemsToShow
-            .where((chat) {
-              final pawtner = chat['pawtners'] ?? {};
+        itemsToShow = itemsToShow.where((chat) {
+          final pawtner = chat['pawtners'] ?? {};
 
-              final nameToSearch =
-                  (pawtner['business_name'] != null &&
-                          pawtner['business_name'].toString().trim().isNotEmpty)
-                      ? pawtner['business_name']
-                      : (pawtner['full_name'] ?? '');
+          final nameToSearch = (pawtner['business_name'] != null &&
+                  pawtner['business_name'].toString().trim().isNotEmpty)
+              ? pawtner['business_name']
+              : (pawtner['full_name'] ?? '');
 
-              return nameToSearch
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase());
-            })
-            .toList();
+          return nameToSearch.toLowerCase().contains(searchQuery.toLowerCase());
+        }).toList();
       } else {
         itemsToShow = itemsToShow
             .where((notif) => (notif['title'] as String)
@@ -236,15 +274,44 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Center(
-                            child: customText(
-                              tabs[index],
-                              fontSize: 18,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                              color: isSelected
-                                  ? const Color(0xFFDDC7A9)
-                                  : const Color(0xFF6E4B3A),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                customText(
+                                  tabs[index],
+                                  fontSize: 18,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: isSelected
+                                      ? const Color(0xFFDDC7A9)
+                                      : const Color(0xFF6E4B3A),
+                                ),
+                                if ((index == 0 && unreadChatsCount > 0) ||
+                                    (index == 1 &&
+                                        unreadNotificationsCount > 0))
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      index == 0
+                                          ? unreadChatsCount.toString()
+                                          : unreadNotificationsCount.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
@@ -255,26 +322,42 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    height: 44,
-                    child: TextField(
-                      onChanged: (value) => setState(() => searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: 'Search',
-                        hintStyle: const TextStyle(
-                          color: Color(0xFFBDBDBD),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        fillColor: const Color(0xFFFFFFFF),
-                        filled: true,
-                        prefixIcon:
-                            const Icon(Icons.search, color: Color(0xFF6E4B3A)),
-                        contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                      ],
+                    ),
+                    child: SizedBox(
+                      height: 44,
+                      child: TextField(
+                        style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
+                        ),
+                        onChanged: (value) =>
+                            setState(() => searchQuery = value),
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle: GoogleFonts.dosis(
+                            color: const Color(0xFFBDBDBD),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          fillColor: const Color(0xFFFFFFFF),
+                          filled: true,
+                          prefixIcon: const Icon(Icons.search,
+                              color: Color(0xFF6E4B3A)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),
@@ -299,7 +382,8 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                             final item = itemsToShow[index];
                             if (selectedTabIndex == 0) {
                               final pawtner =
-                                  item['pawtners'] as Map<String, dynamic>? ?? {};
+                                  item['pawtners'] as Map<String, dynamic>? ??
+                                      {};
 
                               final String displayName =
                                   (pawtner['business_name'] != null &&
@@ -312,11 +396,11 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
 
                               final profilePic =
                                   pawtner['profile_picture_url'] ?? '';
-                              final lastMessageDate = item['last_message_at'] !=
-                                      null
-                                  ? DateTime.parse(item['last_message_at'])
-                                      .toLocal()
-                                  : null;
+                              final lastMessageDate =
+                                  item['last_message_at'] != null
+                                      ? DateTime.parse(item['last_message_at'])
+                                          .toLocal()
+                                      : null;
 
                               String formattedDate = '';
                               if (lastMessageDate != null) {
@@ -324,44 +408,330 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                 if (lastMessageDate.year == now.year &&
                                     lastMessageDate.month == now.month &&
                                     lastMessageDate.day == now.day) {
-                                  formattedDate = formatTime12Hour(lastMessageDate);
+                                  formattedDate =
+                                      formatTime12Hour(lastMessageDate);
                                 } else {
                                   formattedDate =
                                       "${lastMessageDate.month}/${lastMessageDate.day}/${lastMessageDate.year}";
                                 }
                               }
 
-                              String lastMessageText = item['last_message'] ?? '';
+                              String lastMessageText =
+                                  item['last_message'] ?? '';
                               final lastMessageSender =
                                   item['last_message_sender_id'];
                               if (lastMessageSender == user?.id) {
                                 lastMessageText = "You: $lastMessageText";
                               }
 
-                              final isUnread =
-                                  item['last_message_read'] == false &&
-                                      lastMessageSender != user?.id;
+                              final isFurrent = item['furrent_id'] == user?.id;
+
+                              final unreadCount = isFurrent
+                                  ? (item['unread_count_furrent'] ?? 0)
+                                  : (item['unread_count_pawtner'] ?? 0);
+
+                              final isUnread = unreadCount > 0;
+
+                              return Dismissible(
+                                key: Key(item['id']),
+                                direction: DismissDirection.endToStart,
+                                confirmDismiss: (_) async {
+                                  return await showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14)),
+                                      title: customText(
+                                          'Delete this entire conversation?',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF6E4B3A)),
+                                      content: customText(
+                                          'This action cannot be undone.',
+                                          fontSize: 16,
+                                          color: const Color(0xFF6E4B3A)),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, false),
+                                          child: customText('Cancel',
+                                              fontSize: 16,
+                                              color: const Color(0xFF6E4B3A)),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx, true),
+                                          child: customText('Delete',
+                                              fontSize: 16,
+                                              color: const Color(0xFFFF3B30)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                onDismissed: (_) async {
+                                  await supabase
+                                      .from('messages')
+                                      .update({'deleted_for_furrent': true}).eq(
+                                          'conversation_id', item['id']);
+                                  await supabase.from('conversations').update({
+                                    'hidden_for_furrent': true,
+                                    'furrent_cleared_at':
+                                        DateTime.now().toIso8601String(),
+                                  }).eq('id', item['id']);
+                                  setState(() => chats.removeWhere(
+                                      (c) => c['id'] == item['id']));
+
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: customText(
+                                          'Chat has been deleted',
+                                          color: const Color(0xFF6E4B3A),
+                                        ),
+                                        backgroundColor:
+                                            const Color(0xFFDDC7A9),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                                background: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF3B30),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  child: const Icon(Icons.delete,
+                                      color: Colors.white, size: 30),
+                                ),
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final currentUserId =
+                                        supabase.auth.currentUser?.id;
+                                    final isFurrent =
+                                        item['furrent_id'] == currentUserId;
+
+                                    await supabase
+                                        .from('conversations')
+                                        .update({
+                                      if (isFurrent)
+                                        'unread_count_furrent': 0
+                                      else
+                                        'unread_count_pawtner': 0,
+                                    }).eq('id', item['id']);
+
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatScreen(
+                                          conversationId: item['id'],
+                                          otherUserId: pawtner['id'],
+                                          otherUserName: displayName,
+                                          otherUserAvatar:
+                                              pawtner['profile_picture_url'] ??
+                                                  '',
+                                          currentUserType: 'furrent',
+                                        ),
+                                      ),
+                                    ).then((_) => _loadData());
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFFFFF),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                            color: Color(0x1F000000),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2))
+                                      ],
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 24,
+                                          backgroundColor:
+                                              const Color(0xFF6E4B3A),
+                                          backgroundImage: profilePic.isNotEmpty
+                                              ? NetworkImage(profilePic)
+                                              : null,
+                                          child: profilePic.isEmpty
+                                              ? const Icon(
+                                                  Icons.person,
+                                                  size: 24,
+                                                  color: Color(0xFFDDC7A9),
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                displayName,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.dosis(
+                                                  fontSize: 16,
+                                                  fontWeight: isUnread
+                                                      ? FontWeight.w800
+                                                      : FontWeight.w600,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                lastMessageText,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.dosis(
+                                                  fontSize: 14,
+                                                  fontWeight: isUnread
+                                                      ? FontWeight.w700
+                                                      : FontWeight.w500,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              formattedDate,
+                                              style: GoogleFonts.dosis(
+                                                fontSize: 12,
+                                                color: const Color(0xFF6E4B3A),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            if (unreadCount > 0)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red,
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                child: Text(
+                                                  unreadCount.toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              )
+                                            else
+                                              const SizedBox(),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              final type = item['type'] ?? '';
+                              final isReadNotif = item['is_read'] == true;
+
+                              IconData notifIcon;
+                              Color notifColor;
+
+                              final title = item['title'] ?? '';
+
+                              if (title == 'Booking Confirmed') {
+                                notifIcon = Icons.check_circle;
+                                notifColor = const Color(0xFF34C759);
+                              } else if (title == 'Booking Cancelled') {
+                                notifIcon = Icons.cancel;
+                                notifColor = const Color(0xFFFF3B30);
+                              } else if (title == 'Booking Completed') {
+                                notifIcon = Icons.task_alt;
+                                notifColor = const Color(0xFF6E4B3A);
+                              } else if (title == 'Booking Missed') {
+                                notifIcon = Icons.event_busy;
+                                notifColor = const Color(0xFFFF9500);
+                              } else if (type == 'reminder') {
+                                notifIcon = Icons.alarm;
+                                notifColor = const Color(0xFFFF9500);
+                              } else if (type == 'promo') {
+                                notifIcon = Icons.local_offer;
+                                notifColor = const Color(0xFF34C759);
+                              } else {
+                                notifIcon = Icons.campaign;
+                                notifColor = const Color(0xFF007AFF);
+                              }
 
                               return GestureDetector(
-                                onTap: () {
+                                onTap: () async {
+                                  if (!isReadNotif) {
+                                    await supabase.from('notifications').update(
+                                        {'is_read': true}).eq('id', item['id']);
+                                    setState(() {
+                                      item['is_read'] = true;
+                                      unreadNotificationsCount =
+                                          (unreadNotificationsCount - 1)
+                                              .clamp(0, 999);
+                                    });
+                                  }
+
+                                  final bookingId = item['booking_id'];
+                                  if (bookingId == null) return;
+
+                                  final booking = await supabase
+                                      .from('bookings')
+                                      .select(
+                                          '*, pets(*), furrents(*), services(*), pawtners(*)')
+                                      .eq('id', bookingId)
+                                      .maybeSingle();
+
+                                  if (booking == null || !context.mounted) {
+                                    return;
+                                  }
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => ChatScreen(
-                                        conversationId: item['id'],
-                                        otherUserId: pawtner['id'],
-                                        otherUserName: displayName,
-                                        otherUserAvatar:
-                                            pawtner['profile_picture_url'] ?? '',
+                                      builder: (_) =>
+                                          FurrentBookingDetailsScreen(
+                                        booking:
+                                            Map<String, dynamic>.from(booking),
                                       ),
                                     ),
-                                  ).then((_) => _loadData());
+                                  );
                                 },
                                 child: Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFFFFFF),
+                                    color: isReadNotif
+                                        ? const Color(0xFFFFFFFF)
+                                        : notifColor.withOpacity(0.07),
                                     borderRadius: BorderRadius.circular(12),
                                     boxShadow: const [
                                       BoxShadow(
@@ -371,19 +741,18 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                     ],
                                   ),
                                   child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor:
-                                            const Color(0xFF6E4B3A),
-                                        backgroundImage: profilePic.isNotEmpty
-                                            ? NetworkImage(profilePic)
-                                            : null,
-                                        child: profilePic.isEmpty
-                                            ? const Icon(Icons.person,
-                                                size: 24, color: Color(0xFFDDC7A9))
-                                            : null,
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: notifColor.withOpacity(0.15),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(notifIcon,
+                                            color: notifColor, size: 20),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -393,29 +762,34 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                           children: [
                                             Row(
                                               mainAxisAlignment:
-                                                  MainAxisAlignment.spaceBetween,
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
                                               children: [
-                                                customText(
-                                                  displayName,
-                                                  fontWeight: isUnread
-                                                      ? FontWeight.w800
-                                                      : FontWeight.w600,
-                                                  color: const Color(0xFF6E4B3A),
+                                                Expanded(
+                                                  child: customText(
+                                                    item['title'] ?? '',
+                                                    fontWeight: isReadNotif
+                                                        ? FontWeight.w600
+                                                        : FontWeight.w800,
+                                                    color:
+                                                        const Color(0xFF6E4B3A),
+                                                  ),
                                                 ),
-                                                customText(
-                                                  formattedDate,
-                                                  fontSize: 12,
-                                                  color: const Color(0xFF6E4B3A),
-                                                ),
+                                                if (!isReadNotif)
+                                                  Container(
+                                                    width: 8,
+                                                    height: 8,
+                                                    decoration: BoxDecoration(
+                                                      color: notifColor,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
                                               ],
                                             ),
                                             const SizedBox(height: 4),
                                             customText(
-                                              lastMessageText,
+                                              item['message'] ?? '',
                                               fontSize: 14,
-                                              fontWeight: isUnread
-                                                  ? FontWeight.w700
-                                                  : FontWeight.normal,
                                               color: const Color(0xFF6E4B3A),
                                             ),
                                           ],
@@ -423,37 +797,6 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
-                            } else {
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFFFFF),
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                        color: Color(0x1F000000),
-                                        blurRadius: 4,
-                                        offset: Offset(0, 2))
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    customText(
-                                      item['title'] ?? '',
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF6E4B3A),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    customText(
-                                      item['messages'] ?? '',
-                                      fontSize: 14,
-                                      color: const Color(0xFF6E4B3A),
-                                    ),
-                                  ],
                                 ),
                               );
                             }

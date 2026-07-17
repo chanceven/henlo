@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "530223897969",
+    "project_id": "henloapp-2def2",
+    "storage_bucket": "henloapp-2def2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:530223897969:android:f5671c83607dce473eaad0",
+        "android_client_info": {
+          "package_name": "com.example.petapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjNV5f81IPG4ai7kQTHkEMwvwwkaWtG18"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

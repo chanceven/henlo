@@ -1,6 +1,9 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 
 class FurrentRescheduleScreen extends StatefulWidget {
@@ -41,10 +44,11 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   String selectedSubtype = '';
   String furrentAddress = '';
   String pawtnerAddress = '';
-  String pawtnerCity = '';
   String notes = '';
 
+  final dio = Dio();
   bool isLoading = true;
+  List<String> _cachedSubtypeList = [];
 
   @override
   void initState() {
@@ -53,23 +57,20 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   }
 
   Future<void> _loadBookingDates() async {
+    final booking = await supabase
+        .from('bookings')
+        .select('scheduled_start, scheduled_end')
+        .eq('id', widget.bookingId)
+        .maybeSingle();
 
-  final booking = await supabase
-      .from('bookings')
-      .select('scheduled_start, scheduled_end')
-      .eq('id', widget.bookingId)
-      .maybeSingle();
-
-  if (booking != null) {
-    final start =
-        DateTime.parse(booking['scheduled_start']);
-    selectedDate = start;
-    if (booking['scheduled_end'] != null) {
-      selectedEndDate =
-          DateTime.parse(booking['scheduled_end']);
+    if (booking != null) {
+      final start = DateTime.parse(booking['scheduled_start']);
+      selectedDate = start;
+      if (booking['scheduled_end'] != null) {
+        selectedEndDate = DateTime.parse(booking['scheduled_end']);
+      }
     }
   }
-}
 
   Future<void> _initData() async {
     try {
@@ -112,8 +113,12 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
           subtypeTabs = [subtype];
         }
 
+        final subtypeList =
+            subtype.split(',').map((s) => s.trim().toLowerCase()).toList();
+        _cachedSubtypeList = subtypeList;
+
         selectedSubtype = subtypeTabs.firstWhere(
-            (s) => s.toLowerCase() == subtype.toLowerCase(),
+            (s) => subtypeList.contains(s.toLowerCase()),
             orElse: () => subtypeTabs.first);
       }
     } catch (e) {
@@ -130,7 +135,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
           .maybeSingle();
       if (response != null) {
         pawtnerAddress = response['business_address'] as String? ?? '';
-        pawtnerCity = response['city'] ?? '';
       }
     } catch (e) {
       debugPrint('Error loading pawtner address: $e');
@@ -145,10 +149,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
           .eq('id', widget.pawtnerId)
           .maybeSingle();
       if (response != null) {
-        pawtnerName =
-            response['business_name'] ??
-            response['full_name'] ??
-            '';
+        pawtnerName = response['business_name'] ?? response['full_name'] ?? '';
       }
     } catch (e) {
       debugPrint('Error loading pawtner name: $e');
@@ -172,7 +173,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
 
   Future<void> _loadAvailableTimes(DateTime date) async {
     try {
-      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       final dayOfWeek = dayNames[date.weekday % 7];
 
       final response = await supabase
@@ -181,9 +182,8 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
           .eq('service_id', widget.serviceId)
           .eq('day_of_week', dayOfWeek);
 
-      final availList = (response as List)
-          .map((e) => e as Map<String, dynamic>)
-          .toList();
+      final availList =
+          (response as List).map((e) => e as Map<String, dynamic>).toList();
 
       List<TimeOfDay> slots = [];
 
@@ -192,11 +192,9 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         final endParts = (row['end_time'] as String).split(':');
 
         TimeOfDay current = TimeOfDay(
-            hour: int.parse(startParts[0]),
-            minute: int.parse(startParts[1]));
+            hour: int.parse(startParts[0]), minute: int.parse(startParts[1]));
         final end = TimeOfDay(
-            hour: int.parse(endParts[0]),
-            minute: int.parse(endParts[1]));
+            hour: int.parse(endParts[0]), minute: int.parse(endParts[1]));
 
         while (_timeToDouble(current) < _timeToDouble(end)) {
           slots.add(current);
@@ -209,7 +207,8 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
           date.month == now.month &&
           date.day == now.day) {
         slots = slots.where((t) {
-          final slotDt = DateTime(date.year, date.month, date.day, t.hour, t.minute);
+          final slotDt =
+              DateTime(date.year, date.month, date.day, t.hour, t.minute);
           return slotDt.isAfter(now);
         }).toList();
       }
@@ -229,11 +228,10 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   }
 
   void _onSelectDate(DateTime date) {
-
     if (date.isBefore(DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day))) return;
+        DateTime.now().year, DateTime.now().month, DateTime.now().day))) {
+      return;
+    }
 
     if (!isBoardingService) {
       setState(() => selectedDate = date);
@@ -242,18 +240,14 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
     }
 
     if (selectedEndDate == null && date.isAfter(selectedDate)) {
-
       setState(() {
         selectedEndDate = date;
 
-        boardingDays =
-            selectedEndDate!.difference(selectedDate).inDays;
+        boardingDays = selectedEndDate!.difference(selectedDate).inDays;
 
         totalPrice = servicePrice * boardingDays;
       });
-
     } else {
-
       setState(() {
         selectedDate = date;
         selectedEndDate = null;
@@ -261,7 +255,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         boardingDays = 0;
         totalPrice = 0;
       });
-
     }
 
     _loadAvailableTimes(date);
@@ -281,13 +274,20 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)), onPressed: () => Navigator.pop(context)),
-        title: Text('Reschedule Appointment', style: GoogleFonts.dosis(fontSize: 24, fontWeight: FontWeight.w600, color: const Color(0xFF6E4B3A))),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)),
+            onPressed: () => Navigator.pop(context)),
+        title: Text('Reschedule Appointment',
+            style: GoogleFonts.dosis(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF6E4B3A))),
         centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+              16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -295,14 +295,22 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
               const SizedBox(height: 16),
               const Padding(
                 padding: EdgeInsets.only(left: 8),
-                child: Text('Select Date', style: TextStyle(color: Color(0xFF6E4B3A), fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text('Select Date',
+                    style: TextStyle(
+                        color: Color(0xFF6E4B3A),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 8),
               _buildCalendar(),
               const SizedBox(height: 16),
               const Padding(
                 padding: EdgeInsets.only(left: 8),
-                child: Text('Select Time', style: TextStyle(color: Color(0xFF6E4B3A), fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text('Select Time',
+                    style: TextStyle(
+                        color: Color(0xFF6E4B3A),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 8),
               _buildTimeSlots(),
@@ -312,16 +320,16 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                 decoration: InputDecoration(
                   hintText: 'Notes to Pawtner',
                   hintStyle: GoogleFonts.dosis(
-                    color: const Color(0xFF6E4B3A),
+                    color: const Color(0xFFBDBDBD),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
                   ),
                   filled: true,
                   fillColor: Colors.white,
-
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Color(0xFF6E4B3A)),
                   ),
-
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
@@ -329,7 +337,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                       width: 1.5,
                     ),
                   ),
-
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -342,111 +349,108 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6E4B3A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-onPressed: selectedTime != null &&
-(!isBoardingService || selectedEndDate != null) &&
-(!(selectedSubtype == 'Home Service' ||
-   selectedSubtype == 'Home Training') ||
- furrentAddress.isNotEmpty)
-? () async {
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12))),
+                  onPressed: selectedTime != null &&
+                          (!isBoardingService || selectedEndDate != null) &&
+                          (!(selectedSubtype == 'Home Service' ||
+                                  selectedSubtype == 'Home Training') ||
+                              furrentAddress.isNotEmpty)
+                      ? () async {
+                          try {
+                            final scheduledStart = DateTime(
+                              selectedDate.year,
+                              selectedDate.month,
+                              selectedDate.day,
+                              selectedTime!.hour,
+                              selectedTime!.minute,
+                            );
 
-    try {
+                            DateTime? scheduledEnd;
 
-      final scheduledStart = DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime!.hour,
-        selectedTime!.minute,
-      );
+                            if (isBoardingService && selectedEndDate != null) {
+                              scheduledEnd = DateTime(
+                                selectedEndDate!.year,
+                                selectedEndDate!.month,
+                                selectedEndDate!.day,
+                                selectedTime!.hour,
+                                selectedTime!.minute,
+                              );
+                            } else {
+                              // Grooming / Training duration
+                              scheduledEnd = scheduledStart.add(
+                                const Duration(hours: 1),
+                              );
+                            }
 
-      DateTime? scheduledEnd;
+                            String location;
 
-      if (isBoardingService && selectedEndDate != null) {
+                            if (selectedSubtype == 'Pet Shop' ||
+                                selectedSubtype == 'Pet Hotel' ||
+                                selectedSubtype == 'Home Boarding' ||
+                                selectedSubtype == 'Training Center') {
+                              location = pawtnerAddress;
+                            } else {
+                              location = furrentAddress;
+                            }
 
-        scheduledEnd = DateTime(
-          selectedEndDate!.year,
-          selectedEndDate!.month,
-          selectedEndDate!.day,
-          selectedTime!.hour,
-          selectedTime!.minute,
-        );
+                            final confirm = await _showConfirmBookingModal(
+                              serviceName: serviceName,
+                              pawtnerName: pawtnerName,
+                              location: location,
+                              schedule: isBoardingService &&
+                                      selectedEndDate != null
+                                  ? (selectedDate.month ==
+                                          selectedEndDate!.month
+                                      ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
+                                      : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
+                                  : DateFormat('MMM d').format(selectedDate),
+                              time: selectedTime!.format(context),
+                              petName: petName,
+                              total:
+                                  isBoardingService ? totalPrice : servicePrice,
+                            );
 
-      }
+                            if (confirm != true) return;
 
-      String location;
+                            await supabase.from('bookings').update({
+                              'scheduled_start':
+                                  scheduledStart.toIso8601String(),
+                              'scheduled_end': scheduledEnd.toIso8601String(),
+                              'furrent_address':
+                                  (selectedSubtype == 'Home Service' ||
+                                          selectedSubtype == 'Home Training')
+                                      ? furrentAddress
+                                      : null,
+                              'notes': notes,
+                              'chosen_service_subtype': selectedSubtype,
+                            }).eq('id', widget.bookingId);
 
-      if (selectedSubtype == 'Pet Shop' ||
-          selectedSubtype == 'Pet Hotel' ||
-          selectedSubtype == 'Home Boarding' ||
-          selectedSubtype == 'Training Center') {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Booking rescheduled 🐾',
+                                  style: GoogleFonts.dosis(
+                                      color: const Color(0xFFDDC7A9))),
+                              backgroundColor: const Color(0xFF6E4B3A),
+                            ));
 
-        location = "$pawtnerAddress, $pawtnerCity";
-
-      } else {
-        location = furrentAddress;
-      }
-
-      final confirm = await _showConfirmBookingModal(
-        serviceName: serviceName,
-        pawtnerName: pawtnerName,
-        location: location,
-        schedule: isBoardingService && selectedEndDate != null
-            ? (selectedDate.month == selectedEndDate!.month
-                ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
-                : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
-            : DateFormat('MMM d').format(selectedDate),
-        time: selectedTime!.format(context),
-        petName: petName,
-        total: isBoardingService ? totalPrice : servicePrice,
-      );
-
-      if (confirm != true) return;
-
-      await supabase
-          .from('bookings')
-          .update({
-
-        'scheduled_start':
-            scheduledStart.toIso8601String(),
-
-        'scheduled_end':
-            scheduledEnd?.toIso8601String(),
-
-        'furrent_address':
-            (selectedSubtype == 'Home Service' ||
-             selectedSubtype == 'Home Training')
-                ? furrentAddress
-                : null,
-
-        'notes': notes,
-
-        'chosen_service_subtype': selectedSubtype,
-
-      })
-      .eq('id', widget.bookingId);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Booking rescheduled 🐾'),
-        ),
-      );
-
-      Navigator.pop(context);
-
-    } catch (e) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Reschedule failed: $e'),
-        ),
-      );
-
-    }
-
-}
-: null,
-                  child: Text('Reschedule', style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9), fontWeight: FontWeight.w600, fontSize: 18)),
+                            Navigator.pop(context);
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Reschedule failed: $e',
+                                  style: GoogleFonts.dosis(
+                                      color: const Color(0xFFDDC7A9))),
+                              backgroundColor: const Color(0xFF6E4B3A),
+                            ));
+                          }
+                        }
+                      : null,
+                  child: Text('Reschedule',
+                      style: GoogleFonts.dosis(
+                          color: const Color(0xFFDDC7A9),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18)),
                 ),
               ),
             ],
@@ -458,6 +462,184 @@ onPressed: selectedTime != null &&
 
   // --- WIDGETS COPIED FROM BOOK APPOINTMENT ---
 
+  Future<void> _pickFurrentAddress() async {
+    final TextEditingController searchController = TextEditingController();
+    List<Map<String, dynamic>> searchResults = [];
+    bool isSearching = false;
+    const apiKey = 'AIzaSyBOKb6toq6ItcFdi94IekJNj5WX0p8tkt4';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFFF8F8F8),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter your address',
+                style: GoogleFonts.dosis(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF6E4B3A),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: searchController,
+                autofocus: true,
+                style: GoogleFonts.dosis(
+                    fontSize: 16, color: const Color(0xFF6E4B3A)),
+                decoration: InputDecoration(
+                  hintText: 'e.g. 123 Rizal St, Makati',
+                  hintStyle: GoogleFonts.dosis(
+                    color: const Color(0xFFBDBDBD),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  suffixIcon: isSearching
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Color(0xFF6E4B3A)),
+                          ),
+                        )
+                      : null,
+                  enabledBorder: const UnderlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color(0xFF6E4B3A), width: 1)),
+                  focusedBorder: const UnderlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Color(0xFF6E4B3A), width: 1)),
+                ),
+                onChanged: (value) async {
+                  if (value.trim().length < 3) {
+                    setModalState(() => searchResults = []);
+                    return;
+                  }
+                  setModalState(() => isSearching = true);
+                  try {
+                    final response = await dio.post(
+                      'https://places.googleapis.com/v1/places:autocomplete',
+                      options: Options(headers: {
+                        'Content-Type': 'application/json',
+                        'X-Goog-Api-Key': apiKey
+                      }),
+                      data: {
+                        'input': value,
+                        'locationBias': {
+                          'circle': {
+                            'center': {
+                              'latitude': 12.8797,
+                              'longitude': 121.7740
+                            },
+                            'radius': 50000.0
+                          }
+                        },
+                        'includedRegionCodes': ['ph'],
+                      },
+                    );
+                    if (!mounted) return;
+                    final suggestions =
+                        response.data['suggestions'] as List? ?? [];
+                    setModalState(() {
+                      searchResults = suggestions
+                          .map((e) =>
+                              e['placePrediction'] as Map<String, dynamic>)
+                          .toList();
+                      isSearching = false;
+                    });
+                  } catch (e) {
+                    if (!mounted) return;
+                    setModalState(() => isSearching = false);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              if (searchResults.isNotEmpty)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE6E6E6)),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: searchResults.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: Color(0xFFE6E6E6)),
+                    itemBuilder: (context, index) {
+                      final result = searchResults[index];
+                      final mainText = result['structuredFormat']?['mainText']
+                              ?['text'] ??
+                          '';
+                      final secondaryText = result['structuredFormat']
+                              ?['secondaryText']?['text'] ??
+                          '';
+                      final placeId = result['placeId'] ?? '';
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.location_on,
+                            color: Color(0xFF6E4B3A), size: 20),
+                        title: Text(mainText,
+                            style: GoogleFonts.dosis(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF6E4B3A))),
+                        subtitle: Text(secondaryText,
+                            style: GoogleFonts.dosis(
+                                fontSize: 12, color: Colors.grey[500]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        onTap: () async {
+                          try {
+                            final detailResponse = await dio.get(
+                              'https://places.googleapis.com/v1/places/$placeId',
+                              options: Options(headers: {
+                                'X-Goog-Api-Key': apiKey,
+                                'X-Goog-FieldMask':
+                                    'location,displayName,formattedAddress'
+                              }),
+                            );
+                            final formattedAddress =
+                                detailResponse.data['formattedAddress'] ??
+                                    mainText;
+                            final addressParts = formattedAddress.split(',');
+                            final shortAddress = addressParts.length > 2
+                                ? addressParts.take(2).join(',').trim()
+                                : formattedAddress;
+                            setState(() => furrentAddress = shortAddress);
+                            if (mounted) Navigator.pop(context);
+                          } catch (e) {
+                            debugPrint('Place detail error: $e');
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildServiceSubtypeTabs() {
     if (subtypeTabs.isEmpty) return const SizedBox();
     return Column(
@@ -466,23 +648,36 @@ onPressed: selectedTime != null &&
         Row(
           children: subtypeTabs.map((tab) {
             final isSelected = selectedSubtype == tab;
+            final isDisabled = !_cachedSubtypeList.contains(tab.toLowerCase());
             return Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => selectedSubtype = tab),
+                onTap: isDisabled
+                    ? null
+                    : () => setState(() => selectedSubtype = tab),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF6E4B3A) : Colors.white,
+                    color: isDisabled
+                        ? Colors.grey[200]
+                        : isSelected
+                            ? const Color(0xFF6E4B3A)
+                            : Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF6E4B3A)),
+                    border: Border.all(
+                      color: isDisabled ? Colors.grey : const Color(0xFF6E4B3A),
+                    ),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     tab,
                     style: GoogleFonts.dosis(
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? const Color(0xFFDDC7A9) : const Color(0xFF6E4B3A),
+                      color: isDisabled
+                          ? Colors.grey
+                          : isSelected
+                              ? const Color(0xFFDDC7A9)
+                              : const Color(0xFF6E4B3A),
                       fontSize: 16,
                     ),
                   ),
@@ -501,55 +696,58 @@ onPressed: selectedTime != null &&
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
             child: Text(
               pawtnerAddress.isNotEmpty
-                  ? 'Location: $pawtnerAddress, $pawtnerCity'
+                  ? 'Location: $pawtnerAddress'
                   : 'Loading address...',
-              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A), fontSize: 16, fontWeight: FontWeight.w500),
+              style: GoogleFonts.dosis(
+                  color: const Color(0xFF6E4B3A),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500),
             ),
           ),
-        if (selectedSubtype == 'Home Service' || selectedSubtype == 'Home Training')
-          TextField(
-            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A), fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'Enter your address',
-              hintStyle: GoogleFonts.dosis(
-                color: const Color(0xFF6E4B3A),
-                fontSize: 14,
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 8,
-                horizontal: 12,
-              ),
-
-              enabledBorder: OutlineInputBorder(
+        if (selectedSubtype == 'Home Service' ||
+            selectedSubtype == 'Home Training')
+          GestureDetector(
+            onTap: _pickFurrentAddress,
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF6E4B3A)),
+                border: Border.all(color: const Color(0xFF6E4B3A)),
               ),
-
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFF6E4B3A),
-                  width: 1.5,
-                ),
-              ),
-
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on,
+                      color: Color(0xFF6E4B3A), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      furrentAddress.isNotEmpty
+                          ? furrentAddress
+                          : 'Enter your address',
+                      style: GoogleFonts.dosis(
+                        color: furrentAddress.isNotEmpty
+                            ? const Color(0xFF6E4B3A)
+                            : const Color(0xFFBDBDBD),
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down,
+                      color: Color(0xFF6E4B3A), size: 18),
+                ],
               ),
             ),
-            maxLines: 1,
-            onChanged: (value) => furrentAddress = value,
           ),
       ],
     );
   }
 
   Widget _buildCalendar() {
-
-    DateTime firstOfMonth =
-        DateTime(selectedDate.year, selectedDate.month, 1);
+    DateTime firstOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
 
     int startingWeekday = firstOfMonth.weekday % 7;
 
@@ -563,28 +761,21 @@ onPressed: selectedTime != null &&
     }
 
     for (int day = 1; day <= daysInMonth; day++) {
+      DateTime current = DateTime(selectedDate.year, selectedDate.month, day);
 
-      DateTime current =
-          DateTime(selectedDate.year, selectedDate.month, day);
+      bool isPast = current.isBefore(DateTime(
+          DateTime.now().year, DateTime.now().month, DateTime.now().day));
 
-      bool isPast = current.isBefore(
-          DateTime(DateTime.now().year,
-          DateTime.now().month,
-          DateTime.now().day));
-
-      bool isStart =
-          selectedDate.day == day &&
+      bool isStart = selectedDate.day == day &&
           selectedDate.month == current.month &&
           selectedDate.year == current.year;
 
-      bool isEnd =
-          selectedEndDate != null &&
+      bool isEnd = selectedEndDate != null &&
           selectedEndDate!.day == day &&
           selectedEndDate!.month == current.month &&
           selectedEndDate!.year == current.year;
 
-      bool isInRange =
-          selectedEndDate != null &&
+      bool isInRange = selectedEndDate != null &&
           current.isAfter(selectedDate) &&
           current.isBefore(selectedEndDate!);
 
@@ -600,8 +791,7 @@ onPressed: selectedTime != null &&
                   )
                 : isInRange
                     ? BoxDecoration(
-                        color: const Color(0xFF6E4B3A)
-                            .withOpacity(0.2),
+                        color: const Color(0xFF6E4B3A).withOpacity(0.2),
                         shape: BoxShape.circle,
                       )
                     : null,
@@ -630,7 +820,7 @@ onPressed: selectedTime != null &&
 
     rows.add(
       TableRow(
-        children: ['Su','Mo','Tu','We','Th','Fr','Sa']
+        children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
             .map(
               (d) => Container(
                 height: 40,
@@ -674,14 +864,11 @@ onPressed: selectedTime != null &&
       ),
       child: Column(
         children: [
-
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-
                 Text(
                   "${_monthName(selectedDate.month)} ${selectedDate.year}",
                   style: GoogleFonts.dosis(
@@ -690,35 +877,23 @@ onPressed: selectedTime != null &&
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-
                 Row(
                   children: [
-
                     GestureDetector(
                       onTap: () {
                         final now = DateTime.now();
 
                         final prevMonth = DateTime(
-                            selectedDate.year,
-                            selectedDate.month - 1,
-                            1);
+                            selectedDate.year, selectedDate.month - 1, 1);
 
                         setState(() {
-
                           if (prevMonth.year == now.year &&
                               prevMonth.month == now.month) {
-
-                            selectedDate = DateTime(
-                                now.year,
-                                now.month,
-                                now.day);
-
+                            selectedDate =
+                                DateTime(now.year, now.month, now.day);
                           } else {
-
                             selectedDate = prevMonth;
-
                           }
-
                         });
 
                         _loadAvailableTimes(selectedDate);
@@ -732,18 +907,12 @@ onPressed: selectedTime != null &&
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
-
                     GestureDetector(
                       onTap: () {
                         setState(() {
-
                           selectedDate = DateTime(
-                              selectedDate.year,
-                              selectedDate.month + 1,
-                              1);
-
+                              selectedDate.year, selectedDate.month + 1, 1);
                         });
 
                         _loadAvailableTimes(selectedDate);
@@ -757,13 +926,11 @@ onPressed: selectedTime != null &&
                         ),
                       ),
                     ),
-
                   ],
                 ),
               ],
             ),
           ),
-
           Table(
             defaultColumnWidth: const FlexColumnWidth(),
             children: rows,
@@ -818,7 +985,12 @@ onPressed: selectedTime != null &&
                     border: Border.all(color: const Color(0xFF6E4B3A)),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(time.format(context), style: GoogleFonts.dosis(color: isSelected ? Colors.white : const Color(0xFF6E4B3A), fontWeight: FontWeight.w600)),
+                  child: Text(time.format(context),
+                      style: GoogleFonts.dosis(
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF6E4B3A),
+                          fontWeight: FontWeight.w600)),
                 ),
               );
             },
@@ -861,7 +1033,6 @@ onPressed: selectedTime != null &&
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Center(
                   child: Text(
                     'Review Booking',
@@ -872,9 +1043,7 @@ onPressed: selectedTime != null &&
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 Text(
                   serviceName,
                   style: GoogleFonts.dosis(
@@ -883,9 +1052,7 @@ onPressed: selectedTime != null &&
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   pawtnerName,
                   style: GoogleFonts.dosis(
@@ -894,9 +1061,7 @@ onPressed: selectedTime != null &&
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   location,
                   style: GoogleFonts.dosis(
@@ -905,9 +1070,7 @@ onPressed: selectedTime != null &&
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 Text(
                   "Pet: $petName",
                   style: GoogleFonts.dosis(
@@ -916,9 +1079,7 @@ onPressed: selectedTime != null &&
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   "Schedule: $schedule",
                   style: GoogleFonts.dosis(
@@ -927,9 +1088,7 @@ onPressed: selectedTime != null &&
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   "Time: $time",
                   style: GoogleFonts.dosis(
@@ -938,24 +1097,19 @@ onPressed: selectedTime != null &&
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 Text(
                   "Total: ₱${total.toStringAsFixed(0)}",
                   style: GoogleFonts.dosis(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF6E4B3A),
-                  ),
+                  ).copyWith(fontFamilyFallback: const ['Roboto', 'Arial']),
                 ),
-
                 const SizedBox(height: 30),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-
                     SizedBox(
                       width: 140,
                       height: 40,
@@ -973,9 +1127,7 @@ onPressed: selectedTime != null &&
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
                     SizedBox(
                       width: 140,
                       height: 40,
@@ -996,7 +1148,6 @@ onPressed: selectedTime != null &&
                         ),
                       ),
                     ),
-
                   ],
                 ),
               ],
@@ -1008,7 +1159,21 @@ onPressed: selectedTime != null &&
   }
 
   String _monthName(int month) {
-    const names = ['', 'January','February','March','April','May','June','July','August','September','October','November','December'];
+    const names = [
+      '',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
     return names[month];
   }
 }

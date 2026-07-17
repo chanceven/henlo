@@ -31,11 +31,11 @@ class FurrentAppInfoScreen extends StatelessWidget {
           children: [
             _centeredText('App Version: 1.0.0'),
             const SizedBox(height: 12),
-            _centeredText('Last Update: Dec 2025'),
+            _centeredText('Last Update: June 2026'),
             const SizedBox(height: 12),
             _centeredText('Developed By: Chubi Bichu'),
             const SizedBox(height: 12),
-            _centeredText('Contact: support@example.com'),
+            _centeredText('Contact: hello@henloapp.com'),
           ],
         ),
       ),

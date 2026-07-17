@@ -1,32 +1,34 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'terms_and_conditions_screen.dart';
-import 'signin_screen.dart';
+import 'otp_screen.dart';
 
 class PawtnerReviewDetailsScreen extends StatefulWidget {
   final String name;
   final String email;
   final String contact;
+  final String password;
   final String businessName;
   final String typeOfService;
+  final String businessType;
+  final String availableAreas;
   final String location;
-  final String? uploadedProfilePhotoUrl;
-  final String? uploadedBusinessPermitUrl;
-  final String? uploadedGovernmentIDUrl;
 
   const PawtnerReviewDetailsScreen({
     super.key,
     required this.name,
     required this.email,
     required this.contact,
+    required this.password,
     required this.businessName,
     required this.typeOfService,
+    required this.businessType,
+    required this.availableAreas,
     required this.location,
-    this.uploadedProfilePhotoUrl,
-    this.uploadedBusinessPermitUrl,
-    this.uploadedGovernmentIDUrl,
   });
 
   @override
@@ -53,7 +55,27 @@ class _PawtnerReviewDetailsScreenState
 
     setState(() => isLoading = true);
 
-    final user = Supabase.instance.client.auth.currentUser;
+    late final AuthResponse res;
+    try {
+      res = await Supabase.instance.client.auth.signUp(
+        email: widget.email,
+        password: widget.password,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Please wait a moment before trying again.",
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
+      );
+      return;
+    }
+    final user = res.user;
     if (user == null) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,40 +89,22 @@ class _PawtnerReviewDetailsScreenState
     }
 
     try {
-      await Supabase.instance.client.from('pawtners').upsert({
-        'id': user.id,
-        'full_name': widget.name,
-        'email': widget.email,
-        'contact_number': widget.contact,
-        'business_name': widget.businessName,
-        'business_address': widget.location,
-        'city': null, // Optional: fill if available
-        'location_lat': null, // Optional: fill if available
-        'location_long': null, // Optional: fill if available
-        'profile_picture_url': widget.uploadedProfilePhotoUrl,
-        'business_permit_url': widget.uploadedBusinessPermitUrl,
-        'govt_id_url': widget.uploadedGovernmentIDUrl,
-        'type_of_service': widget.typeOfService,
-        'verified': false,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-        'verified_at': null,
-      });
-
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("You’re all set! Sign in to start using PawPal."),
-          duration: Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
-      Navigator.pushAndRemoveUntil(
+      Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const SignInScreen()),
-        (route) => false,
+        MaterialPageRoute(
+          builder: (_) => OtpScreen(
+            email: widget.email,
+            name: widget.name,
+            contact: widget.contact,
+            businessName: widget.businessName,
+            location: widget.location,
+            typeOfService: widget.typeOfService,
+            businessType: widget.businessType,
+            availableAreas: widget.availableAreas,
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -118,65 +122,28 @@ class _PawtnerReviewDetailsScreenState
 
   Widget _buildRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "$label: ",
-            style: GoogleFonts.dosis(
-              textStyle: const TextStyle(
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: GoogleFonts.dosis(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF6E4B3A),
+                color: const Color(0xFF6E4B3A),
               ),
             ),
           ),
           Expanded(
             child: Text(
-              value,
+              value.isEmpty ? "—" : value,
               style: GoogleFonts.dosis(
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF6E4B3A),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUploadRow(String label, String? url) {
-    final uploaded = url != null && url.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "$label: ",
-            style: GoogleFonts.dosis(
-              textStyle: const TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF6E4B3A),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              uploaded ? "Uploaded" : "Not Uploaded",
-              style: GoogleFonts.dosis(
-                textStyle: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: uploaded
-                      ? const Color(0xFF2E7D32)
-                      : const Color(0xFF8B0000),
-                ),
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF6E4B3A),
               ),
             ),
           ),
@@ -197,7 +164,7 @@ class _PawtnerReviewDetailsScreenState
           "Review Your Details",
           style: GoogleFonts.dosis(
             textStyle: const TextStyle(
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.w600,
               color: Color(0xFF6E4B3A),
             ),
@@ -207,110 +174,115 @@ class _PawtnerReviewDetailsScreenState
         elevation: 0,
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
-                  border: Border.all(color: const Color(0xFF6E4B3A), width: 1.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildRow("Full Name", widget.name),
-                    _buildRow("Email", widget.email),
-                    _buildRow("Contact Number", widget.contact),
-                    _buildRow("Business Name", widget.businessName),
-                    _buildRow("Type of Service", widget.typeOfService),
-                    _buildRow("Business Location", widget.location),
-                    _buildUploadRow("Profile Photo", widget.uploadedProfilePhotoUrl),
-                    _buildUploadRow(
-                        "Business Permit", widget.uploadedBusinessPermitUrl),
-                    _buildUploadRow(
-                        "Government ID", widget.uploadedGovernmentIDUrl),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Checkbox(
-                    value: agreeTerms,
-                    onChanged: (val) =>
-                        setState(() => agreeTerms = val ?? false),
-                    activeColor: const Color(0xFF6E4B3A),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFFFF),
+                      border: Border.all(
+                          color: const Color(0xFF6E4B3A), width: 1.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildRow("Full Name", widget.name),
+                        _buildRow("Email", widget.email),
+                        _buildRow("Contact Number", widget.contact),
+                        _buildRow("Business Name", widget.businessName),
+                        _buildRow("Service Type", widget.typeOfService),
+                        _buildRow("Business Type", widget.businessType),
+                        if (widget.businessType.contains("Home"))
+                          _buildRow("Available Areas", widget.availableAreas),
+                        _buildRow("Business Location", widget.location),
+                      ],
+                    ),
                   ),
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.dosis(
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF6E4B3A),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: agreeTerms,
+                        onChanged: (val) =>
+                            setState(() => agreeTerms = val ?? false),
+                        activeColor: const Color(0xFF6E4B3A),
+                        side: const BorderSide(
+                            color: Color(0xFF6E4B3A), width: 1.5),
+                      ),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.dosis(
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF6E4B3A),
+                              ),
+                            ),
+                            children: [
+                              const TextSpan(text: "I agree to the "),
+                              TextSpan(
+                                text: "Henlo Terms and Conditions",
+                                style: const TextStyle(
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const TermsAndConditionsScreen(),
+                                      ),
+                                    );
+                                  },
+                              ),
+                            ],
                           ),
                         ),
-                        children: [
-                          const TextSpan(text: "I agree to the "),
-                          TextSpan(
-                            text: "PawPal Terms and Conditions",
-                            style: const TextStyle(
-                              decoration: TextDecoration.underline,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const TermsAndConditionsScreen(),
-                                  ),
-                                );
-                              },
-                          ),
-                        ],
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: agreeTerms && !isLoading ? _createAccount : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6E4B3A),
-                    foregroundColor: const Color(0xFFDDC7A9),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(
-                          color: Color(0xFFDDC7A9),
-                        )
-                      : Text(
-                          "Create Account",
-                          style: GoogleFonts.dosis(
-                            textStyle: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFFDDC7A9)),
-                          ),
-                        ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: agreeTerms && !isLoading ? _createAccount : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6E4B3A),
+                  foregroundColor: const Color(0xFFDDC7A9),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
+                    : Text(
+                        "Create Account",
+                        style: GoogleFonts.dosis(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFDDC7A9),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

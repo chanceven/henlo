@@ -867,44 +867,59 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       body: getBody(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedNavIndex,
-        onTap: (index) {
-          _onNavTapped(index);
-          if (index == 2) _loadUnreadCount();
-        },
-        selectedItemColor: const Color(0xFF6E4B3A),
-        unselectedItemColor: const Color(0xFFBBBBBB),
-        type: BottomNavigationBarType.fixed,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          const BottomNavigationBarItem(
-              icon: Icon(Icons.book_online), label: 'Bookings'),
-          BottomNavigationBarItem(
-            label: 'Messages',
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.message),
-                if (_unreadMessagesCount > 0 || _unreadNotificationsCount > 0)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F8F8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          currentIndex: _selectedNavIndex,
+          onTap: (index) {
+            _onNavTapped(index);
+            if (index == 2) _loadUnreadCount();
+          },
+          selectedItemColor: const Color(0xFF6E4B3A),
+          unselectedItemColor: const Color(0xFFBBBBBB),
+          type: BottomNavigationBarType.fixed,
+          items: [
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.home), label: 'Home'),
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.book_online), label: 'Bookings'),
+            BottomNavigationBarItem(
+              label: 'Messages',
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.message),
+                  if (_unreadMessagesCount > 0 || _unreadNotificationsCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const BottomNavigationBarItem(
-              icon: Icon(Icons.person), label: 'Profile'),
-        ],
+            const BottomNavigationBarItem(
+                icon: Icon(Icons.person), label: 'Profile'),
+          ],
+        ),
       ),
     );
   }

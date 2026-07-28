@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'furrent_app_info_screen.dart';
-import 'furrent_privacy_policy_screen.dart';
-import 'furrent_terms_and_conditions_screen.dart';
-import 'furrent_licenses_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'terms_and_conditions_screen.dart';
+import 'licenses_screen.dart';
+import 'delete_account_screen.dart';
 
-class FurrentLegalScreen extends StatelessWidget {
-  const FurrentLegalScreen({super.key});
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class FurrentLegalScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Legal & App Info',
+          'Settings',
           style: GoogleFonts.dosis(
             fontSize: 24,
             fontWeight: FontWeight.w600,
@@ -54,7 +55,7 @@ class FurrentLegalScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FurrentPrivacyPolicyScreen(),
+                  builder: (_) => const PrivacyPolicyScreen(),
                 ),
               );
             },
@@ -68,7 +69,7 @@ class FurrentLegalScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FurrentTermsScreen(),
+                  builder: (_) => const TermsAndConditionsScreen(),
                 ),
               );
             },
@@ -82,7 +83,22 @@ class FurrentLegalScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FurrentLicensesScreen(),
+                  builder: (_) => const LicensesScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          _legalOption(
+            context,
+            icon: Icons.delete_forever_outlined,
+            title: 'Delete Account',
+            color: const Color(0xFF8B0000),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DeleteAccountScreen(),
                 ),
               );
             },
@@ -92,8 +108,13 @@ class FurrentLegalScreen extends StatelessWidget {
     );
   }
 
-  Widget _legalOption(BuildContext context,
-      {required IconData icon, required String title, required VoidCallback onTap}) {
+  Widget _legalOption(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color color = const Color(0xFF6E4B3A),
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -106,19 +127,25 @@ class FurrentLegalScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF6E4B3A)),
+            Icon(icon, color: color),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title,
                 style: GoogleFonts.dosis(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6E4B3A),
+                  fontWeight: title == 'Delete Account'
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                  color: color,
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Color(0xFF6E4B3A), size: 18),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: color,
+              size: 18,
+            ),
           ],
         ),
       ),

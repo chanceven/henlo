@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'pawtner_app_info_screen.dart';
-import 'pawtner_privacy_policy_screen.dart';
-import 'pawtner_terms_and_conditions_screen.dart';
-import 'pawtner_licenses_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'terms_and_conditions_screen.dart';
+import 'licenses_screen.dart';
 
 class PawtnerLegalScreen extends StatelessWidget {
   const PawtnerLegalScreen({super.key});
@@ -54,7 +54,7 @@ class PawtnerLegalScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const PawtnerPrivacyPolicyScreen(),
+                  builder: (_) => const PrivacyPolicyScreen(),
                 ),
               );
             },
@@ -68,7 +68,7 @@ class PawtnerLegalScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const PawtnerTermsScreen(),
+                  builder: (_) => const TermsAndConditionsScreen(),
                 ),
               );
             },
@@ -82,7 +82,7 @@ class PawtnerLegalScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const PawtnerLicensesScreen(),
+                  builder: (_) => const LicensesScreen(),
                 ),
               );
             },
@@ -93,7 +93,9 @@ class PawtnerLegalScreen extends StatelessWidget {
   }
 
   Widget _legalOption(BuildContext context,
-      {required IconData icon, required String title, required VoidCallback onTap}) {
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -117,7 +119,8 @@ class PawtnerLegalScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Color(0xFF6E4B3A), size: 18),
+            const Icon(Icons.arrow_forward_ios,
+                color: Color(0xFF6E4B3A), size: 18),
           ],
         ),
       ),

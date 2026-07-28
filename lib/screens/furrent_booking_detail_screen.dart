@@ -273,6 +273,7 @@ class _FurrentBookingDetailsScreenState
                               '',
                           otherUserAvatar: pawtner['profile_picture_url'] ?? '',
                           currentUserType: 'furrent',
+                          isDeletedAccount: false,
                         ),
                       ),
                     );

@@ -81,7 +81,12 @@ class _PawtnerContactUsScreenState extends State<PawtnerContactUsScreen> {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          24 + MediaQuery.of(context).padding.bottom,
+        ),
         child: SizedBox(
           height: 50,
           child: ElevatedButton(

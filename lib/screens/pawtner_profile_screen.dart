@@ -8,7 +8,7 @@ import 'signin_screen.dart';
 import 'pawtner_edit_profile_screen.dart';
 import 'pawtner_services_screen.dart';
 import 'pawtner_support_screen.dart';
-import 'pawtner_legal_and_app_info_screen.dart';
+import 'settings_screen.dart';
 
 class PawtnerProfileScreen extends StatefulWidget {
   final VoidCallback? onProfileUpdated; // <-- NEW
@@ -333,7 +333,19 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                     },
                   ),
 
-                  // SUPPORT
+                  _buildCard(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
                   _buildCard(
                     icon: Icons.support_agent,
                     label: 'Support',
@@ -347,20 +359,6 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                     },
                   ),
 
-                  _buildCard(
-                    icon: Icons.info,
-                    label: 'Legal & App Info',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PawtnerLegalScreen(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // LOGOUT
                   _buildCard(
                     icon: Icons.logout,
                     label: 'Logout',

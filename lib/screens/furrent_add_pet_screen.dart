@@ -7,7 +7,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FurrentAddPetScreen extends StatefulWidget {
-  const FurrentAddPetScreen({super.key});
+  final bool isBookingFlow;
+
+  const FurrentAddPetScreen({
+    super.key,
+    this.isBookingFlow = false,
+  });
 
   @override
   State<FurrentAddPetScreen> createState() => _FurrentAddPetScreenState();
@@ -229,11 +234,17 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
         petData['profile_picture_url'] = publicUrl;
       }
 
-      await supabase.from('pets').insert(petData);
+      final insertedPet =
+          await supabase.from('pets').insert(petData).select().single();
 
       if (mounted) {
         _showToast('Pet added successfully!');
-        Navigator.pop(context);
+
+        if (widget.isBookingFlow) {
+          Navigator.pop(context, insertedPet['id']);
+        } else {
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       debugPrint('Error adding pet: $e');

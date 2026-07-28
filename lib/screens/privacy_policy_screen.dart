@@ -2,28 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class TermsAndConditionsScreen extends StatefulWidget {
-  const TermsAndConditionsScreen({super.key});
+class PrivacyPolicyScreen extends StatefulWidget {
+  const PrivacyPolicyScreen({super.key});
 
   @override
-  State<TermsAndConditionsScreen> createState() =>
-      _TermsAndConditionsScreenState();
+  State<PrivacyPolicyScreen> createState() => _PrivacyPolicyScreenState();
 }
 
-class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
-  String? terms;
+class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
+  String? privacyPolicy;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadTerms();
+    _loadPrivacyPolicy();
   }
 
-  Future<void> _loadTerms() async {
+  Future<void> _loadPrivacyPolicy() async {
     try {
       final response = await Supabase.instance.client
-          .from('terms_and_conditions')
+          .from('privacy_policy')
           .select('content')
           .eq('user_type', 'master')
           .single();
@@ -31,14 +30,14 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
       if (!mounted) return;
 
       setState(() {
-        terms = response['content'] as String;
+        privacyPolicy = response['content'] as String;
         isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
-        terms = 'Unable to load Terms and Conditions.';
+        privacyPolicy = 'Unable to load Privacy Policy.';
         isLoading = false;
       });
     }
@@ -53,7 +52,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Terms & Conditions',
+          'Privacy Policy',
           style: GoogleFonts.dosis(
             fontSize: 24,
             fontWeight: FontWeight.w600,
@@ -78,7 +77,7 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
               )
             : SingleChildScrollView(
                 child: SelectableText(
-                  terms ?? '',
+                  privacyPolicy ?? '',
                   style: GoogleFonts.dosis(
                     textStyle: const TextStyle(
                       fontSize: 18,

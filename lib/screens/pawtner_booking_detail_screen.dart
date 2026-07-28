@@ -196,6 +196,331 @@ class _PawtnerBookingDetailsScreenState
         elevation: 0,
       ),
       backgroundColor: const Color(0xFFF8F8F8),
+      bottomNavigationBar: status.toLowerCase() == 'upcoming'
+          ? Padding(
+              padding: EdgeInsets.fromLTRB(
+                  16, 0, 16, 24 + MediaQuery.of(context).padding.bottom),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: const Color(0xFFF8F8F8),
+                            insetPadding:
+                                const EdgeInsets.symmetric(horizontal: 20),
+                            contentPadding:
+                                const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                            content: SizedBox(
+                              height: 140,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Are you sure you want to cancel this booking?',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.dosis(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                        color: const Color(0xFF6E4B3A)),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'This action cannot be undone.',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.dosis(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15,
+                                        color: const Color(0xFF6E4B3A)),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 140,
+                                        height: 40,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF6E4B3A),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: Text(
+                                            'Keep Booking',
+                                            style: GoogleFonts.dosis(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 15,
+                                                color: const Color(0xFFDDC7A9)),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      SizedBox(
+                                        width: 140,
+                                        height: 40,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF8B0000),
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: Text(
+                                            'Confirm',
+                                            style: GoogleFonts.dosis(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 15,
+                                                color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+
+                        if (confirmed != true) return;
+
+                        final reasonController = TextEditingController();
+                        final reasonSubmitted = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            insetPadding: EdgeInsets.zero,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8F8F8),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                        color: Color(0x33000000),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2))
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Why are you cancelling this booking?',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.dosis(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                          color: const Color(0xFF6E4B3A)),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      controller: reasonController,
+                                      maxLines: 3,
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'Enter your reason for cancellation',
+                                        hintStyle: GoogleFonts.dosis(
+                                            fontSize: 14,
+                                            color: const Color(0xFFAAAAAA)),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFF6E4B3A),
+                                              width: 1.5),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFF6E4B3A),
+                                              width: 1.5),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFF6E4B3A),
+                                              width: 2),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 8),
+                                      ),
+                                      style: GoogleFonts.dosis(
+                                          fontSize: 14,
+                                          color: const Color(0xFF6E4B3A)),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      width: 140,
+                                      height: 40,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color(0xFF8B0000),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8)),
+                                        ),
+                                        onPressed: () {
+                                          if (reasonController.text
+                                              .trim()
+                                              .isEmpty) {
+                                            return;
+                                          }
+                                          Navigator.pop(context, true);
+                                        },
+                                        child: Text(
+                                          'Submit',
+                                          style: GoogleFonts.dosis(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+
+                        if (reasonSubmitted != true) return;
+
+                        final bookingId = booking['id'];
+                        try {
+                          await supabase.from('bookings').update({
+                            'status': 'Cancelled',
+                            'cancelled_reason': reasonController.text.trim(),
+                            'cancelled_at': DateTime.now().toIso8601String(),
+                            'cancelled_by': 'Pawtner',
+                          }).eq('id', bookingId);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Booking cancelled.'),
+                              duration: Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+
+                          if (mounted) Navigator.pop(context, true);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Failed to cancel booking.')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B0000),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.dosis(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final currentUserId = supabase.auth.currentUser!.id;
+                        final furrent =
+                            booking['furrents'] as Map<String, dynamic>?;
+                        if (furrent == null) return;
+
+                        final furrentId = furrent['id'];
+                        if (furrentId == null) return;
+
+                        final existing = await supabase
+                            .from('conversations')
+                            .select()
+                            .eq('furrent_id', furrentId)
+                            .eq('pawtner_id', currentUserId)
+                            .maybeSingle();
+
+                        String conversationId;
+                        if (existing != null) {
+                          conversationId = existing['id'];
+                        } else {
+                          final inserted = await supabase
+                              .from('conversations')
+                              .insert({
+                                'furrent_id': furrentId,
+                                'pawtner_id': currentUserId,
+                                'last_message': '',
+                                'last_message_at':
+                                    DateTime.now().toIso8601String(),
+                              })
+                              .select()
+                              .single();
+                          conversationId = inserted['id'];
+                        }
+
+                        if (!context.mounted) return;
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatScreen(
+                              conversationId: conversationId,
+                              otherUserId: furrentId,
+                              otherUserName: furrent['full_name'] ?? '',
+                              otherUserAvatar:
+                                  furrent['profile_picture_url'] ?? '',
+                              currentUserType: 'pawtner',
+                              isDeletedAccount: false,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDDC7A9),
+                        alignment: Alignment.center,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(
+                        'Chat with Furrent',
+                        style: GoogleFonts.dosis(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6E4B3A)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -329,113 +654,14 @@ class _PawtnerBookingDetailsScreenState
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF6E4B3A),
-                            )),
+                            ).copyWith(
+                                fontFamilyFallback: const ['Roboto', 'Arial'])),
                       ],
                     ],
                   ),
                 ),
               ],
             ),
-            if (status.toLowerCase() != 'upcoming')
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(top: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border:
-                      Border.all(color: const Color(0xFFDDC7A9), width: 1.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(summaryTitle,
-                        style: GoogleFonts.dosis(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF6E4B3A),
-                        )),
-                    const SizedBox(height: 8),
-                    if (status.toLowerCase() == 'cancelled') ...[
-                      Text('Cancelled At: $formattedCancelledAt',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Cancelled By: ${booking['cancelled_by'] ?? '-'}',
-                        style: GoogleFonts.dosis(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF6E4B3A),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text('Reason: ${booking['cancelled_reason'] ?? '-'}',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
-                    ] else if (status.toLowerCase() == 'completed') ...[
-                      Text('Date Completed: $formattedCompletedAt',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            'Rating: ',
-                            style: GoogleFonts.dosis(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF6E4B3A),
-                            ),
-                          ),
-                          Row(
-                            children: List.generate(5, (index) {
-                              return Icon(
-                                Icons.star,
-                                color: index < bookingRating
-                                    ? const Color(0xFF6E4B3A)
-                                    : const Color(0xFFCCCCCC),
-                                size: 20,
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text('Review: $bookingComment',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
-                    ] else if (status.toLowerCase() == 'missed') ...[
-                      Text('Date Marked as Missed: $formattedMissedAt',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
-                      const SizedBox(height: 4),
-                      Text('Reason: ${booking['missed_reason'] ?? '-'}',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
-                    ],
-                  ],
-                ),
-              ),
-            const SizedBox(height: 16),
             if (status.toLowerCase() == 'upcoming') ...[
               Center(
                 child: Row(
@@ -468,7 +694,9 @@ class _PawtnerBookingDetailsScreenState
                                       ),
                                     );
 
-                                    if (mounted) Navigator.pop(context, true);
+                                    if (mounted) {
+                                      Navigator.pop(context, true);
+                                    }
                                   } catch (e) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -802,309 +1030,106 @@ class _PawtnerBookingDetailsScreenState
               ),
               const SizedBox(height: 20),
             ],
-            if (status.toLowerCase() == 'upcoming') ...[
-              SizedBox(
+            if (status.toLowerCase() != 'upcoming')
+              Container(
                 width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: const Color(0xFFF8F8F8),
-                        insetPadding:
-                            const EdgeInsets.symmetric(horizontal: 20),
-                        contentPadding:
-                            const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                        content: SizedBox(
-                          height: 140,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Are you sure you want to cancel this booking?',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.dosis(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                    color: const Color(0xFF6E4B3A)),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'This action cannot be undone.',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.dosis(
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                    color: const Color(0xFF6E4B3A)),
-                              ),
-                              const SizedBox(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 140,
-                                    height: 40,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF6E4B3A),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: Text(
-                                        'Keep Booking',
-                                        style: GoogleFonts.dosis(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
-                                            color: const Color(0xFFDDC7A9)),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  SizedBox(
-                                    width: 140,
-                                    height: 40,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF8B0000),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      child: Text(
-                                        'Confirm',
-                                        style: GoogleFonts.dosis(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
-                                            color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border:
+                      Border.all(color: const Color(0xFFDDC7A9), width: 1.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(summaryTitle,
+                        style: GoogleFonts.dosis(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF6E4B3A),
+                        )),
+                    const SizedBox(height: 8),
+                    if (status.toLowerCase() == 'cancelled') ...[
+                      Text('Cancelled At: $formattedCancelledAt',
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          )),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Cancelled By: ${booking['cancelled_by'] ?? '-'}',
+                        style: GoogleFonts.dosis(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6E4B3A),
                         ),
                       ),
-                    );
-
-                    if (confirmed != true) return;
-
-                    final reasonController = TextEditingController();
-                    final reasonSubmitted = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => Dialog(
-                        backgroundColor: Colors.transparent,
-                        insetPadding: EdgeInsets.zero,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8F8F8),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Color(0x33000000),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2))
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Why are you cancelling this booking?',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.dosis(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                      color: const Color(0xFF6E4B3A)),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: reasonController,
-                                  maxLines: 3,
-                                  decoration: InputDecoration(
-                                    hintText:
-                                        'Enter your reason for cancellation',
-                                    hintStyle: GoogleFonts.dosis(
-                                        fontSize: 14,
-                                        color: const Color(0xFFAAAAAA)),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                          color: Color(0xFF6E4B3A), width: 1.5),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                          color: Color(0xFF6E4B3A), width: 1.5),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                          color: Color(0xFF6E4B3A), width: 2),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                  ),
-                                  style: GoogleFonts.dosis(
-                                      fontSize: 14,
-                                      color: const Color(0xFF6E4B3A)),
-                                ),
-                                const SizedBox(height: 16),
-                                SizedBox(
-                                  width: 140,
-                                  height: 40,
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF8B0000),
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8)),
-                                    ),
-                                    onPressed: () {
-                                      if (reasonController.text
-                                          .trim()
-                                          .isEmpty) {
-                                        return;
-                                      }
-                                      Navigator.pop(context, true);
-                                    },
-                                    child: Text(
-                                      'Submit',
-                                      style: GoogleFonts.dosis(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
-                                          color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                      const SizedBox(height: 4),
+                      Text('Reason: ${booking['cancelled_reason'] ?? '-'}',
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          )),
+                    ] else if (status.toLowerCase() == 'completed') ...[
+                      Text('Date Completed: $formattedCompletedAt',
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          )),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            'Rating: ',
+                            style: GoogleFonts.dosis(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF6E4B3A),
                             ),
                           ),
-                        ),
+                          Row(
+                            children: List.generate(5, (index) {
+                              return Icon(
+                                Icons.star,
+                                color: index < bookingRating
+                                    ? const Color(0xFF6E4B3A)
+                                    : const Color(0xFFCCCCCC),
+                                size: 20,
+                              );
+                            }),
+                          ),
+                        ],
                       ),
-                    );
-
-                    if (reasonSubmitted != true) return;
-
-                    final bookingId = booking['id'];
-                    try {
-                      await supabase.from('bookings').update({
-                        'status': 'Cancelled',
-                        'cancelled_reason': reasonController.text.trim(),
-                        'cancelled_at': DateTime.now().toIso8601String(),
-                        'cancelled_by': 'Pawtner',
-                      }).eq('id', bookingId);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Booking cancelled.'),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-
-                      if (mounted) Navigator.pop(context, true);
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Failed to cancel booking.')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B0000),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(
-                    'Cancel',
-                    style: GoogleFonts.dosis(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
-                  ),
+                      const SizedBox(height: 4),
+                      Text('Review: $bookingComment',
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          )),
+                    ] else if (status.toLowerCase() == 'missed') ...[
+                      Text('Date Marked as Missed: $formattedMissedAt',
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          )),
+                      const SizedBox(height: 4),
+                      Text('Reason: ${booking['missed_reason'] ?? '-'}',
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          )),
+                    ],
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final currentUserId = supabase.auth.currentUser!.id;
-                    final furrent =
-                        booking['furrents'] as Map<String, dynamic>?;
-                    if (furrent == null) return;
-
-                    final furrentId = furrent['id'];
-                    if (furrentId == null) return;
-
-                    final existing = await supabase
-                        .from('conversations')
-                        .select()
-                        .eq('furrent_id', furrentId)
-                        .eq('pawtner_id', currentUserId)
-                        .maybeSingle();
-
-                    String conversationId;
-                    if (existing != null) {
-                      conversationId = existing['id'];
-                    } else {
-                      final inserted = await supabase
-                          .from('conversations')
-                          .insert({
-                            'furrent_id': furrentId,
-                            'pawtner_id': currentUserId,
-                            'last_message': '',
-                            'last_message_at': DateTime.now().toIso8601String(),
-                          })
-                          .select()
-                          .single();
-                      conversationId = inserted['id'];
-                    }
-
-                    if (!context.mounted) return;
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChatScreen(
-                          conversationId: conversationId,
-                          otherUserId: furrentId,
-                          otherUserName: furrent['full_name'] ?? '',
-                          otherUserAvatar: furrent['profile_picture_url'] ?? '',
-                          currentUserType: 'pawtner',
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDDC7A9),
-                    alignment: Alignment.center,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(
-                    'Chat with Furrent',
-                    style: GoogleFonts.dosis(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF6E4B3A)),
-                  ),
-                ),
-              ),
-            ],
+            const SizedBox(height: 16),
           ],
         ),
       ),

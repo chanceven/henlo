@@ -364,8 +364,14 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                               final furrent =
                                   item['furrents'] as Map<String, dynamic>? ??
                                       {};
-                              final profilePic =
-                                  furrent['profile_picture_url'] ?? '';
+                              final bool isDeletedAccount =
+                                  furrent.isEmpty || furrent['id'] == null;
+                              final String displayName = isDeletedAccount
+                                  ? 'Deleted Account'
+                                  : (furrent['full_name'] ?? '');
+                              final profilePic = isDeletedAccount
+                                  ? ''
+                                  : (furrent['profile_picture_url'] ?? '');
                               final lastMessageDate =
                                   item['last_message_at'] != null
                                       ? DateTime.parse(item['last_message_at'])
@@ -473,7 +479,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 20),
                                   child: const Icon(Icons.delete,
-                                      color: const Color(0xFFFFFFFF), size: 30),
+                                      color: Color(0xFFFFFFFF), size: 30),
                                 ),
                                 child: GestureDetector(
                                   onTap: () async {
@@ -488,13 +494,11 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                       MaterialPageRoute(
                                         builder: (context) => ChatScreen(
                                           conversationId: item['id'],
-                                          otherUserId: furrent['id'],
-                                          otherUserName:
-                                              furrent['full_name'] ?? '',
-                                          otherUserAvatar:
-                                              furrent['profile_picture_url'] ??
-                                                  '',
+                                          otherUserId: furrent['id'] ?? '',
+                                          otherUserName: displayName,
+                                          otherUserAvatar: profilePic,
                                           currentUserType: 'pawtner',
+                                          isDeletedAccount: isDeletedAccount,
                                         ),
                                       ),
                                     ).then((_) => _loadData());
@@ -541,7 +545,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                         .spaceBetween,
                                                 children: [
                                                   customText(
-                                                    furrent['full_name'] ?? '',
+                                                    displayName,
                                                     fontWeight: isUnread
                                                         ? FontWeight.w800
                                                         : FontWeight.w600,

@@ -117,11 +117,13 @@ class _NewChatScreenState extends State<NewChatScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ChatScreen(
-            conversationId: conversation['id'],
-            otherUserId: otherUser['id'],
-            otherUserName: displayName,
-            otherUserAvatar: otherUser['profile_picture_url'] ?? '',
-            currentUserType: widget.currentUserType),
+          conversationId: conversation['id'],
+          otherUserId: otherUser['id'],
+          otherUserName: displayName,
+          otherUserAvatar: otherUser['profile_picture_url'] ?? '',
+          currentUserType: widget.currentUserType,
+          isDeletedAccount: false,
+        ),
       ),
     );
 

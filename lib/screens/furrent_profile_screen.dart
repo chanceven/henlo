@@ -6,7 +6,7 @@ import 'signin_screen.dart';
 import 'furrent_edit_profile_screen.dart';
 import 'furrent_my_pets_screen.dart';
 import 'furrent_support_screen.dart';
-import 'furrent_legal_and_app_info_screen.dart';
+import 'settings_screen.dart';
 
 class FurrentProfileScreen extends StatefulWidget {
   const FurrentProfileScreen({super.key});
@@ -175,6 +175,19 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                     },
                   ),
 
+                  _buildCard(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
                   // SUPPORT
                   _buildCard(
                     icon: Icons.support_agent,
@@ -189,18 +202,6 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                     },
                   ),
 
-                  _buildCard(
-                    icon: Icons.info,
-                    label: 'Legal & App Info',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const FurrentLegalScreen(),
-                        ),
-                      );
-                    },
-                  ),
                   _buildCard(
                     icon: Icons.logout,
                     label: 'Logout',

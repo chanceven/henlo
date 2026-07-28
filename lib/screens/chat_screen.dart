@@ -14,6 +14,8 @@ class ChatScreen extends StatefulWidget {
   final String otherUserAvatar;
   final String currentUserType;
 
+  final bool isDeletedAccount;
+
   const ChatScreen({
     super.key,
     required this.conversationId,
@@ -21,6 +23,7 @@ class ChatScreen extends StatefulWidget {
     required this.otherUserName,
     required this.otherUserAvatar,
     required this.currentUserType,
+    required this.isDeletedAccount,
   });
 
   @override
@@ -135,6 +138,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _sendMessage({String? text, String? fileUrl}) async {
+    if (widget.isDeletedAccount) return;
+
     if ((text == null || text.trim().isEmpty) && fileUrl == null) return;
 
     debugPrint('currentUserType: ${widget.currentUserType}');
@@ -497,37 +502,61 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       _showAttachmentOptions ? Icons.close : Icons.add,
                       color: const Color(0xFF6E4B3A),
                     ),
-                    onPressed: () {
-                      setState(() =>
-                          _showAttachmentOptions = !_showAttachmentOptions);
-                    },
+                    onPressed: widget.isDeletedAccount
+                        ? null
+                        : () {
+                            setState(() => _showAttachmentOptions =
+                                !_showAttachmentOptions);
+                          },
                   ),
                   Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      minLines: 1,
-                      maxLines: 5,
-                      style: GoogleFonts.dosis(
-                        color: const Color(0xFF6E4B3A),
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Type a message',
-                        hintStyle:
-                            GoogleFonts.dosis(color: const Color(0xFFBDBDBD)),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              const BorderSide(color: Color(0xFF6E4B3A)),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              const BorderSide(color: Color(0xFF6E4B3A)),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                      ),
-                    ),
+                    child: widget.isDeletedAccount
+                        ? Container(
+                            height: 50,
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              border:
+                                  Border.all(color: const Color(0xFF6E4B3A)),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Text(
+                              'This account has been deleted.',
+                              style: GoogleFonts.dosis(
+                                color: const Color(0xFFBDBDBD),
+                              ),
+                            ),
+                          )
+                        : TextField(
+                            controller: _messageController,
+                            minLines: 1,
+                            maxLines: 5,
+                            style: GoogleFonts.dosis(
+                              color: const Color(0xFF6E4B3A),
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Type a message',
+                              hintStyle: GoogleFonts.dosis(
+                                color: const Color(0xFFBDBDBD),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF6E4B3A),
+                                ),
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF6E4B3A),
+                                ),
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 8),
                   Container(
@@ -537,8 +566,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.send, color: Color(0xFFDDC7A9)),
-                      onPressed: () =>
-                          _sendMessage(text: _messageController.text),
+                      onPressed: widget.isDeletedAccount
+                          ? null
+                          : () => _sendMessage(
+                                text: _messageController.text,
+                              ),
                     ),
                   ),
                 ],

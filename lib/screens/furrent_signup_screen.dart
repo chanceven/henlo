@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'terms_and_conditions_screen.dart';
+import 'privacy_policy_screen.dart';
 import 'otp_screen.dart';
 
 class FurrentSignUpScreen extends StatefulWidget {
@@ -25,6 +27,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _acceptedTerms = false;
 
   bool _isValidContactNumber(String value) {
     final trimmed = value.trim();
@@ -35,6 +38,21 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
 
   Future<void> _signUpFurrent() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (!_acceptedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please agree to the Terms & Conditions and Privacy Policy.',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -330,6 +348,97 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Transform.translate(
+                              offset: const Offset(-10, -4),
+                              child: Checkbox(
+                                value: _acceptedTerms,
+                                activeColor: const Color(0xFF6E4B3A),
+                                checkColor: const Color(0xFFDDC7A9),
+                                side: const BorderSide(
+                                  color: Color(0xFF6E4B3A),
+                                  width: 1.5,
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _acceptedTerms = value ?? false;
+                                  });
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: Transform.translate(
+                                offset: const Offset(-8, 0),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Wrap(
+                                    children: [
+                                      Text(
+                                        'By creating an account, you agree to our ',
+                                        style: GoogleFonts.dosis(
+                                          fontSize: 16,
+                                          color: const Color(0xFF6E4B3A),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const TermsAndConditionsScreen(),
+                                            ),
+                                          );
+                                        },
+                                        child: Text(
+                                          'Terms & Conditions',
+                                          style: GoogleFonts.dosis(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF6E4B3A),
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        ' and ',
+                                        style: GoogleFonts.dosis(
+                                          fontSize: 16,
+                                          color: const Color(0xFF6E4B3A),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const PrivacyPolicyScreen(),
+                                            ),
+                                          );
+                                        },
+                                        child: Text(
+                                          'Privacy Policy.',
+                                          style: GoogleFonts.dosis(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF6E4B3A),
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const Spacer(flex: 1),
                         Column(

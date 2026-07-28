@@ -29,7 +29,10 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   final supabase = Supabase.instance.client;
 
   DateTime selectedDate = DateTime.now();
+  DateTime originalDate = DateTime.now();
+  DateTime viewedMonth = DateTime.now();
   DateTime? selectedEndDate;
+  DateTime? originalEndDate;
   bool isBoardingService = false;
   double servicePrice = 0;
   int boardingDays = 0;
@@ -39,6 +42,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   String pawtnerName = '';
   List<TimeOfDay> availableTimes = [];
   TimeOfDay? selectedTime;
+  TimeOfDay? originalTime;
 
   List<String> subtypeTabs = [];
   String selectedSubtype = '';
@@ -66,8 +70,13 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
     if (booking != null) {
       final start = DateTime.parse(booking['scheduled_start']);
       selectedDate = start;
+      originalDate = start;
+      viewedMonth = DateTime(start.year, start.month);
+      originalTime = TimeOfDay(hour: start.hour, minute: start.minute);
+      selectedTime = originalTime;
       if (booking['scheduled_end'] != null) {
         selectedEndDate = DateTime.parse(booking['scheduled_end']);
+        originalEndDate = selectedEndDate;
       }
     }
   }
@@ -235,7 +244,15 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
 
     if (!isBoardingService) {
       setState(() => selectedDate = date);
-      _loadAvailableTimes(date);
+      debugPrint('Original: $originalDate | Selected: $selectedDate');
+      _loadAvailableTimes(date).then((_) {
+        if (selectedTime != null &&
+            !availableTimes.any((t) =>
+                t.hour == selectedTime!.hour &&
+                t.minute == selectedTime!.minute)) {
+          setState(() => selectedTime = null);
+        }
+      });
       return;
     }
 
@@ -257,7 +274,14 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
       });
     }
 
-    _loadAvailableTimes(date);
+    _loadAvailableTimes(date).then((_) {
+      if (selectedTime != null &&
+          !availableTimes.any((t) =>
+              t.hour == selectedTime!.hour &&
+              t.minute == selectedTime!.minute)) {
+        setState(() => selectedTime = null);
+      }
+    });
   }
 
   @override
@@ -747,12 +771,11 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   }
 
   Widget _buildCalendar() {
-    DateTime firstOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
+    DateTime firstOfMonth = DateTime(viewedMonth.year, viewedMonth.month, 1);
 
     int startingWeekday = firstOfMonth.weekday % 7;
 
-    int daysInMonth =
-        DateTime(selectedDate.year, selectedDate.month + 1, 0).day;
+    int daysInMonth = DateTime(viewedMonth.year, viewedMonth.month + 1, 0).day;
 
     List<Widget> dayWidgets = [];
 
@@ -761,7 +784,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
     }
 
     for (int day = 1; day <= daysInMonth; day++) {
-      DateTime current = DateTime(selectedDate.year, selectedDate.month, day);
+      DateTime current = DateTime(viewedMonth.year, viewedMonth.month, day);
 
       bool isPast = current.isBefore(DateTime(
           DateTime.now().year, DateTime.now().month, DateTime.now().day));
@@ -770,14 +793,39 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
           selectedDate.month == current.month &&
           selectedDate.year == current.year;
 
-      bool isEnd = selectedEndDate != null &&
+      bool isOriginal = originalDate.day == day &&
+          originalDate.month == current.month &&
+          originalDate.year == current.year;
+
+      bool hasChangedDate = selectedDate.day != originalDate.day ||
+          selectedDate.month != originalDate.month ||
+          selectedDate.year != originalDate.year ||
+          (isBoardingService &&
+              (selectedEndDate?.day != originalEndDate?.day ||
+                  selectedEndDate?.month != originalEndDate?.month ||
+                  selectedEndDate?.year != originalEndDate?.year));
+
+      bool isEnd = isBoardingService &&
+          selectedEndDate != null &&
           selectedEndDate!.day == day &&
           selectedEndDate!.month == current.month &&
           selectedEndDate!.year == current.year;
 
-      bool isInRange = selectedEndDate != null &&
+      bool isInRange = isBoardingService &&
+          selectedEndDate != null &&
           current.isAfter(selectedDate) &&
           current.isBefore(selectedEndDate!);
+
+      bool isOriginalEnd = isBoardingService &&
+          originalEndDate != null &&
+          originalEndDate!.day == day &&
+          originalEndDate!.month == current.month &&
+          originalEndDate!.year == current.year;
+
+      bool isOriginalRange = isBoardingService &&
+          originalEndDate != null &&
+          current.isAfter(originalDate) &&
+          current.isBefore(originalEndDate!);
 
       dayWidgets.add(
         GestureDetector(
@@ -789,12 +837,22 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                     color: Color(0xFF6E4B3A),
                     shape: BoxShape.circle,
                   )
-                : isInRange
-                    ? BoxDecoration(
-                        color: const Color(0xFF6E4B3A).withOpacity(0.2),
+                : (isOriginal || isOriginalEnd) && hasChangedDate
+                    ? const BoxDecoration(
+                        color: Color(0xFFD9D9D9),
                         shape: BoxShape.circle,
                       )
-                    : null,
+                    : isInRange
+                        ? BoxDecoration(
+                            color: const Color(0xFF6E4B3A).withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          )
+                        : isOriginalRange && hasChangedDate
+                            ? BoxDecoration(
+                                color: const Color(0xFFD9D9D9).withOpacity(0.5),
+                                shape: BoxShape.circle,
+                              )
+                            : null,
             child: Text(
               '$day',
               style: GoogleFonts.dosis(
@@ -870,7 +928,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "${_monthName(selectedDate.month)} ${selectedDate.year}",
+                  "${_monthName(viewedMonth.month)} ${viewedMonth.year}",
                   style: GoogleFonts.dosis(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -881,22 +939,10 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        final now = DateTime.now();
-
-                        final prevMonth = DateTime(
-                            selectedDate.year, selectedDate.month - 1, 1);
-
                         setState(() {
-                          if (prevMonth.year == now.year &&
-                              prevMonth.month == now.month) {
-                            selectedDate =
-                                DateTime(now.year, now.month, now.day);
-                          } else {
-                            selectedDate = prevMonth;
-                          }
+                          viewedMonth = DateTime(
+                              viewedMonth.year, viewedMonth.month - 1, 1);
                         });
-
-                        _loadAvailableTimes(selectedDate);
                       },
                       child: const Text(
                         "<",
@@ -911,11 +957,9 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                     GestureDetector(
                       onTap: () {
                         setState(() {
-                          selectedDate = DateTime(
-                              selectedDate.year, selectedDate.month + 1, 1);
+                          viewedMonth = DateTime(
+                              viewedMonth.year, viewedMonth.month + 1, 1);
                         });
-
-                        _loadAvailableTimes(selectedDate);
                       },
                       child: const Text(
                         ">",
@@ -976,12 +1020,23 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
             itemBuilder: (context, index) {
               TimeOfDay time = availableTimes[index];
               final isSelected = selectedTime == time;
+              final isOriginalTime = originalTime != null &&
+                  time.hour == originalTime!.hour &&
+                  time.minute == originalTime!.minute;
+              final hasChangedTime = selectedTime != null &&
+                  originalTime != null &&
+                  (selectedTime!.hour != originalTime!.hour ||
+                      selectedTime!.minute != originalTime!.minute);
               return GestureDetector(
                 onTap: () => setState(() => selectedTime = time),
                 child: Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF6E4B3A) : null,
+                    color: isSelected
+                        ? const Color(0xFF6E4B3A)
+                        : (isOriginalTime && hasChangedTime)
+                            ? const Color(0xFFD9D9D9)
+                            : null,
                     border: Border.all(color: const Color(0xFF6E4B3A)),
                     borderRadius: BorderRadius.circular(8),
                   ),

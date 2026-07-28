@@ -122,6 +122,10 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
                     child: SizedBox(
                       height: 40,
                       child: TextField(
+                        style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
+                          fontSize: 16,
+                        ),
                         onChanged: (value) =>
                             setState(() => searchQuery = value),
                         decoration: InputDecoration(
@@ -226,7 +230,12 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
           iconColor: const Color(0xFF6E4B3A),
           collapsedIconColor: const Color(0xFF6E4B3A),
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          title: _highlightText(faq['question'] ?? 'No question'),
+          title: MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.0),
+            ),
+            child: _highlightText(faq['question'] ?? 'No question'),
+          ),
           children: [
             Container(
               width: double.infinity,
@@ -277,6 +286,12 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
       start = index + query.length;
     }
 
-    return RichText(text: TextSpan(children: spans));
+    return Text.rich(
+      TextSpan(children: spans),
+      style: GoogleFonts.dosis(
+        fontSize: 16,
+        color: const Color(0xFF6E4B3A),
+      ),
+    );
   }
 }

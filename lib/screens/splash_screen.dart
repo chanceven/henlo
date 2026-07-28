@@ -23,9 +23,9 @@ class _SplashScreenState extends State<SplashScreen> {
     final supabase = Supabase.instance.client;
     final session = supabase.auth.currentSession;
 
-    // 🚫 No user logged in → go to Onboarding
+// 🚫 No user logged in → go to Sign In
     if (session == null) {
-      Navigator.pushReplacementNamed(context, '/onboarding');
+      Navigator.pushReplacementNamed(context, '/sign_in');
       return;
     }
 

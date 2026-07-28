@@ -284,6 +284,12 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
       start = index + query.length;
     }
 
-    return RichText(text: TextSpan(children: spans));
+    return Text.rich(
+      TextSpan(children: spans),
+      style: GoogleFonts.dosis(
+        fontSize: 16,
+        color: const Color(0xFF6E4B3A),
+      ),
+    );
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -367,36 +366,35 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            RichText(
-                              textAlign: TextAlign.center,
-                              text: TextSpan(
-                                style: GoogleFonts.dosis(
-                                  textStyle: const TextStyle(
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Already have an account? ",
+                                  style: GoogleFonts.dosis(
                                     fontSize: 16,
-                                    color: Color(0xFF6E4B3A),
+                                    color: const Color(0xFF6E4B3A),
                                   ),
                                 ),
-                                children: [
-                                  const TextSpan(
-                                      text: "Already have an account? "),
-                                  TextSpan(
-                                    text: "Sign In",
-                                    style: const TextStyle(
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) => const SignInScreen()),
+                                    );
+                                  },
+                                  child: Text(
+                                    "Sign In",
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 16,
                                       fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF6E4B3A),
                                       decoration: TextDecoration.underline,
                                     ),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () {
-                                        Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const SignInScreen()),
-                                        );
-                                      },
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 40),
                           ],

@@ -209,9 +209,14 @@ class _PawtnerServicesGroomingScreenState
                                       Text(
                                         formatPrice(service['price']),
                                         style: GoogleFonts.dosis(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                            color: const Color(0xFF6E4B3A)),
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                                color: const Color(0xFF6E4B3A))
+                                            .copyWith(
+                                                fontFamilyFallback: const [
+                                              'Roboto',
+                                              'Arial'
+                                            ]),
                                       ),
                                     ],
                                   ),
@@ -277,7 +282,12 @@ class _PawtnerServicesGroomingScreenState
                         ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    24 + MediaQuery.of(context).padding.bottom,
+                  ),
                   child: SizedBox(
                     width: double.infinity,
                     height: 50,

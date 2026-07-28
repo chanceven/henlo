@@ -286,7 +286,8 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
           decoration: InputDecoration(
             prefixText: prefixText,
             prefixStyle:
-                GoogleFonts.dosis(color: const Color(0xFF6E4B3A), fontSize: 16),
+                GoogleFonts.dosis(color: const Color(0xFF6E4B3A), fontSize: 16)
+                    .copyWith(fontFamilyFallback: const ['Roboto', 'Arial']),
             contentPadding:
                 const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
             enabledBorder: OutlineInputBorder(
@@ -387,7 +388,7 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                   label: 'Service Name', controller: _serviceNameController),
               const SizedBox(height: 16),
               _buildTextField(
-                  label: 'Inclusion', controller: _descriptionController),
+                  label: 'Description', controller: _descriptionController),
               const SizedBox(height: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

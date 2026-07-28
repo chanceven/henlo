@@ -385,17 +385,22 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                   item['pawtners'] as Map<String, dynamic>? ??
                                       {};
 
-                              final String displayName =
-                                  (pawtner['business_name'] != null &&
+                              final bool isDeletedAccount =
+                                  pawtner.isEmpty || pawtner['id'] == null;
+
+                              final String displayName = isDeletedAccount
+                                  ? 'Deleted Account'
+                                  : ((pawtner['business_name'] != null &&
                                           pawtner['business_name']
                                               .toString()
                                               .trim()
                                               .isNotEmpty)
                                       ? pawtner['business_name']
-                                      : (pawtner['full_name'] ?? '');
+                                      : (pawtner['full_name'] ?? ''));
 
-                              final profilePic =
-                                  pawtner['profile_picture_url'] ?? '';
+                              final profilePic = isDeletedAccount
+                                  ? ''
+                                  : (pawtner['profile_picture_url'] ?? '');
                               final lastMessageDate =
                                   item['last_message_at'] != null
                                       ? DateTime.parse(item['last_message_at'])
@@ -530,12 +535,11 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                       MaterialPageRoute(
                                         builder: (context) => ChatScreen(
                                           conversationId: item['id'],
-                                          otherUserId: pawtner['id'],
+                                          otherUserId: pawtner['id'] ?? '',
                                           otherUserName: displayName,
-                                          otherUserAvatar:
-                                              pawtner['profile_picture_url'] ??
-                                                  '',
+                                          otherUserAvatar: profilePic,
                                           currentUserType: 'furrent',
+                                          isDeletedAccount: isDeletedAccount,
                                         ),
                                       ),
                                     ).then((_) => _loadData());

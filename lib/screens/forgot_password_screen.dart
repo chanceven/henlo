@@ -37,7 +37,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: 'io.supabase.petapp://login-callback/',
+        redirectTo: 'https://henloapp.com/auth/callback',
       );
 
       // Success message

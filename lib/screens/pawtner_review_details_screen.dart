@@ -1,10 +1,10 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'terms_and_conditions_screen.dart';
+import 'privacy_policy_screen.dart';
 import 'otp_screen.dart';
 
 class PawtnerReviewDetailsScreen extends StatefulWidget {
@@ -45,7 +45,8 @@ class _PawtnerReviewDetailsScreenState
     if (!agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please agree to the Terms and Conditions"),
+          content:
+              Text("Please agree to the Terms & Conditions and Privacy Policy"),
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -206,37 +207,40 @@ class _PawtnerReviewDetailsScreenState
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Checkbox(
-                        value: agreeTerms,
-                        onChanged: (val) =>
-                            setState(() => agreeTerms = val ?? false),
-                        activeColor: const Color(0xFF6E4B3A),
-                        side: const BorderSide(
-                            color: Color(0xFF6E4B3A), width: 1.5),
+                      Transform.translate(
+                        offset: const Offset(-10, -4),
+                        child: Checkbox(
+                          value: agreeTerms,
+                          onChanged: (val) =>
+                              setState(() => agreeTerms = val ?? false),
+                          activeColor: const Color(0xFF6E4B3A),
+                          checkColor: const Color(0xFFDDC7A9),
+                          side: const BorderSide(
+                            color: Color(0xFF6E4B3A),
+                            width: 1.5,
+                          ),
+                        ),
                       ),
                       Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.dosis(
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF6E4B3A),
-                              ),
-                            ),
-                            children: [
-                              const TextSpan(text: "I agree to the "),
-                              TextSpan(
-                                text: "Henlo Terms and Conditions",
-                                style: const TextStyle(
-                                  decoration: TextDecoration.underline,
-                                  fontWeight: FontWeight.w600,
+                        child: Transform.translate(
+                          offset: const Offset(-8, 0),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Wrap(
+                              children: [
+                                Text(
+                                  'By creating an account, you agree to our ',
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
                                 ),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () {
+                                GestureDetector(
+                                  onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -245,8 +249,45 @@ class _PawtnerReviewDetailsScreenState
                                       ),
                                     );
                                   },
-                              ),
-                            ],
+                                  child: Text(
+                                    'Terms & Conditions',
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF6E4B3A),
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  ' and ',
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const PrivacyPolicyScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    'Privacy Policy.',
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF6E4B3A),
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'furrent_pawtner_ratings_screen.dart';
 import 'chat_screen.dart';
+import 'furrent_add_pet_screen.dart';
 import 'furrent_book_appointment_screen.dart';
 
 class FurrentPawtnerDetailScreen extends StatefulWidget {
@@ -192,7 +193,10 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
   }
 
   void _showSelectPetModal(String serviceId) {
-    int selectedIndex = 0;
+    int selectedIndex = furrentPets.length > 1 ? 1 : 0;
+    final wheelController = FixedExtentScrollController(
+      initialItem: furrentPets.length > 1 ? 1 : 0,
+    );
 
     showDialog(
       context: context,
@@ -200,7 +204,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            height: 150,
+            height: 210,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -223,8 +227,10 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                       : StatefulBuilder(
                           builder: (context, setStateSB) {
                             return ListWheelScrollView.useDelegate(
+                              controller: wheelController,
                               itemExtent: 50,
-                              perspective: 0.003,
+                              diameterRatio: 100,
+                              perspective: 0.001,
                               physics: const FixedExtentScrollPhysics(),
                               onSelectedItemChanged: (index) {
                                 setStateSB(() {
@@ -233,9 +239,70 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                               },
                               childDelegate: ListWheelChildBuilderDelegate(
                                 builder: (context, index) {
-                                  if (index >= furrentPets.length) return null;
-                                  final pet = furrentPets[index];
+                                  final isAddPet = index == furrentPets.length;
                                   final isSelected = index == selectedIndex;
+
+                                  if (isAddPet) {
+                                    return Center(
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          final newPetId = await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const FurrentAddPetScreen(
+                                                isBookingFlow: true,
+                                              ),
+                                            ),
+                                          );
+
+                                          if (newPetId == null) return;
+                                          if (!mounted) return;
+
+                                          Navigator.pop(context);
+
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  FurrentBookAppointmentScreen(
+                                                pawtnerId: pawtner!['id'],
+                                                serviceId: serviceId,
+                                                petId: newPetId,
+                                                pawtnerName:
+                                                    pawtner!['business_name'] ??
+                                                        pawtner!['full_name'],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 64, vertical: 6),
+                                          decoration: isSelected
+                                              ? BoxDecoration(
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                )
+                                              : null,
+                                          child: Text(
+                                            '+ Add Pet',
+                                            style: GoogleFonts.dosis(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSelected
+                                                  ? const Color(0xFFDDC7A9)
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+
+                                  final pet = furrentPets[index];
 
                                   return Center(
                                     child: GestureDetector(
@@ -267,20 +334,26 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                                               )
                                             : null,
                                         child: Text(
-                                          '${pet['name'] ?? 'Unnamed'} (${pet['type'] ?? ''})',
+                                          (pet['breed'] != null &&
+                                                  pet['breed']
+                                                      .toString()
+                                                      .trim()
+                                                      .isNotEmpty)
+                                              ? '${pet['name']} (${pet['type']})'
+                                              : '${pet['name']}',
                                           style: GoogleFonts.dosis(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                             color: isSelected
                                                 ? const Color(0xFFDDC7A9)
-                                                : const Color(0xFF6E4B3A),
+                                                : Colors.grey,
                                           ),
                                         ),
                                       ),
                                     ),
                                   );
                                 },
-                                childCount: furrentPets.length,
+                                childCount: furrentPets.length + 1,
                               ),
                             );
                           },
@@ -436,7 +509,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
     );
   }
 
-Widget _buildHeader() {
+  Widget _buildHeader() {
     if (pawtner == null) return const SizedBox();
     return _buildHeaderInner();
   }
@@ -456,7 +529,7 @@ Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-Text(
+        Text(
           displayName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -512,7 +585,7 @@ Text(
         ),
         const SizedBox(height: 8),
         if (fullAddress.isNotEmpty)
-Text(
+          Text(
             'Shop Location: $fullAddress',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -771,6 +844,7 @@ Text(
                               otherUserAvatar:
                                   pawtner!['profile_picture_url'] ?? '',
                               currentUserType: 'furrent',
+                              isDeletedAccount: false,
                             ),
                           ),
                         );

@@ -651,8 +651,9 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                       ),
                                                     );
 
-                                                    if (confirmed != true)
+                                                    if (confirmed != true) {
                                                       return;
+                                                    }
 
                                                     final reasonController =
                                                         TextEditingController();

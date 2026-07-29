@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart';
 import 'signin_screen.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
   final _otpController = TextEditingController();
+  final _otpFocusNode = FocusNode();
   bool _isLoading = false;
   bool _isResending = false;
 
@@ -49,6 +51,7 @@ class _OtpScreenState extends State<OtpScreen> {
   void dispose() {
     _timer?.cancel();
     _otpController.dispose();
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
@@ -190,135 +193,167 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
         backgroundColor: const Color(0xFFF8F8F8),
-        elevation: 0,
-        leading: BackButton(
-          color: const Color(0xFF6E4B3A),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const SignInScreen()),
-                (route) => false,
-              );
-            }
-          },
-        ),
-        title: Text(
-          'Verify Email',
-          style: GoogleFonts.dosis(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF8F8F8),
+          elevation: 0,
+          leading: BackButton(
             color: const Color(0xFF6E4B3A),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SignInScreen()),
+                  (route) => false,
+                );
+              }
+            },
           ),
+          title: const SizedBox.shrink(),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
-            Text(
-              'Enter the 6-digit code sent to',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dosis(
-                fontSize: 16,
-                color: const Color(0xFF6E4B3A),
-              ),
-            ),
-            Text(
-              widget.email,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dosis(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF6E4B3A),
-              ),
-            ),
-            const SizedBox(height: 40),
-            TextField(
-              controller: _otpController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dosis(
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF6E4B3A),
-                letterSpacing: 16,
-              ),
-              decoration: const InputDecoration(
-                counterText: '',
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 2),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Timer and resend
-            if (!_canResend)
-              Text(
-                'Code expires in $_timerText',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.dosis(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
-              )
-            else
-              GestureDetector(
-                onTap: _isResending ? null : _resendOtp,
-                child: Text(
-                  _isResending ? 'Sending...' : 'Resend code',
-                  textAlign: TextAlign.center,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 24),
+                Text(
+                  "We've sent a 6-digit\nverification code to",
+                  textAlign: TextAlign.left,
                   style: GoogleFonts.dosis(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF6E4B3A),
-                    decoration: TextDecoration.underline,
+                    height: 1.2,
                   ),
                 ),
-              ),
-
-            const SizedBox(height: 40),
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _verifyOtp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6E4B3A),
-                  foregroundColor: const Color(0xFFDDC7A9),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                const SizedBox(height: 8),
+                Text(
+                  widget.email,
+                  textAlign: TextAlign.left,
+                  style: GoogleFonts.dosis(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF6E4B3A),
                   ),
                 ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(
-                        color: Color(0xFFDDC7A9),
-                        strokeWidth: 2.5,
-                      )
-                    : Text(
-                        'Verify',
-                        style: GoogleFonts.dosis(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
+                const SizedBox(height: 40),
+                GestureDetector(
+                  onTap: () {
+                    FocusScope.of(context).requestFocus(_otpFocusNode);
+                  },
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Opacity(
+                        opacity: 0,
+                        child: SizedBox(
+                          width: 1,
+                          height: 1,
+                          child: TextField(
+                            controller: _otpController,
+                            autofocus: true,
+                            focusNode: _otpFocusNode,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            maxLength: 6,
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(
+                              counterText: '',
+                              border: InputBorder.none,
+                            ),
+                          ),
                         ),
                       ),
-              ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(6, (index) {
+                          final text = _otpController.text;
+
+                          return Container(
+                            width: 48,
+                            height: 56,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFF6E4B3A),
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              index < text.length ? text[index] : '',
+                              style: GoogleFonts.dosis(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF6E4B3A),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                if (!_canResend)
+                  Text(
+                    'Code expires in $_timerText',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.dosis(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: _isResending ? null : _resendOtp,
+                    child: Text(
+                      'Resend code',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dosis(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6E4B3A),
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _verifyOtp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                      foregroundColor: const Color(0xFFDDC7A9),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                            color: Color(0xFFDDC7A9),
+                            strokeWidth: 2.5,
+                          )
+                        : Text(
+                            'Verify',
+                            style: GoogleFonts.dosis(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+        ));
   }
 }

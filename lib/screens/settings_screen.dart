@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'furrent_app_info_screen.dart';
+import 'app_info_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_and_conditions_screen.dart';
 import 'licenses_screen.dart';
@@ -41,7 +41,7 @@ class SettingsScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FurrentAppInfoScreen(),
+                  builder: (_) => const AppInfoScreen(),
                 ),
               );
             },

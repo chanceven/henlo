@@ -22,7 +22,7 @@ class OnboardingScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                "Let's Get You Started",
+                "Welcome to Henlo",
                 style: GoogleFonts.dosis(
                   textStyle: const TextStyle(
                     fontSize: 32,
@@ -31,11 +31,9 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 40),
-
               Text(
-                "Choose your role",
+                "Choose how you'll use the app.",
                 style: GoogleFonts.dosis(
                   textStyle: const TextStyle(
                     fontSize: 26,
@@ -44,77 +42,143 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
-              const Spacer(),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const FurrentSignUpScreen()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6E4B3A),
-                    foregroundColor: const Color(0xFFDDC7A9),
-                    padding: const EdgeInsets.symmetric(vertical: 28),
-                    shape: buttonShape,
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Text(
-                        "Furrent",
-                        style: GoogleFonts.dosis(
-                          textStyle: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
               const SizedBox(height: 40),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PawtnerSignUpScreen()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFDDC7A9),
-                    foregroundColor: const Color(0xFF6E4B3A),
-                    padding: const EdgeInsets.symmetric(vertical: 28),
-                    shape: buttonShape,
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FurrentSignUpScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 24,
                   ),
-                  child: Stack(
-                    alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF6E4B3A),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
                     children: [
-                      Text(
-                        "Pawtner",
-                        style: GoogleFonts.dosis(
-                          textStyle: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
+                      const Icon(
+                        Icons.pets,
+                        size: 40,
+                        color: Color(0xFF6E4B3A),
+                      ),
+                      const SizedBox(width: 18),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Furrent",
+                            style: GoogleFonts.dosis(
+                              textStyle: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF6E4B3A),
+                              ),
+                            ),
                           ),
-                        ),
+                          Text(
+                            "I'm a pet owner",
+                            style: GoogleFonts.dosis(
+                              textStyle: const TextStyle(
+                                fontSize: 17,
+                                color: Color(0xFF6E4B3A),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ),
-
+              const SizedBox(height: 40),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PawtnerSignUpScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 24,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF6E4B3A),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.storefront,
+                        size: 40,
+                        color: Color(0xFF6E4B3A),
+                      ),
+                      const SizedBox(width: 18),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Pawtner",
+                            style: GoogleFonts.dosis(
+                              textStyle: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF6E4B3A),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            "I'm a pet business owner",
+                            style: GoogleFonts.dosis(
+                              textStyle: const TextStyle(
+                                fontSize: 17,
+                                color: Color(0xFF6E4B3A),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const Spacer(),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

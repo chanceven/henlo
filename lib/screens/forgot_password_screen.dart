@@ -27,7 +27,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final email = emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email')),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+          content: Text(
+            'Please enter your email.',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
+      );
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+          content: Text(
+            'Please enter a valid email.',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
       );
       return;
     }
@@ -42,7 +71,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       // Success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reset link sent! Check your email.')),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+          content: Text(
+            'If your email is registered, you\'ll receive a password reset link shortly.',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
       );
 
       // Redirect to SignInScreen after 2 seconds
@@ -56,7 +95,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Something went wrong: $e')),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+          content: Text(
+            'Unable to send the reset link. Please try again.',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
       );
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -68,18 +117,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       prefixIcon: Icon(icon, color: const Color(0xFF6E4B3A)),
       hintText: hint,
       hintStyle: GoogleFonts.dosis(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        color: Colors.grey[400],
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: const Color(0xFFBDBDBD)),
+      filled: true,
+      fillColor: const Color(0xFFFFFFFF),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: const Color(0xFF6E4B3A).withOpacity(0.3),
+          width: 1,
+        ),
       ),
-      enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Color(0xFF6E4B3A),
+          width: 1.5,
+        ),
       ),
-      focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 16,
+        horizontal: 12,
       ),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12),
     );
   }
 
@@ -88,80 +148,91 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          'Forgot Password',
-          style: GoogleFonts.dosis(
-            textStyle: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF6E4B3A),
-            ),
-          ),
-        ),
+        title: const SizedBox.shrink(),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'Enter your email to reset your password',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dosis(
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF6E4B3A),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 24),
+
+              Text(
+                'Forgot your password?',
+                textAlign: TextAlign.left,
+                style: GoogleFonts.dosis(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF6E4B3A),
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
 
-            // Email Field
-            TextField(
-              controller: emailController,
-              decoration: buildInputDecoration('Email', Icons.email),
-              style: GoogleFonts.dosis(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF6E4B3A),
+              const SizedBox(height: 8),
+
+              Text(
+                'Enter the email linked to your account\nto reset your password',
+                textAlign: TextAlign.left,
+                style: GoogleFonts.dosis(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF8A6A5A),
+                  height: 1.3,
+                ),
               ),
-            ),
+              const SizedBox(height: 40),
 
-            const SizedBox(height: 80), // button lower on screen
+              // Email Field
+              TextField(
+                controller: emailController,
+                decoration: buildInputDecoration('Email', Icons.email),
+                style: GoogleFonts.dosis(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6E4B3A),
+                ),
+              ),
 
-            // Reset Password Button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : _submitReset,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6E4B3A),
-                  foregroundColor: const Color(0xFFDDC7A9),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              const Spacer(),
+
+              // Reset Password Button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _submitReset,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6E4B3A),
+                    foregroundColor: const Color(0xFFDDC7A9),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                ),
-                child: isLoading
-                    ? const CircularProgressIndicator(
-                        color: Color(0xFFDDC7A9),
-                      )
-                    : Text(
-                        'Reset Password',
-                        style: GoogleFonts.dosis(
-                          textStyle: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Color(0xFFDDC7A9),
+                          ),
+                        )
+                      : Text(
+                          'Reset Password',
+                          style: GoogleFonts.dosis(
+                            textStyle: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

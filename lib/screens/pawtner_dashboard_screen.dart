@@ -39,6 +39,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
   late RealtimeChannel _bookingsChannel;
 
   RealtimeChannel? _notificationsChannel;
+  RealtimeChannel? _conversationsChannel;
 
   @override
   void initState() {
@@ -48,12 +49,14 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
     _setupRealtimeBookings();
     _loadUnreadNotificationsCount();
     _setupRealtimeNotifications();
+    _setupRealtimeConversations();
   }
 
   @override
   void dispose() {
     supabase.removeChannel(_bookingsChannel);
     _notificationsChannel?.unsubscribe();
+    _conversationsChannel?.unsubscribe();
     super.dispose();
   }
 
@@ -469,6 +472,28 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
           ),
           callback: (payload) {
             if (mounted) _loadUnreadNotificationsCount();
+          },
+        )
+        .subscribe();
+  }
+
+  void _setupRealtimeConversations() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    _conversationsChannel = supabase
+        .channel('conversations-unread-${user.id}')
+        .onPostgresChanges(
+          schema: 'public',
+          table: 'conversations',
+          event: PostgresChangeEvent.all,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'pawtner_id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            if (mounted) _loadUnreadCount();
           },
         )
         .subscribe();

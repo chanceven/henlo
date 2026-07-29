@@ -264,7 +264,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               widget.otherUserName,
               style: GoogleFonts.dosis(
                 color: const Color(0xFF6E4B3A),
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -354,9 +354,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                           Text(
                                             'Attachment',
                                             style: GoogleFonts.dosis(
-                                                color: isMe
-                                                    ? const Color(0xFFF8F8F8)
-                                                    : const Color(0xFF6E4B3A)),
+                                              fontSize: 15,
+                                              color: isMe
+                                                  ? const Color(0xFFF8F8F8)
+                                                  : const Color(0xFF6E4B3A),
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -367,9 +369,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   Text(
                                     msg['message'],
                                     style: GoogleFonts.dosis(
-                                        color: isMe
-                                            ? const Color(0xFFF8F8F8)
-                                            : const Color(0xFF6E4B3A)),
+                                      fontSize: 15,
+                                      color: isMe
+                                          ? const Color(0xFFF8F8F8)
+                                          : const Color(0xFF6E4B3A),
+                                    ),
                                   ),
                                 const SizedBox(height: 4),
                                 Align(

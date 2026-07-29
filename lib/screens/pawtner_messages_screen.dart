@@ -546,6 +546,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                 children: [
                                                   customText(
                                                     displayName,
+                                                    fontSize: 17,
                                                     fontWeight: isUnread
                                                         ? FontWeight.w800
                                                         : FontWeight.w600,
@@ -573,7 +574,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                       overflow:
                                                           TextOverflow.ellipsis,
                                                       style: GoogleFonts.dosis(
-                                                        fontSize: 14,
+                                                        fontSize: 15,
                                                         fontWeight: isUnread
                                                             ? FontWeight.w700
                                                             : FontWeight.normal,
@@ -624,6 +625,25 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                             } else {
                               final type = item['type'] ?? '';
                               final isReadNotif = item['is_read'] == true;
+
+                              final createdAt = item['created_at'] != null
+                                  ? DateTime.parse(item['created_at']).toLocal()
+                                  : null;
+
+                              String formattedDate = '';
+
+                              if (createdAt != null) {
+                                final now = DateTime.now();
+
+                                if (createdAt.year == now.year &&
+                                    createdAt.month == now.month &&
+                                    createdAt.day == now.day) {
+                                  formattedDate = formatTime12Hour(createdAt);
+                                } else {
+                                  formattedDate =
+                                      "${createdAt.month}/${createdAt.day}/${createdAt.year}";
+                                }
+                              }
 
                               IconData notifIcon;
                               Color notifColor;
@@ -716,31 +736,39 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Expanded(
-                                                  child: customText(
-                                                    item['title'] ?? '',
-                                                    fontWeight: isReadNotif
-                                                        ? FontWeight.w600
-                                                        : FontWeight.w800,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Expanded(
+                                                    child: customText(
+                                                      item['title'] ?? '',
+                                                      fontWeight: isReadNotif
+                                                          ? FontWeight.w600
+                                                          : FontWeight.w800,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  customText(
+                                                    formattedDate,
+                                                    fontSize: 12,
                                                     color:
                                                         const Color(0xFF6E4B3A),
                                                   ),
-                                                ),
-                                                if (!isReadNotif)
-                                                  Container(
-                                                    width: 8,
-                                                    height: 8,
-                                                    decoration: BoxDecoration(
-                                                      color: notifColor,
-                                                      shape: BoxShape.circle,
+                                                  if (!isReadNotif) ...[
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      width: 8,
+                                                      height: 8,
+                                                      decoration: BoxDecoration(
+                                                        color: notifColor,
+                                                        shape: BoxShape.circle,
+                                                      ),
                                                     ),
-                                                  ),
-                                              ],
-                                            ),
+                                                  ],
+                                                ]),
                                             const SizedBox(height: 4),
                                             customText(
                                               item['message'] ?? '',

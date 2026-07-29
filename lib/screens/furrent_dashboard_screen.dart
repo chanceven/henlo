@@ -38,6 +38,8 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
   int _unreadMessagesCount = 0;
   int _unreadNotificationsCount = 0;
   late RealtimeChannel _bookingsChannel;
+  RealtimeChannel? _conversationsChannel;
+  RealtimeChannel? _notificationsChannel;
 
   @override
   void initState() {
@@ -45,12 +47,16 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
     _loadData();
     _loadUnreadCount();
     _setupRealtimeBookings();
+    _setupRealtimeConversations();
+    _setupRealtimeNotifications();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     supabase.removeChannel(_bookingsChannel);
+    _conversationsChannel?.unsubscribe();
+    _notificationsChannel?.unsubscribe();
     super.dispose();
   }
 
@@ -151,6 +157,50 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
             if (mounted) {
               _loadData();
             }
+          },
+        )
+        .subscribe();
+  }
+
+  void _setupRealtimeConversations() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    _conversationsChannel = supabase
+        .channel('conversations-unread-${user.id}')
+        .onPostgresChanges(
+          schema: 'public',
+          table: 'conversations',
+          event: PostgresChangeEvent.all,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'furrent_id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            if (mounted) _loadUnreadCount();
+          },
+        )
+        .subscribe();
+  }
+
+  void _setupRealtimeNotifications() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    _notificationsChannel = supabase
+        .channel('notifications-${user.id}')
+        .onPostgresChanges(
+          schema: 'public',
+          table: 'notifications',
+          event: PostgresChangeEvent.all,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            if (mounted) _loadUnreadCount();
           },
         )
         .subscribe();
@@ -753,9 +803,17 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
 
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                     content: Text(
-                                                        'Booking cancelled.')),
+                                                      'Booking cancelled.',
+                                                      style: GoogleFonts.dosis(
+                                                        color: const Color(
+                                                            0xFFDDC7A9),
+                                                      ),
+                                                    ),
+                                                    backgroundColor:
+                                                        const Color(
+                                                            0xFF6E4B3A)),
                                               );
                                             } catch (e) {
                                               ScaffoldMessenger.of(context)

@@ -123,7 +123,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
     }
   }
 
-  InputDecoration buildInputDecoration(String hint, IconData icon) {
+InputDecoration buildInputDecoration(String hint, IconData icon) {
     return InputDecoration(
       prefixIcon: Icon(icon, color: const Color(0xFF6E4B3A)),
       hintText: hint,
@@ -132,11 +132,16 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
         fontWeight: FontWeight.w400,
         color: Colors.grey[400],
       ),
-      enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1),
+      filled: true,
+      fillColor: const Color(0xFFFFFFFF),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+            color: const Color(0xFF6E4B3A).withOpacity(0.3), width: 1),
       ),
-      focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF6E4B3A), width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
     );
@@ -194,7 +199,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                                 decoration: buildInputDecoration(
                                     'Full Name', Icons.person),
                                 style: GoogleFonts.dosis(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: const Color(0xFF6E4B3A),
                                 ),
@@ -220,7 +225,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                                 decoration:
                                     buildInputDecoration('Email', Icons.email),
                                 style: GoogleFonts.dosis(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: const Color(0xFF6E4B3A),
                                 ),
@@ -249,7 +254,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                                 decoration: buildInputDecoration(
                                     'Contact Number', Icons.phone),
                                 style: GoogleFonts.dosis(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: const Color(0xFF6E4B3A),
                                 ),
@@ -303,7 +308,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                                   ),
                                 ),
                                 style: GoogleFonts.dosis(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: const Color(0xFF6E4B3A),
                                 ),
@@ -341,7 +346,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                                   ),
                                 ),
                                 style: GoogleFonts.dosis(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: const Color(0xFF6E4B3A),
                                 ),
@@ -349,7 +354,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

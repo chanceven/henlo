@@ -22,15 +22,34 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: 'https://lyjxzdcapqdvwxyamcbz.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5anh6ZGNhcHFkdnd4eWFtY2J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4ODk3OTgsImV4cCI6MjA3NzQ2NTc5OH0.3Gik4uMpKD5rztuFkFsLX6MeDqsRQp0rC02F4Ug4EmY',
-  );
+  String? errorMessage;
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Supabase.initialize(
+      url: 'https://lyjxzdcapqdvwxyamcbz.supabase.co',
+      anonKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5anh6ZGNhcHFkdnd4eWFtY2J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4ODk3OTgsImV4cCI6MjA3NzQ2NTc5OH0.3Gik4uMpKD5rztuFkFsLX6MeDqsRQp0rC02F4Ug4EmY',
+    ).timeout(const Duration(seconds: 8));
+  } catch (e) {
+    errorMessage = 'Supabase failed: $e';
+  }
+
+  if (errorMessage == null) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ).timeout(const Duration(seconds: 8));
+    } catch (e) {
+      errorMessage = 'Firebase failed: $e';
+    }
+  }
+
+  if (errorMessage != null) {
+    runApp(MaterialApp(
+      home: Scaffold(body: Center(child: Text(errorMessage!, textAlign: TextAlign.center))),
+    ));
+    return;
+  }
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -43,8 +62,7 @@ void main() async {
   );
 
   await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 
   await flutterLocalNotificationsPlugin.initialize(

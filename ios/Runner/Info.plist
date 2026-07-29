@@ -58,11 +58,17 @@
 		</dict>
 	</array>
 
-	<key>NSLocationWhenInUseUsageDescription</key>
-<string>We need your location to show nearby pawtners.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-<string>We need access to your photo library so you can upload photos of your pet.</string>
-	<key>NSCameraUsageDescription</key>
-<string>We need access to your camera so you can take photos of your pet.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Henlo uses your location to help you find nearby pet services and provide location-based features.</string>
+
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>Henlo uses your location to help you find nearby pet services and provide location-based features.</string>
+
+<key>NSPhotoLibraryUsageDescription</key>
+<string>Henlo uses your photo library so you can upload photos for your pets, profile, and services.</string>
+
+<key>NSCameraUsageDescription</key>
+<string>Henlo uses your camera so you can take photos for your pets, profile, and services.</string>
+
 </dict>
 </plist>

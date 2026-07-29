@@ -70,5 +70,8 @@
 <key>NSCameraUsageDescription</key>
 <string>Henlo uses your camera so you can take photos for your pets, profile, and services.</string>
 
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>
+
 </dict>
 </plist>

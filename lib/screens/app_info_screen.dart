@@ -123,16 +123,4 @@ class AppInfoScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _centeredText(String text) {
-    return Text(
-      text,
-      textAlign: TextAlign.center,
-      style: GoogleFonts.dosis(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF6E4B3A),
-      ),
-    );
-  }
 }

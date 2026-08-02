@@ -123,7 +123,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
     }
   }
 
-InputDecoration buildInputDecoration(String hint, IconData icon) {
+  InputDecoration buildInputDecoration(String hint, IconData icon) {
     return InputDecoration(
       prefixIcon: Icon(icon, color: const Color(0xFF6E4B3A)),
       hintText: hint,
@@ -160,6 +160,7 @@ InputDecoration buildInputDecoration(String hint, IconData icon) {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8F8F8),
@@ -178,9 +179,14 @@ InputDecoration buildInputDecoration(String hint, IconData icon) {
         centerTitle: true,
       ),
       body: SafeArea(
+        bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'forgot_password_screen.dart';
 import 'onboarding_screen.dart';
 import 'furrent_dashboard_screen.dart';
@@ -47,6 +48,14 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
+  Future<void> _saveFcmToken(String table, String userId) async {
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null) return;
+    await Supabase.instance.client
+        .from(table)
+        .update({'fcm_token': token}).eq('id', userId);
+  }
+
   Future<void> _autoLogin() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -60,6 +69,7 @@ class _SignInScreenState extends State<SignInScreen> {
         .maybeSingle();
 
     if (furrentResp != null && furrentResp.isNotEmpty) {
+      await _saveFcmToken('furrents', userId);
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -75,6 +85,7 @@ class _SignInScreenState extends State<SignInScreen> {
         .maybeSingle();
 
     if (pawtnerResp != null && pawtnerResp.isNotEmpty) {
+      await _saveFcmToken('pawtners', userId);
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -116,6 +127,7 @@ class _SignInScreenState extends State<SignInScreen> {
           .maybeSingle();
 
       if (furrentResp != null && furrentResp.isNotEmpty) {
+        await _saveFcmToken('furrents', userId);
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -131,6 +143,7 @@ class _SignInScreenState extends State<SignInScreen> {
           .maybeSingle();
 
       if (pawtnerResp != null && pawtnerResp.isNotEmpty) {
+        await _saveFcmToken('pawtners', userId);
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -189,6 +202,7 @@ class _SignInScreenState extends State<SignInScreen> {
         statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
             Container(

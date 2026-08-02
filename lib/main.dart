@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -20,58 +21,95 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  String? errorMessage;
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+    };
 
-  try {
-    await Supabase.initialize(
-      url: 'https://lyjxzdcapqdvwxyamcbz.supabase.co',
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5anh6ZGNhcHFkdnd4eWFtY2J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4ODk3OTgsImV4cCI6MjA3NzQ2NTc5OH0.3Gik4uMpKD5rztuFkFsLX6MeDqsRQp0rC02F4Ug4EmY',
-    ).timeout(const Duration(seconds: 8));
-  } catch (e) {
-    errorMessage = 'Supabase failed: $e';
-  }
+    ErrorWidget.builder = (details) {
+      return Material(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'ERROR:\n${details.exception}',
+              style: const TextStyle(color: Colors.red, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    };
 
-  if (errorMessage == null) {
+    String? errorMessage;
+
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
+      await Supabase.initialize(
+        url: 'https://lyjxzdcapqdvwxyamcbz.supabase.co',
+        anonKey:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5anh6ZGNhcHFkdnd4eWFtY2J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4ODk3OTgsImV4cCI6MjA3NzQ2NTc5OH0.3Gik4uMpKD5rztuFkFsLX6MeDqsRQp0rC02F4Ug4EmY',
       ).timeout(const Duration(seconds: 8));
     } catch (e) {
-      errorMessage = 'Firebase failed: $e';
+      errorMessage = 'Supabase failed: $e';
     }
-  }
 
-  if (errorMessage != null) {
+    if (errorMessage == null) {
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ).timeout(const Duration(seconds: 8));
+      } catch (e) {
+        errorMessage = 'Firebase failed: $e';
+      }
+    }
+
+    if (errorMessage != null) {
+      runApp(MaterialApp(
+        home: Scaffold(
+            body:
+                Center(child: Text(errorMessage, textAlign: TextAlign.center))),
+      ));
+      return;
+    }
+
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'high_importance_channel',
+      'High Importance Notifications',
+      description: 'Used for chat message notifications',
+      importance: Importance.max,
+      playSound: true,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    await flutterLocalNotificationsPlugin.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      ),
+    );
+
+    runApp(const MyApp());
+  }, (error, stack) {
     runApp(MaterialApp(
-      home: Scaffold(body: Center(child: Text(errorMessage!, textAlign: TextAlign.center))),
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'FATAL ERROR:\n$error',
+              style: const TextStyle(color: Colors.red, fontSize: 14),
+            ),
+          ),
+        ),
+      ),
     ));
-    return;
-  }
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'high_importance_channel',
-    'High Importance Notifications',
-    description: 'Used for chat message notifications',
-    importance: Importance.max,
-    playSound: true,
-  );
-
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
-
-  await flutterLocalNotificationsPlugin.initialize(
-    const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-    ),
-  );
-
-  runApp(const MyApp());
+  });
 }
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -109,11 +147,12 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _initFCM() async {
-    await messaging.requestPermission(
+    final settings = await messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
+    debugPrint('FCM permission status: ${settings.authorizationStatus}');
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
@@ -137,6 +176,7 @@ class _MyAppState extends State<MyApp> {
     });
 
     String? token = await messaging.getToken();
+    debugPrint('FCM token: $token');
     if (token != null) {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId != null) {

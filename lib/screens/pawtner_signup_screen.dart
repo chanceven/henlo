@@ -555,9 +555,14 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
   Widget _buildAccountStep() {
     return SafeArea(
+      bottom: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
@@ -566,7 +571,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Spacer(flex: 1),
+                      const SizedBox(height: 32),
                       Form(
                         key: _formKey,
                         child: Column(
@@ -791,7 +796,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 40),
+                          SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 24),
                         ],
                       ),
                     ],
@@ -807,12 +812,8 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
   Widget _buildBusinessStep() {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: const SizedBox(),
-      ),
       body: GestureDetector(
         onTap: () => _closeDropdownOverlay(),
         child: Column(
@@ -1026,7 +1027,12 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
             // Continue button pinned to bottom
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                MediaQuery.of(context).viewPadding.bottom + 16,
+              ),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -1169,18 +1175,13 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
     }
   }
 
-  Widget _buildReviewStep() {
+Widget _buildReviewStep() {
     return Scaffold(
-      appBar: AppBar(
-        leading: const SizedBox(),
-        backgroundColor: const Color(0xFFF8F8F8),
-        elevation: 0,
-      ),
       body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1320,9 +1321,14 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            child: SizedBox(
+Padding(
+  padding: EdgeInsets.fromLTRB(
+    16,
+    8,
+    16,
+    MediaQuery.of(context).viewPadding.bottom + 16,
+  ),
+  child: SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
@@ -1353,43 +1359,58 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
+    return PopScope(
+      canPop: _currentStep == 1,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        if (_currentStep == 3) {
+          _goToBusinessStep();
+        } else if (_currentStep == 2) {
+          _goToAccountStep();
+        } else {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: const Color(0xFFF8F8F8),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Color(0xFF6E4B3A),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF8F8F8),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Color(0xFF6E4B3A),
+            ),
+            onPressed: () {
+              if (_currentStep == 3) {
+                _goToBusinessStep();
+              } else if (_currentStep == 2) {
+                _goToAccountStep();
+              } else {
+                Navigator.pop(context);
+              }
+            },
           ),
-          onPressed: () {
-            if (_currentStep == 3) {
-              _goToBusinessStep();
-            } else if (_currentStep == 2) {
-              _goToAccountStep();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          title: Text(
+            'Sign Up',
+            style: GoogleFonts.dosis(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6E4B3A),
+            ),
+          ),
+          centerTitle: true,
         ),
-        title: Text(
-          'Sign Up',
-          style: GoogleFonts.dosis(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6E4B3A),
-          ),
+        body: Column(
+          children: [
+            _buildStepIndicator(),
+            Expanded(
+              child: _buildCurrentStep(),
+            ),
+          ],
         ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          _buildStepIndicator(),
-          Expanded(
-            child: _buildCurrentStep(),
-          ),
-        ],
       ),
     );
   }

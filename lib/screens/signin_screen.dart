@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -49,6 +50,16 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _saveFcmToken(String table, String userId) async {
+    if (Platform.isIOS) {
+      String? apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+      int attempts = 0;
+      while (apnsToken == null && attempts < 10) {
+        await Future.delayed(const Duration(seconds: 1));
+        apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        attempts++;
+      }
+    }
+
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null) return;
     await Supabase.instance.client
@@ -237,7 +248,8 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                       ),
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
+                        padding: EdgeInsets.fromLTRB(24, 56, 24,
+                            24 + MediaQuery.of(context).viewInsets.bottom),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [

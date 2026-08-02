@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+enum DropdownType { petType, gender, month, day, year, none }
+
 class FurrentEditPetScreen extends StatefulWidget {
   final Map<String, dynamic> petData; // Existing pet data
 
@@ -51,11 +53,13 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
   bool isSaving = false;
   bool _removeExistingPhoto = false;
 
-  bool showPetTypeOptions = false;
-  bool showGenderOptions = false;
-  bool showMonthOptions = false;
-  bool showDayOptions = false;
-  bool showYearOptions = false;
+  DropdownType _activeDropdown = DropdownType.none;
+
+  final GlobalKey _petTypeKey = GlobalKey();
+  final GlobalKey _genderKey = GlobalKey();
+  final GlobalKey _monthKey = GlobalKey();
+  final GlobalKey _dayKey = GlobalKey();
+  final GlobalKey _yearKey = GlobalKey();
 
   final List<String> petTypes = ['Dog', 'Cat'];
   final List<String> genders = ['Boy', 'Girl'];
@@ -76,14 +80,25 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
   final List<int> years =
       List.generate(20, (index) => DateTime.now().year - index);
 
-  void _openOnly(String which) {
+  // Reusable label style for 100% consistency
+  final TextStyle _labelStyle = GoogleFonts.dosis(
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: const Color(0xFF6E4B3A),
+  );
+
+  void _toggleDropdown(DropdownType type) {
     setState(() {
-      showPetTypeOptions = which == 'type';
-      showGenderOptions = which == 'gender';
-      showMonthOptions = which == 'month';
-      showDayOptions = which == 'day';
-      showYearOptions = which == 'year';
+      _activeDropdown = _activeDropdown == type ? DropdownType.none : type;
     });
+  }
+
+  void _hideDropdowns() {
+    if (_activeDropdown != DropdownType.none) {
+      setState(() {
+        _activeDropdown = DropdownType.none;
+      });
+    }
   }
 
   @override
@@ -109,7 +124,7 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
   }
 
   Future<void> _pickPetImage() async {
-    _openOnly('none');
+    _hideDropdowns();
 
     try {
       final picker = ImagePicker();
@@ -270,7 +285,7 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
         if (labelWidget != null) const SizedBox(height: 8),
         TextField(
           controller: controller,
-          onTap: () => _openOnly('none'),
+          onTap: _hideDropdowns,
           style: GoogleFonts.dosis(
             color: const Color(0xFF6E4B3A),
             fontWeight: FontWeight.w400,
@@ -295,32 +310,26 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
     );
   }
 
-  Widget customDropdownField<T>({
+  Widget customDropdownTrigger<T>({
+    required GlobalKey key,
     required String label,
     required T? value,
-    required List<T> options,
-    required bool isExpanded,
-    required VoidCallback toggleDropdown,
-    required Function(T) onSelect,
-    double maxHeight = 200,
+    required DropdownType dropdownType,
     String? placeholder,
     bool truncateValue = false,
   }) {
+    final bool isExpanded = _activeDropdown == dropdownType;
+
     return Column(
+      key: key,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label.isNotEmpty)
-          Text(
-            label,
-            style: GoogleFonts.dosis(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF6E4B3A),
-            ),
-          ),
-        if (label.isNotEmpty) const SizedBox(height: 8),
+        if (label.isNotEmpty) ...[
+          Text(label, style: _labelStyle),
+          const SizedBox(height: 8),
+        ],
         GestureDetector(
-          onTap: toggleDropdown,
+          onTap: () => _toggleDropdown(dropdownType),
           child: Container(
             height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -361,47 +370,167 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
             ),
           ),
         ),
-        if (isExpanded)
-          Container(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFF6E4B3A), width: 1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                children: options
-                    .map(
-                      (e) => GestureDetector(
-                        onTap: () {
-                          onSelect(e);
-                        },
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 16),
-                          color: e == value
-                              ? const Color(0xFF6E4B3A).withOpacity(0.2)
-                              : Colors.transparent,
-                          child: Center(
-                            child: Text(
-                              e.toString(),
-                              style: GoogleFonts.dosis(
-                                color: const Color(0xFF6E4B3A),
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _buildOverlayMenu() {
+    if (_activeDropdown == DropdownType.none) return const SizedBox.shrink();
+
+    GlobalKey? activeKey;
+    List options = [];
+    dynamic currentValue;
+    Function(dynamic) onSelect;
+    double maxHeight = 200;
+
+    switch (_activeDropdown) {
+      case DropdownType.petType:
+        activeKey = _petTypeKey;
+        options = petTypes;
+        currentValue = _petType;
+        onSelect = (val) {
+          setState(() {
+            _petType = val as String;
+            _activeDropdown = DropdownType.none;
+          });
+        };
+        break;
+      case DropdownType.gender:
+        activeKey = _genderKey;
+        options = genders;
+        currentValue = _gender;
+        onSelect = (val) {
+          setState(() {
+            _gender = val as String;
+            _activeDropdown = DropdownType.none;
+          });
+        };
+        break;
+      case DropdownType.month:
+        activeKey = _monthKey;
+        options = months;
+        currentValue = _selectedMonth;
+        maxHeight = 150;
+        onSelect = (val) {
+          setState(() {
+            _selectedMonth = val as String;
+            if (_selectedYear != null && _selectedDay != null) {
+              final m = months.indexOf(_selectedMonth!) + 1;
+              final maxDay = getDaysInMonth(m, _selectedYear!).length;
+              if (_selectedDay! > maxDay) _selectedDay = maxDay;
+            }
+            _activeDropdown = DropdownType.none;
+          });
+        };
+        break;
+      case DropdownType.day:
+        activeKey = _dayKey;
+        options = (_selectedMonth != null && _selectedYear != null)
+            ? getDaysInMonth(
+                months.indexOf(_selectedMonth!) + 1, _selectedYear!)
+            : List.generate(31, (index) => index + 1);
+        currentValue = _selectedDay;
+        maxHeight = 150;
+        onSelect = (val) {
+          setState(() {
+            _selectedDay = val as int;
+            _activeDropdown = DropdownType.none;
+          });
+        };
+        break;
+      case DropdownType.year:
+        activeKey = _yearKey;
+        options = years;
+        currentValue = _selectedYear;
+        maxHeight = 150;
+        onSelect = (val) {
+          setState(() {
+            _selectedYear = val as int;
+            if (_selectedMonth != null && _selectedDay != null) {
+              final m = months.indexOf(_selectedMonth!) + 1;
+              final maxDay = getDaysInMonth(m, val).length;
+              if (_selectedDay! > maxDay) _selectedDay = maxDay;
+            }
+            _activeDropdown = DropdownType.none;
+          });
+        };
+        break;
+      case DropdownType.none:
+        return const SizedBox.shrink();
+    }
+
+    final renderBox =
+        activeKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return const SizedBox.shrink();
+
+    final position = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+    final screenSize = MediaQuery.of(context).size;
+    final bottomBarPadding = MediaQuery.of(context).padding.bottom + 74;
+
+    final calculatedContentHeight =
+        (options.length * 45.0).clamp(0.0, maxHeight);
+    final spaceBelow =
+        screenSize.height - position.dy - size.height - bottomBarPadding;
+    final bool openUpward = spaceBelow < calculatedContentHeight;
+
+    final topOffset = openUpward
+        ? (position.dy -
+            calculatedContentHeight -
+            kToolbarHeight -
+            MediaQuery.of(context).padding.top -
+            8)
+        : (position.dy +
+            size.height -
+            kToolbarHeight -
+            MediaQuery.of(context).padding.top -
+            12);
+
+    return Positioned(
+      top: topOffset,
+      left: position.dx,
+      width: size.width,
+      child: Material(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        child: Container(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFF6E4B3A), width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: options
+                  .map(
+                    (e) => GestureDetector(
+                      onTap: () => onSelect(e),
+                      child: Container(
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        color: e == currentValue
+                            ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                            : Colors.transparent,
+                        child: Text(
+                          e.toString(),
+                          style: const TextStyle(
+                              color: Color(0xFF6E4B3A),
+                              fontWeight: FontWeight.w400),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -411,99 +540,44 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
       children: [
         Text(
           "Birthdate",
-          style: GoogleFonts.dosis(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6E4B3A),
-          ),
+          style: _labelStyle,
         ),
         const SizedBox(height: 8),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: customDropdownField<String>(
+              child: customDropdownTrigger<String>(
+                key: _monthKey,
                 label: "",
                 value: _selectedMonth,
-                options: months,
                 placeholder: "Month",
-                isExpanded: showMonthOptions,
-                toggleDropdown: () =>
-                    _openOnly(showMonthOptions ? 'none' : 'month'),
-                onSelect: (val) {
-                  setState(() {
-                    _selectedMonth = val;
-
-                    if (_selectedYear != null && _selectedDay != null) {
-                      final m = months.indexOf(val) + 1;
-                      final maxDay = getDaysInMonth(m, _selectedYear!).length;
-
-                      if (_selectedDay! > maxDay) {
-                        _selectedDay = maxDay;
-                      }
-                    }
-
-                    showMonthOptions = false;
-                  });
-                },
-                maxHeight: 150,
+                dropdownType: DropdownType.month,
                 truncateValue: true,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: customDropdownField<int>(
+              child: customDropdownTrigger<int>(
+                key: _dayKey,
                 label: "",
                 value: _selectedDay,
-                options: (_selectedMonth != null && _selectedYear != null)
-                    ? getDaysInMonth(
-                        months.indexOf(_selectedMonth!) + 1, _selectedYear!)
-                    : List.generate(31, (index) => index + 1),
                 placeholder: "Day",
-                isExpanded: showDayOptions,
-                toggleDropdown: () =>
-                    _openOnly(showDayOptions ? 'none' : 'day'),
-                onSelect: (val) {
-                  setState(() {
-                    _selectedDay = val;
-                    showDayOptions = false;
-                  });
-                },
-                maxHeight: 150,
+                dropdownType: DropdownType.day,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: customDropdownField<int>(
+              child: customDropdownTrigger<int>(
+                key: _yearKey,
                 label: "",
                 value: _selectedYear,
-                options: years,
                 placeholder: "Year",
-                isExpanded: showYearOptions,
-                toggleDropdown: () =>
-                    _openOnly(showYearOptions ? 'none' : 'year'),
-                onSelect: (val) {
-                  setState(() {
-                    _selectedYear = val;
-
-                    if (_selectedMonth != null && _selectedDay != null) {
-                      final m = months.indexOf(_selectedMonth!) + 1;
-                      final maxDay = getDaysInMonth(m, val).length;
-
-                      if (_selectedDay! > maxDay) {
-                        _selectedDay = maxDay;
-                      }
-                    }
-
-                    showYearOptions = false;
-                  });
-                },
-                maxHeight: 150,
+                dropdownType: DropdownType.year,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
       ],
     );
   }
@@ -569,22 +643,6 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
     );
   }
 
-  void _hideDropdowns() {
-    if (showPetTypeOptions ||
-        showGenderOptions ||
-        showMonthOptions ||
-        showDayOptions ||
-        showYearOptions) {
-      setState(() {
-        showPetTypeOptions = false;
-        showGenderOptions = false;
-        showMonthOptions = false;
-        showDayOptions = false;
-        showYearOptions = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -638,77 +696,67 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              customTextField(
-                controller: _nameController,
-                labelWidget: Text(
-                  'Pet Name',
-                  style: GoogleFonts.dosis(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6E4B3A),
-                  ),
-                ),
-              ),
-              customDropdownField(
-                label: "Pet Type",
-                value: _petType,
-                options: petTypes,
-                isExpanded: showPetTypeOptions,
-                toggleDropdown: () =>
-                    _openOnly(showPetTypeOptions ? 'none' : 'type'),
-                onSelect: (val) {
-                  setState(() {
-                    _petType = val;
-                    showPetTypeOptions = false;
-                  });
-                },
-              ),
-              customTextField(
-                controller: _breedController,
-                labelWidget: Text.rich(
-                  TextSpan(
-                    text: 'Breed ',
-                    style: GoogleFonts.dosis(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6E4B3A),
+        body: Stack(
+          children: [
+            NotificationListener<ScrollNotification>(
+              onNotification: (scrollNotification) {
+                if (_activeDropdown != DropdownType.none) {
+                  _hideDropdowns();
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    customTextField(
+                      controller: _nameController,
+                      labelWidget: Text(
+                        'Pet Name',
+                        style: _labelStyle,
+                      ),
                     ),
-                    children: [
-                      TextSpan(
-                        text: '(Optional)',
-                        style: GoogleFonts.dosis(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.grey[500],
+                    customDropdownTrigger(
+                      key: _petTypeKey,
+                      label: "Pet Type",
+                      value: _petType,
+                      dropdownType: DropdownType.petType,
+                    ),
+                    customTextField(
+                      controller: _breedController,
+                      labelWidget: Text.rich(
+                        TextSpan(
+                          text: 'Breed ',
+                          style: _labelStyle,
+                          children: [
+                            TextSpan(
+                              text: '(Optional)',
+                              style: GoogleFonts.dosis(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    birthdateDropdowns(),
+                    customDropdownTrigger(
+                      key: _genderKey,
+                      label: "Gender",
+                      value: _gender,
+                      dropdownType: DropdownType.gender,
+                    ),
+                    const SizedBox(height: 16),
+                    uploadPhotoField(),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
-              birthdateDropdowns(),
-              customDropdownField(
-                label: "Gender",
-                value: _gender,
-                options: genders,
-                isExpanded: showGenderOptions,
-                toggleDropdown: () =>
-                    _openOnly(showGenderOptions ? 'none' : 'gender'),
-                onSelect: (val) {
-                  setState(() {
-                    _gender = val;
-                    showGenderOptions = false;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              uploadPhotoField(),
-            ],
-          ),
+            ),
+            _buildOverlayMenu(),
+          ],
         ),
       ),
     );

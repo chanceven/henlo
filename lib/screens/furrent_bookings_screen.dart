@@ -28,6 +28,10 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
   String? selectedPetId;
   bool showPetOptions = false;
 
+  final OverlayPortalController _petDropdownController =
+      OverlayPortalController();
+  final LayerLink _layerLink = LayerLink();
+
   @override
   void initState() {
     super.initState();
@@ -135,132 +139,149 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
     );
   }
 
-Widget _buildPetFilterDropdown() {
-  if (furrentPets.isEmpty) return const SizedBox();
+  Widget _buildPetFilterDropdown() {
+    if (furrentPets.isEmpty) return const SizedBox();
 
-  // Safely retrieve selected pet to avoid crashes if pet ID is not found
-  final selectedPet = furrentPets.cast<Map<String, dynamic>?>().firstWhere(
-    (pet) => pet?['id'].toString() == selectedPetId,
-    orElse: () => null,
-  );
+    final selectedPet = furrentPets.cast<Map<String, dynamic>?>().firstWhere(
+          (pet) => pet?['id'].toString() == selectedPetId,
+          orElse: () => null,
+        );
 
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    child: Stack(
-      clipBehavior: Clip.none, // Allows the menu to float above other UI elements
-      children: [
-        // Dropdown Header Button
-        GestureDetector(
-          onTap: () {
-            _openOnly(showPetOptions ? 'none' : 'pet');
-          },
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFF6E4B3A)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: OverlayPortal(
+          controller: _petDropdownController,
+          overlayChildBuilder: (BuildContext context) {
+            return Stack(
               children: [
-                Expanded(
-                  child: Text(
-                    selectedPetId == null ? 'All Pets' : selectedPet?['name'] ?? 'All Pets',
-                    style: GoogleFonts.dosis(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6E4B3A),
-                    ),
-                  ),
+                // 1. Transparent full-screen layer that captures taps outside the dropdown
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    _petDropdownController.hide();
+                  },
+                  child: const SizedBox.expand(),
                 ),
-                Icon(
-                  showPetOptions
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  color: const Color(0xFF6E4B3A),
-                ),
-              ],
-            ),
-          ),
-        ),
 
-        // Floating Options Menu
-        if (showPetOptions)
-          Positioned(
-            top: 48, // Positions the menu right below the header button
-            left: 0,
-            right: 0,
-            child: Material(
-              elevation: 4, // Drop shadow for floating effect
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0xFF6E4B3A)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedPetId = null;
-                          showPetOptions = false;
-                        });
-                      },
+                // 2. The floating dropdown menu
+                Positioned(
+                  width: MediaQuery.of(context).size.width - 32,
+                  child: CompositedTransformFollower(
+                    link: _layerLink,
+                    showWhenUnlinked: false,
+                    offset: const Offset(0, 48),
+                    child: Material(
+                      elevation: 8,
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
                       child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        alignment: Alignment.center,
-                        child: Text(
-                          'All Pets',
-                          style: GoogleFonts.dosis(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6E4B3A),
-                          ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: const Color(0xFF6E4B3A)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() => selectedPetId = null);
+                                _petDropdownController.hide();
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  'All Pets',
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            ...furrentPets.map((pet) {
+                              final isSelected =
+                                  selectedPetId == pet['id'].toString();
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() =>
+                                      selectedPetId = pet['id'].toString());
+                                  _petDropdownController.hide();
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  alignment: Alignment.center,
+                                  color: isSelected
+                                      ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                                      : Colors.transparent,
+                                  child: Text(
+                                    pet['name'],
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF6E4B3A),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
                         ),
                       ),
                     ),
-                    ...furrentPets.map((pet) {
-                      final isSelected = selectedPetId == pet['id'].toString();
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedPetId = pet['id'].toString();
-                            showPetOptions = false;
-                          });
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          alignment: Alignment.center,
-                          color: isSelected
-                              ? const Color(0xFF6E4B3A).withOpacity(0.2)
-                              : Colors.transparent,
-                          child: Text(
-                            pet['name'],
-                            style: GoogleFonts.dosis(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF6E4B3A),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
+                  ),
                 ),
+              ],
+            );
+          },
+          child: GestureDetector(
+            onTap: () {
+              _petDropdownController.toggle();
+            },
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFF6E4B3A)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      selectedPetId == null
+                          ? 'All Pets'
+                          : selectedPet?['name'] ?? 'All Pets',
+                      style: GoogleFonts.dosis(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6E4B3A),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _petDropdownController.isShowing
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: const Color(0xFF6E4B3A),
+                  ),
+                ],
               ),
             ),
           ),
-      ],
-    ),
-  );
-}
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

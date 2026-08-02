@@ -135,87 +135,79 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
     );
   }
 
-  Widget _buildPetFilterDropdown() {
-    if (furrentPets.isEmpty) return const SizedBox();
+Widget _buildPetFilterDropdown() {
+  if (furrentPets.isEmpty) return const SizedBox();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () {
-              _openOnly(showPetOptions ? 'none' : 'pet');
-            },
-            child: Container(
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFF6E4B3A)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      selectedPetId == null
-                          ? 'All Pets'
-                          : furrentPets.firstWhere(
-                              (pet) => pet['id'].toString() == selectedPetId,
-                            )['name'],
-                      style: GoogleFonts.dosis(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF6E4B3A),
-                      ),
+  // Safely retrieve selected pet to avoid crashes if pet ID is not found
+  final selectedPet = furrentPets.cast<Map<String, dynamic>?>().firstWhere(
+    (pet) => pet?['id'].toString() == selectedPetId,
+    orElse: () => null,
+  );
+
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Stack(
+      clipBehavior: Clip.none, // Allows the menu to float above other UI elements
+      children: [
+        // Dropdown Header Button
+        GestureDetector(
+          onTap: () {
+            _openOnly(showPetOptions ? 'none' : 'pet');
+          },
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFF6E4B3A)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedPetId == null ? 'All Pets' : selectedPet?['name'] ?? 'All Pets',
+                    style: GoogleFonts.dosis(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6E4B3A),
                     ),
                   ),
-                  Icon(
-                    showPetOptions
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: const Color(0xFF6E4B3A),
-                  ),
-                ],
-              ),
+                ),
+                Icon(
+                  showPetOptions
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: const Color(0xFF6E4B3A),
+                ),
+              ],
             ),
           ),
-          if (showPetOptions)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFF6E4B3A)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedPetId = null;
-                        showPetOptions = false;
-                      });
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'All Pets',
-                        style: GoogleFonts.dosis(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF6E4B3A),
-                        ),
-                      ),
-                    ),
-                  ),
-                  ...furrentPets.map((pet) {
-                    return GestureDetector(
+        ),
+
+        // Floating Options Menu
+        if (showPetOptions)
+          Positioned(
+            top: 48, // Positions the menu right below the header button
+            left: 0,
+            right: 0,
+            child: Material(
+              elevation: 4, // Drop shadow for floating effect
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: const Color(0xFF6E4B3A)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
                       onTap: () {
                         setState(() {
-                          selectedPetId = pet['id'].toString();
+                          selectedPetId = null;
                           showPetOptions = false;
                         });
                       },
@@ -223,11 +215,8 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         alignment: Alignment.center,
-                        color: selectedPetId == pet['id'].toString()
-                            ? const Color(0xFF6E4B3A).withOpacity(0.2)
-                            : Colors.transparent,
                         child: Text(
-                          pet['name'],
+                          'All Pets',
                           style: GoogleFonts.dosis(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -235,15 +224,43 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                           ),
                         ),
                       ),
-                    );
-                  }),
-                ],
+                    ),
+                    ...furrentPets.map((pet) {
+                      final isSelected = selectedPetId == pet['id'].toString();
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedPetId = pet['id'].toString();
+                            showPetOptions = false;
+                          });
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          alignment: Alignment.center,
+                          color: isSelected
+                              ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                              : Colors.transparent,
+                          child: Text(
+                            pet['name'],
+                            style: GoogleFonts.dosis(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6E4B3A),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
               ),
             ),
-        ],
-      ),
-    );
-  }
+          ),
+      ],
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {

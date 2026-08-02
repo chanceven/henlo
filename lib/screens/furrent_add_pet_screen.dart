@@ -513,9 +513,9 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: _petImageBytes == null
-                  ? RichText(
-                      text: TextSpan(
-                        text: 'Upload Pet Photo ',
+                  ? Text.rich(
+                  TextSpan(
+                    text: 'Upload Pet Photo ',
                         style: GoogleFonts.dosis(
                           color: const Color(0xFF6E4B3A),
                           fontWeight: FontWeight.w400,
@@ -648,8 +648,8 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
               ),
               customTextField(
                 controller: _breedController,
-                labelWidget: RichText(
-                  text: TextSpan(
+                labelWidget: Text.rich(
+                  TextSpan(
                     text: 'Breed ',
                     style: GoogleFonts.dosis(
                       fontSize: 16,

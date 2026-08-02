@@ -543,8 +543,8 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
                             fontSize: 16,
                           ),
                         )
-                      : RichText(
-                          text: TextSpan(
+                      : Text.rich(
+                          TextSpan(
                             text: 'Upload Pet Photo ',
                             style: GoogleFonts.dosis(
                               color: const Color(0xFF6E4B3A),
@@ -669,8 +669,8 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
               ),
               customTextField(
                 controller: _breedController,
-                labelWidget: RichText(
-                  text: TextSpan(
+                labelWidget: Text.rich(
+                  TextSpan(
                     text: 'Breed ',
                     style: GoogleFonts.dosis(
                       fontSize: 16,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -175,6 +176,17 @@ class _MyAppState extends State<MyApp> {
         );
       }
     });
+
+    if (Platform.isIOS) {
+      String? apnsToken = await messaging.getAPNSToken();
+      int attempts = 0;
+      while (apnsToken == null && attempts < 10) {
+        await Future.delayed(const Duration(seconds: 1));
+        apnsToken = await messaging.getAPNSToken();
+        attempts++;
+      }
+      debugPrint('APNS token: $apnsToken');
+    }
 
     String? token = await messaging.getToken();
     debugPrint('FCM token: $token');

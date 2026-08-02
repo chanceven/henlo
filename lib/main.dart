@@ -92,7 +92,11 @@ void main() async {
     await flutterLocalNotificationsPlugin.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        ),
       ),
     );
 
@@ -149,58 +153,70 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _initFCM() async {
-    final settings = await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    debugPrint('FCM permission status: ${settings.authorizationStatus}');
+    final List<String> log = [];
+    try {
+      log.add('Step 1: requesting permission...');
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      log.add('Step 2: permission = ${settings.authorizationStatus}');
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final notification = message.notification;
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        final notification = message.notification;
 
-      if (notification != null) {
-        flutterLocalNotificationsPlugin.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'high_importance_channel',
-              'High Importance Notifications',
-              importance: Importance.max,
-              priority: Priority.high,
-              playSound: true,
+        if (notification != null) {
+          flutterLocalNotificationsPlugin.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            const NotificationDetails(
+              android: AndroidNotificationDetails(
+                'high_importance_channel',
+                'High Importance Notifications',
+                importance: Importance.max,
+                priority: Priority.high,
+                playSound: true,
+              ),
             ),
-          ),
-        );
-      }
-    });
+          );
+        }
+      });
 
-    if (Platform.isIOS) {
-      String? apnsToken = await messaging.getAPNSToken();
-      int attempts = 0;
-      while (apnsToken == null && attempts < 10) {
-        await Future.delayed(const Duration(seconds: 1));
-        apnsToken = await messaging.getAPNSToken();
-        attempts++;
+      if (Platform.isIOS) {
+        log.add('Step 3: waiting for APNS token...');
+        String? apnsToken = await messaging.getAPNSToken();
+        int attempts = 0;
+        while (apnsToken == null && attempts < 10) {
+          await Future.delayed(const Duration(seconds: 1));
+          apnsToken = await messaging.getAPNSToken();
+          attempts++;
+          log.add('  attempt $attempts: apnsToken = $apnsToken');
+        }
+        log.add('Step 4: final apnsToken = $apnsToken');
+        if (apnsToken == null) {
+          throw Exception('APNS_NEVER_ARRIVED. Log: ${log.join(" | ")}');
+        }
       }
-      debugPrint('APNS token: $apnsToken');
-    }
 
-    String? token = await messaging.getToken();
-    debugPrint('FCM token: $token');
-    if (token != null) {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        await Supabase.instance.client
-            .from('furrents')
-            .update({'fcm_token': token}).eq('id', userId);
+      log.add('Step 5: calling getToken()...');
+      String? token = await messaging.getToken();
+      log.add('Step 6: FCM token = $token');
+      if (token != null) {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          await Supabase.instance.client
+              .from('furrents')
+              .update({'fcm_token': token}).eq('id', userId);
 
-        await Supabase.instance.client
-            .from('pawtners')
-            .update({'fcm_token': token}).eq('id', userId);
+          await Supabase.instance.client
+              .from('pawtners')
+              .update({'fcm_token': token}).eq('id', userId);
+        }
       }
+    } catch (e) {
+      throw Exception('FCM_INIT_FAILED: $e | Log: ${log.join(" | ")}');
     }
   }
 

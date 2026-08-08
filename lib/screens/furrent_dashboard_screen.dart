@@ -81,7 +81,6 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
               '*, pets(name), services(service_name, service_type), pawtners(full_name, business_name, profile_picture_url)')
           .eq('furrent_id', user.id)
           .eq('status', 'Upcoming')
-          .gt('scheduled_start', now.toIso8601String())
           .order('scheduled_start', ascending: true);
 
       final bookingsList = (bookingsQuery as List)
@@ -368,7 +367,8 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                 booking['pawtners'] as Map<String, dynamic>?;
 
                             final scheduledStart = DateTime.tryParse(
-                                booking['scheduled_start'] ?? '');
+                                    booking['scheduled_start'] ?? '')
+                                ?.toLocal();
                             final formattedDate = scheduledStart != null
                                 ? DateFormat('MMM d, h:mm a')
                                     .format(scheduledStart)

@@ -384,7 +384,9 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                   booking['pawtners'] as Map<String, dynamic>?;
 
                               final scheduledStart = DateTime.tryParse(
-                                  booking['scheduled_start'] ?? '');
+                                      booking['scheduled_start'] ?? '')
+                                  ?.toLocal();
+
                               final formattedDate = scheduledStart != null
                                   ? DateFormat('MMM d, h:mm a')
                                       .format(scheduledStart)

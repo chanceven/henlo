@@ -619,7 +619,8 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                                 booking['services'] as Map<String, dynamic>?;
 
                             final scheduledStart = DateTime.tryParse(
-                                booking['scheduled_start'] ?? '');
+                                    booking['scheduled_start'] ?? '')
+                                ?.toLocal();
                             final formattedDate = scheduledStart != null
                                 ? DateFormat('MMM d, h:mm a')
                                     .format(scheduledStart)
@@ -762,7 +763,8 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                                 booking['services'] as Map<String, dynamic>?;
 
                             final scheduledStart = DateTime.tryParse(
-                                booking['scheduled_start'] ?? '');
+                                    booking['scheduled_start'] ?? '')
+                                ?.toLocal();
                             final formattedDate = scheduledStart != null
                                 ? DateFormat('MMM d, h:mm a')
                                     .format(scheduledStart)

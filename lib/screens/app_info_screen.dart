@@ -31,30 +31,40 @@ class AppInfoScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
-
-              // TODO: Replace with Henlo logo
-              const SizedBox(height: 100),
-
+              const SizedBox(height: 20),
               Center(
-                child: Text(
-                  'Version 1.0.0',
-                  style: GoogleFonts.dosis(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6E4B3A),
-                  ),
+                child: Image.asset(
+                  'lib/assets/images/bitmap.png',
+                  width: 120,
                 ),
               ),
-
-              const SizedBox(height: 48),
-
+              const SizedBox(height: 36),
               Divider(
                 color: const Color(0xFF6E4B3A).withOpacity(0.2),
               ),
-
               const SizedBox(height: 20),
-
+              Text(
+                'Version',
+                style: GoogleFonts.dosis(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF6E4B3A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '1.0.0',
+                style: GoogleFonts.dosis(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6E4B3A),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Divider(
+                color: const Color(0xFF6E4B3A).withOpacity(0.2),
+              ),
+              const SizedBox(height: 20),
               Text(
                 'Support',
                 style: GoogleFonts.dosis(
@@ -63,9 +73,7 @@ class AppInfoScreen extends StatelessWidget {
                   color: const Color(0xFF6E4B3A),
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Text(
                 'hello@henloapp.com',
                 style: GoogleFonts.dosis(
@@ -74,15 +82,11 @@ class AppInfoScreen extends StatelessWidget {
                   color: const Color(0xFF6E4B3A),
                 ),
               ),
-
               const SizedBox(height: 24),
-
               Divider(
                 color: const Color(0xFF6E4B3A).withOpacity(0.2),
               ),
-
               const SizedBox(height: 20),
-
               Text(
                 'Website',
                 style: GoogleFonts.dosis(
@@ -91,9 +95,7 @@ class AppInfoScreen extends StatelessWidget {
                   color: const Color(0xFF6E4B3A),
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Text(
                 'henloapp.com',
                 style: GoogleFonts.dosis(
@@ -102,9 +104,7 @@ class AppInfoScreen extends StatelessWidget {
                   color: const Color(0xFF6E4B3A),
                 ),
               ),
-
               const Spacer(),
-
               Center(
                 child: Text(
                   '© 2026 Henlo. All rights reserved.',
@@ -115,7 +115,6 @@ class AppInfoScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 12),
             ],
           ),

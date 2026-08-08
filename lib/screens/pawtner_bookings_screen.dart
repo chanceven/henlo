@@ -59,7 +59,8 @@ furrents(full_name)
       for (var b in bookingsQuery as List) {
         final booking = b as Map<String, dynamic>;
         final scheduledStart =
-            DateTime.tryParse(booking['scheduled_start'] ?? '') ?? now;
+            DateTime.tryParse(booking['scheduled_start'] ?? '')?.toLocal() ??
+                now;
         final status = (booking['status'] ?? '').toString().toLowerCase();
 
         if (status == 'cancelled') {
@@ -84,27 +85,35 @@ furrents(full_name)
 
       // Sort upcoming by ascending (earliest first) — optional, already sorted
       upcoming.sort((a, b) {
-        final dateA = DateTime.tryParse(a['scheduled_start'] ?? '') ?? now;
-        final dateB = DateTime.tryParse(b['scheduled_start'] ?? '') ?? now;
+        final dateA =
+            DateTime.tryParse(a['scheduled_start'] ?? '')?.toLocal() ?? now;
+        final dateB =
+            DateTime.tryParse(b['scheduled_start'] ?? '')?.toLocal() ?? now;
         return dateA.compareTo(dateB);
       });
 
       // Sort Completed, Cancelled, Missed by descending (latest first)
       completed.sort((a, b) {
-        final dateA = DateTime.tryParse(a['scheduled_start'] ?? '') ?? now;
-        final dateB = DateTime.tryParse(b['scheduled_start'] ?? '') ?? now;
+        final dateA =
+            DateTime.tryParse(a['scheduled_start'] ?? '')?.toLocal() ?? now;
+        final dateB =
+            DateTime.tryParse(b['scheduled_start'] ?? '')?.toLocal() ?? now;
         return dateB.compareTo(dateA); // latest first
       });
 
       cancelled.sort((a, b) {
-        final dateA = DateTime.tryParse(a['scheduled_start'] ?? '') ?? now;
-        final dateB = DateTime.tryParse(b['scheduled_start'] ?? '') ?? now;
+        final dateA =
+            DateTime.tryParse(a['scheduled_start'] ?? '')?.toLocal() ?? now;
+        final dateB =
+            DateTime.tryParse(b['scheduled_start'] ?? '')?.toLocal() ?? now;
         return dateB.compareTo(dateA);
       });
 
       missed.sort((a, b) {
-        final dateA = DateTime.tryParse(a['scheduled_start'] ?? '') ?? now;
-        final dateB = DateTime.tryParse(b['scheduled_start'] ?? '') ?? now;
+        final dateA =
+            DateTime.tryParse(a['scheduled_start'] ?? '')?.toLocal() ?? now;
+        final dateB =
+            DateTime.tryParse(b['scheduled_start'] ?? '')?.toLocal() ?? now;
         return dateB.compareTo(dateA);
       });
 
@@ -244,9 +253,9 @@ furrents(full_name)
                       decoration: InputDecoration(
                         hintText: 'Search bookings',
                         hintStyle: GoogleFonts.dosis(
-                            color: const Color(0xFFBDBDBD),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
+                          color: const Color(0xFFBDBDBD),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
                         ),
                         prefixIcon: const Icon(
                           Icons.search,
@@ -354,7 +363,8 @@ furrents(full_name)
                                 booking['services'] as Map<String, dynamic>?;
 
                             final scheduledStart = DateTime.tryParse(
-                                booking['scheduled_start'] ?? '');
+                                    booking['scheduled_start'] ?? '')
+                                ?.toLocal();
                             final formattedDate = scheduledStart != null
                                 ? DateFormat('MMM d, h:mm a')
                                     .format(scheduledStart)

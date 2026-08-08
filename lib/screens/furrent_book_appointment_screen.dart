@@ -35,6 +35,7 @@ class _FurrentBookAppointmentScreenState
   DateTime? selectedEndDate;
   bool isBoardingService = false;
   double servicePrice = 0;
+  int serviceDurationMinutes = 60;
   int boardingDays = 0;
   double totalPrice = 0;
   String serviceName = '';
@@ -48,6 +49,24 @@ class _FurrentBookAppointmentScreenState
   String pawtnerAddress = '';
 
   final TextEditingController notesController = TextEditingController();
+
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(
+            color: const Color(0xFFDDC7A9),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -68,7 +87,8 @@ class _FurrentBookAppointmentScreenState
     try {
       final response = await supabase
           .from('services')
-          .select('service_type, service_subtype, price, service_name')
+          .select(
+              'service_type, service_subtype, price, service_name, duration_minutes')
           .eq('id', widget.serviceId)
           .maybeSingle();
 
@@ -80,6 +100,7 @@ class _FurrentBookAppointmentScreenState
         final subtype = response['service_subtype'] as String;
         servicePrice = (response['price'] ?? 0).toDouble();
         serviceName = response['service_name'] ?? '';
+        serviceDurationMinutes = (response['duration_minutes'] ?? 60) as int;
 
         final subtypeList =
             subtype.split(',').map((s) => s.trim().toLowerCase()).toList();
@@ -754,7 +775,7 @@ class _FurrentBookAppointmentScreenState
     }
 
     return SizedBox(
-      height: 200,
+      height: 275,
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -983,10 +1004,134 @@ class _FurrentBookAppointmentScreenState
         ),
         centerTitle: true,
       ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.fromLTRB(
+            16, 0, 16, 16 + MediaQuery.of(context).padding.bottom),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6E4B3A),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: selectedTime != null &&
+                    (!isBoardingService || selectedEndDate != null) &&
+                    (!(selectedSubtype == 'Home Service' ||
+                            selectedSubtype == 'Home Training') ||
+                        furrentAddress.isNotEmpty)
+                ? () async {
+                    try {
+                      final furrentId = supabase.auth.currentUser!.id;
+
+                      final scheduledStart = DateTime(
+                        selectedDate.year,
+                        selectedDate.month,
+                        selectedDate.day,
+                        selectedTime!.hour,
+                        selectedTime!.minute,
+                      );
+
+                      String location;
+
+                      if (selectedSubtype == 'Pet Shop' ||
+                          selectedSubtype == 'Pet Hotel' ||
+                          selectedSubtype == 'Home Boarding' ||
+                          selectedSubtype == 'Training Center') {
+                        location = pawtnerAddress;
+                      } else {
+                        location = furrentAddress;
+                      }
+
+                      final confirm = await _showConfirmBookingModal(
+                        serviceName: serviceName,
+                        pawtnerName: widget.pawtnerName,
+                        location: location,
+                        schedule: isBoardingService && selectedEndDate != null
+                            ? (selectedDate.month == selectedEndDate!.month
+                                ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
+                                : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
+                            : DateFormat('MMM d').format(selectedDate),
+                        time: selectedTime!.format(context),
+                        petName: petName,
+                        total: isBoardingService ? totalPrice : servicePrice,
+                      );
+
+                      if (confirm != true) return;
+
+                      DateTime? scheduledEnd;
+
+                      if (isBoardingService && selectedEndDate != null) {
+                        scheduledEnd = DateTime(
+                          selectedEndDate!.year,
+                          selectedEndDate!.month,
+                          selectedEndDate!.day,
+                          selectedTime!.hour,
+                          selectedTime!.minute,
+                        );
+                      } else {
+                        scheduledEnd = scheduledStart.add(
+                          Duration(minutes: serviceDurationMinutes),
+                        );
+                      }
+
+                      if (isBoardingService) {
+                        final existing = await supabase
+                            .from('bookings')
+                            .select('id')
+                            .eq('pawtner_id', widget.pawtnerId)
+                            .lt('scheduled_start',
+                                scheduledEnd.toUtc().toIso8601String())
+                            .gt('scheduled_end',
+                                scheduledStart.toUtc().toIso8601String());
+
+                        if (existing.isNotEmpty) {
+                          _showToast('Selected dates are not available.');
+                          return;
+                        }
+                      }
+
+                      await supabase.from('bookings').insert({
+                        'furrent_id': furrentId,
+                        'pawtner_id': widget.pawtnerId,
+                        'service_id': widget.serviceId,
+                        'pet_id': widget.petId,
+                        'scheduled_start':
+                            scheduledStart.toUtc().toIso8601String(),
+                        'scheduled_end': scheduledEnd.toUtc().toIso8601String(),
+                        'furrent_address': (selectedSubtype == 'Home Service' ||
+                                selectedSubtype == 'Home Training')
+                            ? furrentAddress
+                            : null,
+                        'status': 'Upcoming',
+                        'notes': notesController.text,
+                        'chosen_service_subtype': selectedSubtype,
+                      });
+
+                      _showToast('Booking successful.');
+
+                      Navigator.pop(context);
+                    } catch (e) {
+                      _showToast('Booking failed: $e');
+                    }
+                  }
+                : null,
+            child: Text(
+              'Book Now',
+              style: GoogleFonts.dosis(
+                color: const Color(0xFFDDC7A9),
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1043,150 +1188,6 @@ class _FurrentBookAppointmentScreenState
                   ),
                 ),
                 maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6E4B3A),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: selectedTime != null &&
-                          (!isBoardingService || selectedEndDate != null) &&
-                          (!(selectedSubtype == 'Home Service' ||
-                                  selectedSubtype == 'Home Training') ||
-                              furrentAddress.isNotEmpty)
-                      ? () async {
-                          try {
-                            final furrentId = supabase.auth.currentUser!.id;
-
-                            final scheduledStart = DateTime(
-                              selectedDate.year,
-                              selectedDate.month,
-                              selectedDate.day,
-                              selectedTime!.hour,
-                              selectedTime!.minute,
-                            );
-
-                            String location;
-
-                            if (selectedSubtype == 'Pet Shop' ||
-                                selectedSubtype == 'Pet Hotel' ||
-                                selectedSubtype == 'Home Boarding' ||
-                                selectedSubtype == 'Training Center') {
-                              location = pawtnerAddress;
-                            } else {
-                              location = furrentAddress;
-                            }
-
-                            final confirm = await _showConfirmBookingModal(
-                              serviceName: serviceName,
-                              pawtnerName: widget.pawtnerName,
-                              location: location,
-                              schedule: isBoardingService &&
-                                      selectedEndDate != null
-                                  ? (selectedDate.month ==
-                                          selectedEndDate!.month
-                                      ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
-                                      : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
-                                  : DateFormat('MMM d').format(selectedDate),
-                              time: selectedTime!.format(context),
-                              petName: petName,
-                              total:
-                                  isBoardingService ? totalPrice : servicePrice,
-                            );
-
-                            if (confirm != true) return;
-
-                            DateTime? scheduledEnd;
-
-                            if (isBoardingService && selectedEndDate != null) {
-                              scheduledEnd = DateTime(
-                                selectedEndDate!.year,
-                                selectedEndDate!.month,
-                                selectedEndDate!.day,
-                                selectedTime!.hour,
-                                selectedTime!.minute,
-                              );
-                            } else {
-                              scheduledEnd = scheduledStart.add(
-                                const Duration(hours: 1),
-                              );
-                            }
-
-                            if (isBoardingService) {
-                              final existing = await supabase
-                                  .from('bookings')
-                                  .select('id')
-                                  .eq('pawtner_id', widget.pawtnerId)
-                                  .lt('scheduled_start',
-                                      scheduledEnd.toIso8601String())
-                                  .gt('scheduled_end',
-                                      scheduledStart.toIso8601String());
-
-                              if (existing.isNotEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        'Selected dates are not available',
-                                        style: GoogleFonts.dosis(
-                                            color: const Color(0xFFDDC7A9))),
-                                    backgroundColor: const Color(0xFF6E4B3A),
-                                  ),
-                                );
-                                return;
-                              }
-                            }
-
-                            await supabase.from('bookings').insert({
-                              'furrent_id': furrentId,
-                              'pawtner_id': widget.pawtnerId,
-                              'service_id': widget.serviceId,
-                              'pet_id': widget.petId,
-                              'scheduled_start':
-                                  scheduledStart.toIso8601String(),
-                              'scheduled_end': scheduledEnd.toIso8601String(),
-                              'furrent_address':
-                                  (selectedSubtype == 'Home Service' ||
-                                          selectedSubtype == 'Home Training')
-                                      ? furrentAddress
-                                      : null,
-                              'status': 'Upcoming',
-                              'notes': notesController.text,
-                              'chosen_service_subtype': selectedSubtype,
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Booking successful 🐾',
-                                  style: GoogleFonts.dosis(
-                                      color: const Color(0xFFDDC7A9))),
-                              backgroundColor: const Color(0xFF6E4B3A),
-                            ));
-
-                            Navigator.pop(context);
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Booking failed: $e',
-                                  style: GoogleFonts.dosis(
-                                      color: const Color(0xFFDDC7A9))),
-                              backgroundColor: const Color(0xFF6E4B3A),
-                            ));
-                          }
-                        }
-                      : null,
-                  child: Text(
-                    'Book Now',
-                    style: GoogleFonts.dosis(
-                      color: const Color(0xFFDDC7A9),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
               ),
             ],
           ),

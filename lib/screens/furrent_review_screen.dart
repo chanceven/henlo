@@ -39,6 +39,25 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
     super.dispose();
   }
 
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(
+            color: const Color(0xFFDDC7A9),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _loadBookingData() async {
     try {
       final response = await supabase
@@ -53,13 +72,7 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
       debugPrint('Error loading booking data: $e');
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Failed to load booking data."),
-            duration: Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _showToast('Failed to load booking data.');
       }
     }
   }
@@ -67,17 +80,12 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
   Future<void> submitReview() async {
     final user = supabase.auth.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in')),
-      );
+      _showToast('User not logged in.');
       return;
     }
 
     if (rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please select a rating before submitting.')),
-      );
+      _showToast('Please select a rating before submitting.');
       return;
     }
 
@@ -88,17 +96,12 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
         'reviewed': true,
       }).eq('id', widget.bookingId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review submitted successfully!')),
-      );
+      _showToast('Review submitted successfully.');
 
       Navigator.pop(context, true);
     } catch (e) {
       debugPrint('Error submitting review: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Failed to submit review. Please try again.')),
-      );
+      _showToast('Failed to submit review. Please try again.');
     }
   }
 

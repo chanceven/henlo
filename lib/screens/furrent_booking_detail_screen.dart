@@ -86,8 +86,11 @@ class _FurrentBookingDetailsScreenState
             ? booking['furrent_address']
             : pawtner?['business_address'];
 
-    final scheduledStart = DateTime.tryParse(booking['scheduled_start'] ?? '');
-    final scheduledEnd = DateTime.tryParse(booking['scheduled_end'] ?? '');
+    final scheduledStart =
+        DateTime.tryParse(booking['scheduled_start'] ?? '')?.toLocal();
+
+    final scheduledEnd =
+        DateTime.tryParse(booking['scheduled_end'] ?? '')?.toLocal();
 
     String formattedSchedule = '-';
 
@@ -109,12 +112,14 @@ class _FurrentBookingDetailsScreenState
       formattedSchedule = DateFormat('MMM d, h:mm a').format(scheduledStart);
     }
 
-    final cancelledAt = DateTime.tryParse(booking['cancelled_at'] ?? '');
+    final cancelledAt =
+        DateTime.tryParse(booking['cancelled_at'] ?? '')?.toLocal();
     final formattedCancelledAt = cancelledAt != null
         ? DateFormat('MMM d, h:mm a').format(cancelledAt)
         : '-';
 
-    final completedAt = DateTime.tryParse(booking['completed_at'] ?? '');
+    final completedAt =
+        DateTime.tryParse(booking['completed_at'] ?? '')?.toLocal();
     final formattedCompletedAt = completedAt != null
         ? DateFormat('MMM d, h:mm a').format(completedAt)
         : '-';
@@ -122,7 +127,7 @@ class _FurrentBookingDetailsScreenState
     final bookingRating = booking['rating'] ?? 0;
     final bookingComment = booking['review_comment'] ?? '-';
 
-    final missedAt = DateTime.tryParse(booking['missed_at'] ?? '');
+    final missedAt = DateTime.tryParse(booking['missed_at'] ?? '')?.toLocal();
     final formattedMissedAt =
         missedAt != null ? DateFormat('MMM d, h:mm a').format(missedAt) : '-';
 

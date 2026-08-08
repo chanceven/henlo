@@ -81,23 +81,20 @@ class _PawtnerBookingDetailsScreenState
     final service = booking['services'] as Map<String, dynamic>?;
     final furrent = booking['furrents'] as Map<String, dynamic>?;
 
-    final scheduledStart = DateTime.tryParse(booking['scheduled_start'] ?? '');
-    final scheduledEnd = DateTime.tryParse(booking['scheduled_end'] ?? '');
+    final scheduledStart =
+        DateTime.tryParse(booking['scheduled_start'] ?? '')?.toLocal();
+
+    final scheduledEnd =
+        DateTime.tryParse(booking['scheduled_end'] ?? '')?.toLocal();
 
     final now = DateTime.now();
     bool canMarkDone = false;
-    if (scheduledStart != null) {
-      // MULTI DAY BOOKING → allow only after scheduledEnd
-      if (scheduledEnd != null &&
-          (scheduledStart.year != scheduledEnd.year ||
-              scheduledStart.month != scheduledEnd.month ||
-              scheduledStart.day != scheduledEnd.day)) {
-        canMarkDone = now.isAfter(scheduledEnd);
-      } else {
-        // SINGLE DAY BOOKING → allow 15 minutes after start
-        final allowedTime = scheduledStart.add(const Duration(minutes: 15));
-        canMarkDone = now.isAfter(allowedTime);
-      }
+
+    if (scheduledEnd != null) {
+      final autoCompleteTime = scheduledEnd.add(const Duration(minutes: 30));
+
+      canMarkDone =
+          !now.isBefore(scheduledEnd) && now.isBefore(autoCompleteTime);
     }
 
     String formattedSchedule = '-';
@@ -120,12 +117,14 @@ class _PawtnerBookingDetailsScreenState
       formattedSchedule = DateFormat('MMM d, h:mm a').format(scheduledStart);
     }
 
-    final cancelledAt = DateTime.tryParse(booking['cancelled_at'] ?? '');
+    final cancelledAt =
+        DateTime.tryParse(booking['cancelled_at'] ?? '')?.toLocal();
     final formattedCancelledAt = cancelledAt != null
         ? DateFormat('MMM d, h:mm a').format(cancelledAt)
         : '-';
 
-    final completedAt = DateTime.tryParse(booking['completed_at'] ?? '');
+    final completedAt =
+        DateTime.tryParse(booking['completed_at'] ?? '')?.toLocal();
     final formattedCompletedAt = completedAt != null
         ? DateFormat('MMM d, h:mm a').format(completedAt)
         : '';
@@ -133,7 +132,7 @@ class _PawtnerBookingDetailsScreenState
     final bookingRating = booking['rating'] ?? 0;
     final bookingComment = booking['review_comment'] ?? '-';
 
-    final missedAt = DateTime.tryParse(booking['missed_at'] ?? '');
+    final missedAt = DateTime.tryParse(booking['missed_at'] ?? '')?.toLocal();
     final formattedMissedAt =
         missedAt != null ? DateFormat('MMM d, h:mm a').format(missedAt) : '-';
 
@@ -412,7 +411,8 @@ class _PawtnerBookingDetailsScreenState
                           await supabase.from('bookings').update({
                             'status': 'Cancelled',
                             'cancelled_reason': reasonController.text.trim(),
-                            'cancelled_at': DateTime.now().toIso8601String(),
+                            'cancelled_at':
+                                DateTime.now().toUtc().toIso8601String(),
                             'cancelled_by': 'Pawtner',
                           }).eq('id', bookingId);
 
@@ -681,8 +681,9 @@ class _PawtnerBookingDetailsScreenState
                                   try {
                                     await supabase.from('bookings').update({
                                       'status': 'Completed',
-                                      'completed_at':
-                                          DateTime.now().toIso8601String(),
+                                      'completed_at': DateTime.now()
+                                          .toUtc()
+                                          .toIso8601String(),
                                     }).eq('id', bookingId);
 
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -986,8 +987,9 @@ class _PawtnerBookingDetailsScreenState
                                       'status': 'Missed',
                                       'missed_reason':
                                           reasonController.text.trim(),
-                                      'missed_at':
-                                          DateTime.now().toIso8601String(),
+                                      'missed_at': DateTime.now()
+                                          .toUtc()
+                                          .toIso8601String(),
                                     }).eq('id', bookingId);
 
                                     ScaffoldMessenger.of(context).showSnackBar(

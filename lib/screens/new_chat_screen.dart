@@ -164,8 +164,17 @@ class _NewChatScreenState extends State<NewChatScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: SizedBox(
-              height: 44,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x14000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
               child: TextField(
                 textAlignVertical: TextAlignVertical.center,
                 onChanged: (value) {
@@ -181,6 +190,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   }
                 },
                 style: GoogleFonts.dosis(
+                  fontSize: 16,
                   color: const Color(0xFF6E4B3A),
                 ),
                 decoration: InputDecoration(
@@ -195,7 +205,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(
-                    vertical: 0,
+                    vertical: 12,
                     horizontal: 16,
                   ),
                   border: OutlineInputBorder(

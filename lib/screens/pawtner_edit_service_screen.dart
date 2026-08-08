@@ -54,6 +54,88 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
   bool loading = true;
   bool serviceTypeLocked = true;
 
+  final LayerLink _serviceTypeLink = LayerLink();
+  final LayerLink _businessTypeLink = LayerLink();
+  OverlayEntry? _dropdownOverlay;
+
+  void _closeDropdownOverlay() {
+    _dropdownOverlay?.remove();
+    _dropdownOverlay = null;
+  }
+
+  void _showDropdownOverlay({
+    required LayerLink link,
+    required double width,
+    required List<String> items,
+    required List<String> selectedValues,
+    required bool multiSelect,
+    required ValueChanged<List<String>> onChanged,
+    required VoidCallback onCloseAfterSelect,
+  }) {
+    _closeDropdownOverlay();
+    _dropdownOverlay = OverlayEntry(
+      builder: (context) => Positioned(
+        width: width,
+        child: CompositedTransformFollower(
+          link: link,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 54),
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: items.map((e) {
+                final selected = selectedValues.contains(e);
+                return InkWell(
+                  onTap: () {
+                    if (multiSelect) {
+                      List<String> newValue = List.from(selectedValues);
+                      if (selected) {
+                        newValue.remove(e);
+                      } else {
+                        newValue.add(e);
+                      }
+                      onChanged(newValue);
+                      _showDropdownOverlay(
+                        link: link,
+                        width: width,
+                        items: items,
+                        selectedValues: newValue,
+                        multiSelect: multiSelect,
+                        onChanged: onChanged,
+                        onCloseAfterSelect: onCloseAfterSelect,
+                      );
+                    } else {
+                      onChanged([e]);
+                      onCloseAfterSelect();
+                    }
+                  },
+                  child: Container(
+                    height: 50,
+                    alignment: Alignment.center,
+                    color: selected ? const Color(0xFF6E4B3A) : Colors.white,
+                    child: Text(
+                      e,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dosis(
+                          color: selected
+                              ? const Color(0xFFDDC7A9)
+                              : const Color(0xFF6E4B3A),
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_dropdownOverlay!);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +144,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
 
   @override
   void dispose() {
+    _dropdownOverlay?.remove();
     _serviceNameController.dispose();
     _descriptionController.dispose();
     _durationController.dispose();
@@ -146,6 +229,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
 
   Widget _buildDropdown({
     required String label,
+    required LayerLink layerLink,
     required List<String> value,
     required List<String> items,
     required ValueChanged<List<String>> onChanged,
@@ -154,6 +238,27 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
     bool multiSelect = false,
     bool enabled = true,
   }) {
+    void handleToggle() {
+      final willOpen = !dropdownOpen;
+      toggleDropdown();
+      if (willOpen) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _showDropdownOverlay(
+            link: layerLink,
+            width: MediaQuery.of(context).size.width - 32,
+            items: items,
+            selectedValues: value,
+            multiSelect: multiSelect,
+            onChanged: onChanged,
+            onCloseAfterSelect: toggleDropdown,
+          );
+        });
+      } else {
+        _closeDropdownOverlay();
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -165,85 +270,49 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
               fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: enabled ? toggleDropdown : null,
-          child: Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF6E4B3A)),
-              color: enabled ? Colors.white : Colors.grey[200],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    value.isEmpty
-                        ? ''
-                        : (multiSelect ? value.join(', ') : value[0]),
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.dosis(
-                        color: const Color(0xFF6E4B3A),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500),
+        CompositedTransformTarget(
+          link: layerLink,
+          child: GestureDetector(
+            onTap: enabled ? handleToggle : null,
+            child: Container(
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF6E4B3A)),
+                color: enabled ? Colors.white : Colors.grey[200],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      value.isEmpty
+                          ? ''
+                          : (multiSelect ? value.join(', ') : value[0]),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500),
+                    ),
                   ),
-                ),
-                if (enabled)
-                  Icon(
-                    dropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                    color: const Color(0xFF6E4B3A),
-                  ),
-              ],
+                  if (enabled)
+                    Icon(
+                      dropdownOpen
+                          ? Icons.arrow_drop_up
+                          : Icons.arrow_drop_down,
+                      color: const Color(0xFF6E4B3A),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
-        if (dropdownOpen && enabled)
-          Column(
-            children: items.map((e) {
-              final selected = value.contains(e);
-              return GestureDetector(
-                onTap: () {
-                  if (multiSelect) {
-                    List<String> newValue = List.from(value);
-                    if (selected) {
-                      newValue.remove(e);
-                    } else {
-                      newValue.add(e);
-                    }
-                    onChanged(newValue);
-                  } else {
-                    onChanged([e]);
-                    toggleDropdown();
-                  }
-                },
-                child: Container(
-                  height: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color:
-                        selected ? const Color(0xFF6E4B3A) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    e,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.dosis(
-                        color: selected
-                            ? const Color(0xFFDDC7A9)
-                            : const Color(0xFF6E4B3A),
-                        fontWeight: FontWeight.w500),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
       ],
     );
   }
 
-  // ---------------- TEXTFIELD BUILDER ----------------
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -291,6 +360,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
               serviceTypeDropdownOpen = false;
               businessTypeDropdownOpen = false;
             });
+            _closeDropdownOverlay();
           },
           controller: controller,
           keyboardType: keyboardType,
@@ -342,6 +412,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
           serviceTypeDropdownOpen = false;
           businessTypeDropdownOpen = false;
         });
+        _closeDropdownOverlay();
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
@@ -360,12 +431,14 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
           ),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+              16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildDropdown(
                 label: 'Service Type',
+                layerLink: _serviceTypeLink,
                 value: serviceType != null ? [serviceType!] : [],
                 items: serviceTypeOptions,
                 dropdownOpen: serviceTypeDropdownOpen,
@@ -388,6 +461,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
               const SizedBox(height: 16),
               _buildDropdown(
                 label: 'Business Type',
+                layerLink: _businessTypeLink,
                 value: serviceSubType,
                 items: serviceType != null
                     ? subTypeOptions[serviceType!]!
@@ -433,6 +507,13 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
                     children: [
                       Expanded(
                         child: TextField(
+                          onTap: () {
+                            setState(() {
+                              serviceTypeDropdownOpen = false;
+                              businessTypeDropdownOpen = false;
+                            });
+                            _closeDropdownOverlay();
+                          },
                           controller: _durationHoursController,
                           keyboardType: TextInputType.number,
                           inputFormatters: [
@@ -476,6 +557,13 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
+                          onTap: () {
+                            setState(() {
+                              serviceTypeDropdownOpen = false;
+                              businessTypeDropdownOpen = false;
+                            });
+                            _closeDropdownOverlay();
+                          },
                           controller: _durationMinutesController,
                           keyboardType: TextInputType.number,
                           inputFormatters: [

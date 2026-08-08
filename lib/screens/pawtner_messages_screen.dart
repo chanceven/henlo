@@ -1,8 +1,7 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'chat_screen.dart';
 import 'new_chat_screen.dart';
 import 'pawtner_booking_detail_screen.dart';
@@ -41,6 +40,11 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
   void dispose() {
     supabase.removeChannel(_realtimeChannel);
     super.dispose();
+  }
+
+  Future<void> _updateAppBadge() async {
+    final total = unreadChatsCount + unreadNotificationsCount;
+    await AppBadgePlus.updateBadge(total);
   }
 
   Future<void> _loadData() async {
@@ -91,6 +95,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
         unreadNotificationsCount = unreadNotifications;
         isLoading = false;
       });
+      _updateAppBadge();
     } catch (e) {
       debugPrint('Error loading messages: $e');
       if (mounted) setState(() => isLoading = false);
@@ -489,6 +494,14 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                       'unread_count_pawtner': 0,
                                     }).eq('id', item['id']);
 
+                                    setState(() {
+                                      unreadChatsCount = (unreadChatsCount -
+                                              unreadCount.toInt())
+                                          .clamp(0, 999)
+                                          .toInt();
+                                    });
+                                    _updateAppBadge();
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -671,8 +684,10 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                       item['is_read'] = true;
                                       unreadNotificationsCount =
                                           (unreadNotificationsCount - 1)
-                                              .clamp(0, 999);
+                                              .clamp(0, 999)
+                                              .toInt();
                                     });
+                                    _updateAppBadge();
                                   }
 
                                   final bookingId = item['booking_id'];

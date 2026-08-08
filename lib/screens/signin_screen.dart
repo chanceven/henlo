@@ -44,8 +44,24 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _showMessage(String message) async {
     if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(
+            color: const Color(0xFFDDC7A9),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
@@ -226,10 +242,10 @@ class _SignInScreenState extends State<SignInScreen> {
                   Align(
                     alignment: Alignment.topCenter,
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 40),
+                      padding: const EdgeInsets.only(top: 60),
                       child: Image.asset(
-                        'lib/assets/images/logo.png',
-                        width: 230,
+                        'lib/assets/images/bitmap.png',
+                        width: 160,
                       ),
                     ),
                   ),

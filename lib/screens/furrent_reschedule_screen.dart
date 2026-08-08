@@ -35,6 +35,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   DateTime? originalEndDate;
   bool isBoardingService = false;
   double servicePrice = 0;
+  int serviceDurationMinutes = 60;
   int boardingDays = 0;
   double totalPrice = 0;
   String serviceName = '';
@@ -68,14 +69,14 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         .maybeSingle();
 
     if (booking != null) {
-      final start = DateTime.parse(booking['scheduled_start']);
+      final start = DateTime.parse(booking['scheduled_start']).toLocal();
       selectedDate = start;
       originalDate = start;
       viewedMonth = DateTime(start.year, start.month);
       originalTime = TimeOfDay(hour: start.hour, minute: start.minute);
       selectedTime = originalTime;
       if (booking['scheduled_end'] != null) {
-        selectedEndDate = DateTime.parse(booking['scheduled_end']);
+        selectedEndDate = DateTime.parse(booking['scheduled_end']).toLocal();
         originalEndDate = selectedEndDate;
       }
     }
@@ -99,7 +100,8 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
     try {
       final response = await supabase
           .from('services')
-          .select('service_type, service_subtype, price, service_name')
+          .select(
+              'service_type, service_subtype, price, service_name, duration_minutes')
           .eq('id', widget.serviceId)
           .maybeSingle();
 
@@ -111,6 +113,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         final subtype = response['service_subtype'] as String;
         servicePrice = (response['price'] ?? 0).toDouble();
         serviceName = response['service_name'] ?? '';
+        serviceDurationMinutes = (response['duration_minutes'] ?? 60) as int;
 
         if (serviceType.toLowerCase() == 'grooming') {
           subtypeTabs = ['Pet Shop', 'Home Service'];
@@ -308,10 +311,118 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                 color: const Color(0xFF6E4B3A))),
         centerTitle: true,
       ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.fromLTRB(
+            16, 0, 16, 16 + MediaQuery.of(context).padding.bottom),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6E4B3A),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12))),
+            onPressed: selectedTime != null &&
+                    (!isBoardingService || selectedEndDate != null) &&
+                    (!(selectedSubtype == 'Home Service' ||
+                            selectedSubtype == 'Home Training') ||
+                        furrentAddress.isNotEmpty)
+                ? () async {
+                    try {
+                      final scheduledStart = DateTime(
+                        selectedDate.year,
+                        selectedDate.month,
+                        selectedDate.day,
+                        selectedTime!.hour,
+                        selectedTime!.minute,
+                      );
+
+                      DateTime? scheduledEnd;
+
+                      if (isBoardingService && selectedEndDate != null) {
+                        scheduledEnd = DateTime(
+                          selectedEndDate!.year,
+                          selectedEndDate!.month,
+                          selectedEndDate!.day,
+                          selectedTime!.hour,
+                          selectedTime!.minute,
+                        );
+                      } else {
+                        // Grooming / Training duration
+                        scheduledEnd = scheduledStart.add(
+                          Duration(minutes: serviceDurationMinutes),
+                        );
+                      }
+
+                      String location;
+
+                      if (selectedSubtype == 'Pet Shop' ||
+                          selectedSubtype == 'Pet Hotel' ||
+                          selectedSubtype == 'Home Boarding' ||
+                          selectedSubtype == 'Training Center') {
+                        location = pawtnerAddress;
+                      } else {
+                        location = furrentAddress;
+                      }
+
+                      final confirm = await _showConfirmBookingModal(
+                        serviceName: serviceName,
+                        pawtnerName: pawtnerName,
+                        location: location,
+                        schedule: isBoardingService && selectedEndDate != null
+                            ? (selectedDate.month == selectedEndDate!.month
+                                ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
+                                : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
+                            : DateFormat('MMM d').format(selectedDate),
+                        time: selectedTime!.format(context),
+                        petName: petName,
+                        total: isBoardingService ? totalPrice : servicePrice,
+                      );
+
+                      if (confirm != true) return;
+
+                      await supabase.from('bookings').update({
+                        'scheduled_start':
+                            scheduledStart.toUtc().toIso8601String(),
+                        'scheduled_end':
+                            scheduledEnd!.toUtc().toIso8601String(),
+                        'furrent_address': (selectedSubtype == 'Home Service' ||
+                                selectedSubtype == 'Home Training')
+                            ? furrentAddress
+                            : null,
+                        'notes': notes,
+                        'chosen_service_subtype': selectedSubtype,
+                      }).eq('id', widget.bookingId);
+
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Booking rescheduled 🐾',
+                            style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9))),
+                        backgroundColor: const Color(0xFF6E4B3A),
+                      ));
+
+                      Navigator.pop(context);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Reschedule failed: $e',
+                            style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9))),
+                        backgroundColor: const Color(0xFF6E4B3A),
+                      ));
+                    }
+                  }
+                : null,
+            child: Text('Reschedule',
+                style: GoogleFonts.dosis(
+                    color: const Color(0xFFDDC7A9),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18)),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -367,115 +478,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                 ),
                 maxLines: 3,
                 onChanged: (value) => notes = value,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6E4B3A),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12))),
-                  onPressed: selectedTime != null &&
-                          (!isBoardingService || selectedEndDate != null) &&
-                          (!(selectedSubtype == 'Home Service' ||
-                                  selectedSubtype == 'Home Training') ||
-                              furrentAddress.isNotEmpty)
-                      ? () async {
-                          try {
-                            final scheduledStart = DateTime(
-                              selectedDate.year,
-                              selectedDate.month,
-                              selectedDate.day,
-                              selectedTime!.hour,
-                              selectedTime!.minute,
-                            );
-
-                            DateTime? scheduledEnd;
-
-                            if (isBoardingService && selectedEndDate != null) {
-                              scheduledEnd = DateTime(
-                                selectedEndDate!.year,
-                                selectedEndDate!.month,
-                                selectedEndDate!.day,
-                                selectedTime!.hour,
-                                selectedTime!.minute,
-                              );
-                            } else {
-                              // Grooming / Training duration
-                              scheduledEnd = scheduledStart.add(
-                                const Duration(hours: 1),
-                              );
-                            }
-
-                            String location;
-
-                            if (selectedSubtype == 'Pet Shop' ||
-                                selectedSubtype == 'Pet Hotel' ||
-                                selectedSubtype == 'Home Boarding' ||
-                                selectedSubtype == 'Training Center') {
-                              location = pawtnerAddress;
-                            } else {
-                              location = furrentAddress;
-                            }
-
-                            final confirm = await _showConfirmBookingModal(
-                              serviceName: serviceName,
-                              pawtnerName: pawtnerName,
-                              location: location,
-                              schedule: isBoardingService &&
-                                      selectedEndDate != null
-                                  ? (selectedDate.month ==
-                                          selectedEndDate!.month
-                                      ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
-                                      : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
-                                  : DateFormat('MMM d').format(selectedDate),
-                              time: selectedTime!.format(context),
-                              petName: petName,
-                              total:
-                                  isBoardingService ? totalPrice : servicePrice,
-                            );
-
-                            if (confirm != true) return;
-
-                            await supabase.from('bookings').update({
-                              'scheduled_start':
-                                  scheduledStart.toIso8601String(),
-                              'scheduled_end': scheduledEnd.toIso8601String(),
-                              'furrent_address':
-                                  (selectedSubtype == 'Home Service' ||
-                                          selectedSubtype == 'Home Training')
-                                      ? furrentAddress
-                                      : null,
-                              'notes': notes,
-                              'chosen_service_subtype': selectedSubtype,
-                            }).eq('id', widget.bookingId);
-
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Booking rescheduled 🐾',
-                                  style: GoogleFonts.dosis(
-                                      color: const Color(0xFFDDC7A9))),
-                              backgroundColor: const Color(0xFF6E4B3A),
-                            ));
-
-                            Navigator.pop(context);
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Reschedule failed: $e',
-                                  style: GoogleFonts.dosis(
-                                      color: const Color(0xFFDDC7A9))),
-                              backgroundColor: const Color(0xFF6E4B3A),
-                            ));
-                          }
-                        }
-                      : null,
-                  child: Text('Reschedule',
-                      style: GoogleFonts.dosis(
-                          color: const Color(0xFFDDC7A9),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18)),
-                ),
               ),
             ],
           ),
@@ -1003,7 +1005,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
     }
 
     return SizedBox(
-      height: 200,
+      height: 275,
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.only(bottom: 8),

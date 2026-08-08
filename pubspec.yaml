@@ -52,6 +52,6 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "lib/assets/images/bitmap.png"
-
   adaptive_icon_background: "#DDC7A9"
   adaptive_icon_foreground: "lib/assets/images/bitmap.png"
+  remove_alpha_ios: true

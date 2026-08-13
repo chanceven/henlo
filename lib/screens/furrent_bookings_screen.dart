@@ -110,12 +110,6 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
     }
   }
 
-  void _openOnly(String which) {
-    setState(() {
-      showPetOptions = which == 'pet';
-    });
-  }
-
   void _hideDropdowns() {
     if (showPetOptions) {
       setState(() {
@@ -220,7 +214,8 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                       const EdgeInsets.symmetric(vertical: 12),
                                   alignment: Alignment.center,
                                   color: isSelected
-                                      ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                                      ? const Color(0xFF6E4B3A)
+                                          .withValues(alpha: 0.2)
                                       : Colors.transparent,
                                   child: Text(
                                     pet['name'],

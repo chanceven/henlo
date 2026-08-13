@@ -53,6 +53,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         UserAttributes(password: password),
       );
 
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password updated successfully!')),
       );

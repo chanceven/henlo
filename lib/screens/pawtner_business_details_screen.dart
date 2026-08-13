@@ -248,7 +248,8 @@ class _PawtnerBusinessDetailsScreenState
                               locationController.text = shortAddress;
                             });
 
-                            if (mounted) Navigator.pop(context);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
                           }
@@ -421,7 +422,8 @@ class _PawtnerBusinessDetailsScreenState
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               color: selected
-                                  ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                                  ? const Color(0xFF6E4B3A)
+                                      .withValues(alpha: 0.2)
                                   : Colors.transparent,
                               child: Center(
                                 child: Text(s,
@@ -494,7 +496,8 @@ class _PawtnerBusinessDetailsScreenState
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               color: selected
-                                  ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                                  ? const Color(0xFF6E4B3A)
+                                      .withValues(alpha: 0.2)
                                   : Colors.transparent,
                               child: Center(
                                 child: Text(s,
@@ -570,7 +573,8 @@ class _PawtnerBusinessDetailsScreenState
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 8),
                                 color: selected
-                                    ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                                    ? const Color(0xFF6E4B3A)
+                                        .withValues(alpha: 0.2)
                                     : Colors.transparent,
                                 child: Center(
                                   child: Text(area,

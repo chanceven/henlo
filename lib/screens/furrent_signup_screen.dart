@@ -137,7 +137,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(
-            color: const Color(0xFF6E4B3A).withOpacity(0.3), width: 1),
+            color: const Color(0xFF6E4B3A).withValues(alpha: 0.3), width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -159,366 +159,378 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: const Color(0xFFF8F8F8),
-        elevation: 0,
-        leading: const BackButton(
-          color: Color(0xFF6E4B3A),
-        ),
-        title: Text(
-          'Sign Up',
-          style: GoogleFonts.dosis(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6E4B3A),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF8F8F8),
+          elevation: 0,
+          leading: const BackButton(
+            color: Color(0xFF6E4B3A),
           ),
+          title: Text(
+            'Sign Up',
+            style: GoogleFonts.dosis(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6E4B3A),
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Spacer(flex: 1),
-                        Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              TextFormField(
-                                controller: _fullNameController,
-                                decoration: buildInputDecoration(
-                                    'Full Name', Icons.person),
-                                style: GoogleFonts.dosis(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your email';
-                                  }
-
-                                  final emailRegex =
-                                      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-
-                                  if (!emailRegex.hasMatch(value.trim())) {
-                                    return 'Please enter a valid email';
-                                  }
-
-                                  return null;
-                                },
-                                decoration:
-                                    buildInputDecoration('Email', Icons.email),
-                                style: GoogleFonts.dosis(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _contactController,
-                                keyboardType: TextInputType.phone,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'[\d+]'),
-                                  ),
-                                  LengthLimitingTextInputFormatter(13),
-                                ],
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your contact number';
-                                  }
-
-                                  if (!_isValidContactNumber(value.trim())) {
-                                    return 'Please enter a valid contact number';
-                                  }
-
-                                  return null;
-                                },
-                                decoration: buildInputDecoration(
-                                    'Contact Number', Icons.phone),
-                                style: GoogleFonts.dosis(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: !_isPasswordVisible,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your password';
-                                  }
-
-                                  if (value.trim().length < 8) {
-                                    return 'Password must be at least 8 characters';
-                                  }
-
-                                  if (value.trim().length > 32) {
-                                    return 'Password must not exceed 32 characters';
-                                  }
-
-                                  if (!value
-                                      .trim()
-                                      .contains(RegExp(r'[0-9]'))) {
-                                    return 'Password must contain at least one number';
-                                  }
-
-                                  if (!value
-                                      .trim()
-                                      .contains(RegExp(r'[a-zA-Z]'))) {
-                                    return 'Password must contain at least one letter';
-                                  }
-
-                                  return null;
-                                },
-                                decoration: buildInputDecoration(
-                                  'Password',
-                                  Icons.lock,
-                                ).copyWith(
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _isPasswordVisible
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: const Color(0xFF6E4B3A),
-                                    ),
-                                    onPressed: () => setState(
-                                      () => _isPasswordVisible =
-                                          !_isPasswordVisible,
-                                    ),
-                                  ),
-                                ),
-                                style: GoogleFonts.dosis(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _confirmPasswordController,
-                                obscureText: !_isConfirmPasswordVisible,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please confirm your password';
-                                  }
-
-                                  if (value != _passwordController.text) {
-                                    return 'Passwords do not match';
-                                  }
-
-                                  return null;
-                                },
-                                decoration: buildInputDecoration(
-                                  'Confirm Password',
-                                  Icons.lock,
-                                ).copyWith(
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _isConfirmPasswordVisible
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: const Color(0xFF6E4B3A),
-                                    ),
-                                    onPressed: () => setState(
-                                      () => _isConfirmPasswordVisible =
-                                          !_isConfirmPasswordVisible,
-                                    ),
-                                  ),
-                                ),
-                                style: GoogleFonts.dosis(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Transform.translate(
-                              offset: const Offset(-10, -4),
-                              child: Checkbox(
-                                value: _acceptedTerms,
-                                activeColor: const Color(0xFF6E4B3A),
-                                checkColor: const Color(0xFFDDC7A9),
-                                side: const BorderSide(
-                                  color: Color(0xFF6E4B3A),
-                                  width: 1.5,
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _acceptedTerms = value ?? false;
-                                  });
-                                },
-                              ),
-                            ),
-                            Expanded(
-                              child: Transform.translate(
-                                offset: const Offset(-8, 0),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Wrap(
-                                    children: [
-                                      Text(
-                                        'By creating an account, you agree to our ',
-                                        style: GoogleFonts.dosis(
-                                          fontSize: 16,
-                                          color: const Color(0xFF6E4B3A),
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const TermsAndConditionsScreen(),
-                                            ),
-                                          );
-                                        },
-                                        child: Text(
-                                          'Terms & Conditions',
-                                          style: GoogleFonts.dosis(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF6E4B3A),
-                                            decoration:
-                                                TextDecoration.underline,
-                                          ),
-                                        ),
-                                      ),
-                                      Text(
-                                        ' and ',
-                                        style: GoogleFonts.dosis(
-                                          fontSize: 16,
-                                          color: const Color(0xFF6E4B3A),
-                                        ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const PrivacyPolicyScreen(),
-                                            ),
-                                          );
-                                        },
-                                        child: Text(
-                                          'Privacy Policy.',
-                                          style: GoogleFonts.dosis(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF6E4B3A),
-                                            decoration:
-                                                TextDecoration.underline,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(flex: 1),
-                        Column(
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              height: 52,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _signUpFurrent,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6E4B3A),
-                                  foregroundColor: const Color(0xFFDDC7A9),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2.5,
-                                            color: Color(0xFFDDC7A9)),
-                                      )
-                                    : Text(
-                                        'Create Account',
-                                        style: GoogleFonts.dosis(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+        body: SafeArea(
+          bottom: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 60),
+                          Form(
+                            key: _formKey,
+                            child: Column(
                               children: [
-                                Text(
-                                  "Already have an account? ",
+                                TextFormField(
+                                  controller: _fullNameController,
+                                  decoration: buildInputDecoration(
+                                      'Full Name', Icons.person),
                                   style: GoogleFonts.dosis(
                                     fontSize: 16,
+                                    fontWeight: FontWeight.w500,
                                     color: const Color(0xFF6E4B3A),
                                   ),
                                 ),
-                                GestureDetector(
-                                  onTap: () =>
-                                      Navigator.pushNamed(context, '/sign_in'),
-                                  child: Text(
-                                    "Sign In",
-                                    style: GoogleFonts.dosis(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF6E4B3A),
-                                      decoration: TextDecoration.underline,
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your email';
+                                    }
+
+                                    final emailRegex =
+                                        RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+                                    if (!emailRegex.hasMatch(value.trim())) {
+                                      return 'Please enter a valid email';
+                                    }
+
+                                    return null;
+                                  },
+                                  decoration: buildInputDecoration(
+                                      'Email', Icons.email),
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _contactController,
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[\d+]'),
                                     ),
+                                    LengthLimitingTextInputFormatter(13),
+                                  ],
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your contact number';
+                                    }
+
+                                    if (!_isValidContactNumber(value.trim())) {
+                                      return 'Please enter a valid contact number';
+                                    }
+
+                                    return null;
+                                  },
+                                  decoration: buildInputDecoration(
+                                      'Contact Number', Icons.phone),
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _passwordController,
+                                  obscureText: !_isPasswordVisible,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your password';
+                                    }
+
+                                    if (value.trim().length < 8) {
+                                      return 'Password must be at least 8 characters';
+                                    }
+
+                                    if (value.trim().length > 32) {
+                                      return 'Password must not exceed 32 characters';
+                                    }
+
+                                    if (!value
+                                        .trim()
+                                        .contains(RegExp(r'[0-9]'))) {
+                                      return 'Password must contain at least one number';
+                                    }
+
+                                    if (!value
+                                        .trim()
+                                        .contains(RegExp(r'[a-zA-Z]'))) {
+                                      return 'Password must contain at least one letter';
+                                    }
+
+                                    return null;
+                                  },
+                                  decoration: buildInputDecoration(
+                                    'Password',
+                                    Icons.lock,
+                                  ).copyWith(
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _isPasswordVisible
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                        color: const Color(0xFF6E4B3A),
+                                      ),
+                                      onPressed: () => setState(
+                                        () => _isPasswordVisible =
+                                            !_isPasswordVisible,
+                                      ),
+                                    ),
+                                  ),
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _confirmPasswordController,
+                                  obscureText: !_isConfirmPasswordVisible,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please confirm your password';
+                                    }
+
+                                    if (value != _passwordController.text) {
+                                      return 'Passwords do not match';
+                                    }
+
+                                    return null;
+                                  },
+                                  decoration: buildInputDecoration(
+                                    'Confirm Password',
+                                    Icons.lock,
+                                  ).copyWith(
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _isConfirmPasswordVisible
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                        color: const Color(0xFF6E4B3A),
+                                      ),
+                                      onPressed: () => setState(
+                                        () => _isConfirmPasswordVisible =
+                                            !_isConfirmPasswordVisible,
+                                      ),
+                                    ),
+                                  ),
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF6E4B3A),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 40),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Transform.translate(
+                                offset: const Offset(-10, -4),
+                                child: Checkbox(
+                                  value: _acceptedTerms,
+                                  activeColor: const Color(0xFF6E4B3A),
+                                  checkColor: const Color(0xFFDDC7A9),
+                                  side: const BorderSide(
+                                    color: Color(0xFF6E4B3A),
+                                    width: 1.5,
+                                  ),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _acceptedTerms = value ?? false;
+                                    });
+                                  },
+                                ),
+                              ),
+                              Expanded(
+                                child: Transform.translate(
+                                  offset: const Offset(-8, 0),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Wrap(
+                                      children: [
+                                        Text(
+                                          'By creating an account, you agree to our ',
+                                          style: GoogleFonts.dosis(
+                                            fontSize: 16,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const TermsAndConditionsScreen(),
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            'Terms & Conditions',
+                                            style: GoogleFonts.dosis(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF6E4B3A),
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          ' and ',
+                                          style: GoogleFonts.dosis(
+                                            fontSize: 16,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const PrivacyPolicyScreen(),
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            'Privacy Policy.',
+                                            style: GoogleFonts.dosis(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF6E4B3A),
+                                              decoration:
+                                                  TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _signUpFurrent,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                      foregroundColor: const Color(0xFFDDC7A9),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Color(0xFFDDC7A9),
+                            ),
+                          )
+                        : Text(
+                            'Create Account',
+                            style: GoogleFonts.dosis(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Already have an account? ",
+                      style: GoogleFonts.dosis(
+                        fontSize: 16,
+                        color: const Color(0xFF6E4B3A),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/sign_in'),
+                      child: Text(
+                        "Sign In",
+                        style: GoogleFonts.dosis(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF6E4B3A),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'pawtner_contact_us_screen.dart';
+import 'contact_us_screen.dart';
 import 'pawtner_faq_screen.dart';
 
 class PawtnerSupportScreen extends StatelessWidget {
@@ -52,7 +52,9 @@ class PawtnerSupportScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const PawtnerContactUsScreen(),
+                  builder: (_) => const ContactUsScreen(
+                    userType: 'pawtner',
+                  ),
                 ),
               );
             },
@@ -63,7 +65,9 @@ class PawtnerSupportScreen extends StatelessWidget {
   }
 
   Widget _supportOption(BuildContext context,
-      {required IconData icon, required String title, required VoidCallback onTap}) {
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

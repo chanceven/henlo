@@ -227,26 +227,32 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          ..._reasons.map(
-            (reason) => RadioListTile<String>(
-              value: reason,
-              groupValue: _selectedReason,
-              activeColor: const Color(0xFF6E4B3A),
-              fillColor: WidgetStateProperty.resolveWith<Color>(
-                (states) {
-                  return const Color(0xFF6E4B3A);
-                },
-              ),
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                reason,
-                style: _bodyStyle,
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _selectedReason = value;
-                });
-              },
+          RadioGroup<String>(
+            groupValue: _selectedReason,
+            onChanged: (value) {
+              setState(() {
+                _selectedReason = value;
+              });
+            },
+            child: Column(
+              children: _reasons
+                  .map(
+                    (reason) => RadioListTile<String>(
+                      value: reason,
+                      activeColor: const Color(0xFF6E4B3A),
+                      fillColor: WidgetStateProperty.resolveWith<Color>(
+                        (states) {
+                          return const Color(0xFF6E4B3A);
+                        },
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        reason,
+                        style: _bodyStyle,
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
           if (_selectedReason == 'Other') ...[
@@ -298,7 +304,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           TextField(
             controller: _emailController,
             style: _bodyStyle,
-            decoration: _inputDecoration('Email Address'),
+            decoration: _inputDecoration(''),
           ),
           const SizedBox(height: 24),
           Text(
@@ -314,7 +320,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             controller: _passwordController,
             obscureText: _obscurePassword,
             style: _bodyStyle,
-            decoration: _inputDecoration('Password').copyWith(
+            decoration: _inputDecoration('').copyWith(
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,

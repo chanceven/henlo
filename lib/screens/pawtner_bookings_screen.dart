@@ -13,6 +13,7 @@ class PawtnerBookingsScreen extends StatefulWidget {
 
 class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
   final supabase = Supabase.instance.client;
+  RealtimeChannel? _bookingsChannel;
 
   bool isLoading = true;
   List<Map<String, dynamic>> upcomingBookings = [];
@@ -31,6 +32,40 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
   void initState() {
     super.initState();
     _loadBookings();
+    _setupRealtimeBookings();
+  }
+
+  void _setupRealtimeBookings() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    _bookingsChannel = supabase
+        .channel('pawtner-bookings-${user.id}')
+        .onPostgresChanges(
+          schema: 'public',
+          table: 'bookings',
+          event: PostgresChangeEvent.all,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'pawtner_id',
+            value: user.id,
+          ),
+          callback: (payload) async {
+            debugPrint('Booking change detected — refreshing bookings');
+
+            await _loadBookings();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    if (_bookingsChannel != null) {
+      supabase.removeChannel(_bookingsChannel!);
+    }
+    searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadBookings() async {
@@ -58,28 +93,16 @@ furrents(full_name)
 
       for (var b in bookingsQuery as List) {
         final booking = b as Map<String, dynamic>;
-        final scheduledStart =
-            DateTime.tryParse(booking['scheduled_start'] ?? '')?.toLocal() ??
-                now;
         final status = (booking['status'] ?? '').toString().toLowerCase();
 
-        if (status == 'cancelled') {
+        if (status == 'completed') {
+          completed.add(booking);
+        } else if (status == 'cancelled') {
           cancelled.add(booking);
         } else if (status == 'missed') {
           missed.add(booking);
         } else {
-          final today = DateTime(now.year, now.month, now.day);
-          final bookingDate = DateTime(
-              scheduledStart.year, scheduledStart.month, scheduledStart.day);
-
-          if (bookingDate.isAtSameMomentAs(today) ||
-              bookingDate.isAfter(today)) {
-            booking['status'] = 'Upcoming';
-            upcoming.add(booking);
-          } else {
-            booking['status'] = 'Completed';
-            completed.add(booking);
-          }
+          upcoming.add(booking);
         }
       }
 
@@ -205,6 +228,7 @@ furrents(full_name)
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
         title: Text(
@@ -225,102 +249,70 @@ furrents(full_name)
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x14000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: searchController,
-                      onChanged: (value) {
-                        setState(() {
-                          searchQuery = value;
-                        });
-                      },
-                      style: GoogleFonts.dosis(
-                        color: const Color(0xFF6E4B3A),
+          : GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                FocusScope.of(context).unfocus();
+              },
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x14000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Search bookings',
-                        hintStyle: GoogleFonts.dosis(
-                          color: const Color(0xFFBDBDBD),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
+                      child: TextField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value;
+                          });
+                        },
+                        style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
                         ),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Color(0xFF6E4B3A),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFFFFFFF),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 0,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                        decoration: InputDecoration(
+                          hintText: 'Search bookings',
+                          hintStyle: GoogleFonts.dosis(
+                            color: const Color(0xFFBDBDBD),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF6E4B3A),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFFFFFFF),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 0,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: List.generate(tabs.length, (index) {
-                    final isSelected = selectedTabIndex == index;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedTabIndex = index),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFFDDC7A9)
-                                : const Color(0xFFF2F2F2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Center(
-                            child: Text(
-                              tabs[index],
-                              style: GoogleFonts.dosis(
-                                fontSize: 18,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: const Color(0xFF6E4B3A),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 16),
-                if (selectedTabIndex == 1) ...[
+                  const SizedBox(height: 16),
                   Row(
-                    children: List.generate(3, (index) {
-                      final pastTabs = ['Completed', 'Cancelled', 'Missed'];
-                      final isSelected = selectedPastFilter == index;
-
+                    children: List.generate(tabs.length, (index) {
+                      final isSelected = selectedTabIndex == index;
                       return Expanded(
                         child: GestureDetector(
-                          onTap: () =>
-                              setState(() => selectedPastFilter = index),
+                          onTap: () => setState(() => selectedTabIndex = index),
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? const Color(0xFFDDC7A9)
@@ -329,9 +321,9 @@ furrents(full_name)
                             ),
                             child: Center(
                               child: Text(
-                                pastTabs[index],
+                                tabs[index],
                                 style: GoogleFonts.dosis(
-                                  fontSize: 16,
+                                  fontSize: 18,
                                   fontWeight: isSelected
                                       ? FontWeight.w600
                                       : FontWeight.w400,
@@ -345,149 +337,189 @@ furrents(full_name)
                     }),
                   ),
                   const SizedBox(height: 16),
-                ],
-                Expanded(
-                  child: bookingsToShow.isEmpty
-                      ? Center(
-                          child: customText('No bookings',
-                              fontSize: 16, color: const Color(0xFF6E4B3A)),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: bookingsToShow.length,
-                          itemBuilder: (context, index) {
-                            final booking = bookingsToShow[index];
-                            final pet =
-                                booking['pets'] as Map<String, dynamic>?;
-                            final service =
-                                booking['services'] as Map<String, dynamic>?;
+                  if (selectedTabIndex == 1) ...[
+                    Row(
+                      children: List.generate(3, (index) {
+                        final pastTabs = ['Completed', 'Cancelled', 'Missed'];
+                        final isSelected = selectedPastFilter == index;
 
-                            final scheduledStart = DateTime.tryParse(
-                                    booking['scheduled_start'] ?? '')
-                                ?.toLocal();
-                            final formattedDate = scheduledStart != null
-                                ? DateFormat('MMM d, h:mm a')
-                                    .format(scheduledStart)
-                                : '';
-
-                            return Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.all(12),
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => selectedPastFilter = index),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFFFFF),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x33000000),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
+                                color: isSelected
+                                    ? const Color(0xFFDDC7A9)
+                                    : const Color(0xFFF2F2F2),
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 90,
-                                    height: 90,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(12),
-                                      color: const Color(0xFFDDC7A9),
-                                      image: pet?['profile_picture_url'] != null
-                                          ? DecorationImage(
-                                              image: NetworkImage(
-                                                  pet!['profile_picture_url']),
-                                              fit: BoxFit.cover,
-                                            )
+                              child: Center(
+                                child: Text(
+                                  pastTabs[index],
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  Expanded(
+                    child: bookingsToShow.isEmpty
+                        ? Center(
+                            child: customText('No bookings',
+                                fontSize: 16, color: const Color(0xFF6E4B3A)),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: bookingsToShow.length,
+                            itemBuilder: (context, index) {
+                              final booking = bookingsToShow[index];
+                              final pet =
+                                  booking['pets'] as Map<String, dynamic>?;
+                              final service =
+                                  booking['services'] as Map<String, dynamic>?;
+
+                              final scheduledStart = DateTime.tryParse(
+                                      booking['scheduled_start'] ?? '')
+                                  ?.toLocal();
+                              final formattedDate = scheduledStart != null
+                                  ? DateFormat('MMM d, h:mm a')
+                                      .format(scheduledStart)
+                                  : '';
+
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFFFF),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x33000000),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 90,
+                                      height: 90,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: const Color(0xFFDDC7A9),
+                                        image:
+                                            pet?['profile_picture_url'] != null
+                                                ? DecorationImage(
+                                                    image: NetworkImage(pet![
+                                                        'profile_picture_url']),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
+                                      ),
+                                      child: pet?['profile_picture_url'] == null
+                                          ? const Icon(Icons.pets,
+                                              color: Color(0xFF6E4B3A),
+                                              size: 40)
                                           : null,
                                     ),
-                                    child: pet?['profile_picture_url'] == null
-                                        ? const Icon(Icons.pets,
-                                            color: Color(0xFF6E4B3A), size: 40)
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        customText(
-                                          service?['service_type'] ?? '',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF6E4B3A),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        customText(
-                                          service?['service_name'] ?? '',
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: const Color(0xFF6E4B3A),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        customText(
-                                          '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: const Color(0xFF6E4B3A),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            customText(
-                                              formattedDate,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w400,
-                                              color: const Color(0xFF6E4B3A),
-                                            ),
-                                            TextButton(
-                                              onPressed: () async {
-                                                final result =
-                                                    await Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        PawtnerBookingDetailsScreen(
-                                                            booking: booking),
-                                                  ),
-                                                );
-
-                                                if (result == true) {
-                                                  _loadBookings();
-                                                }
-                                              },
-                                              style: TextButton.styleFrom(
-                                                padding: EdgeInsets.zero,
-                                                minimumSize: const Size(0, 0),
-                                                tapTargetSize:
-                                                    MaterialTapTargetSize
-                                                        .shrinkWrap,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          customText(
+                                            service?['service_type'] ?? '',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          customText(
+                                            service?['service_name'] ?? '',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          customText(
+                                            '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              customText(
+                                                formattedDate,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w400,
+                                                color: const Color(0xFF6E4B3A),
                                               ),
-                                              child: Text(
-                                                'View Details',
-                                                style: GoogleFonts.dosis(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w600,
-                                                  color:
-                                                      const Color(0xFF6E4B3A),
+                                              TextButton(
+                                                onPressed: () async {
+                                                  final result =
+                                                      await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          PawtnerBookingDetailsScreen(
+                                                              booking: booking),
+                                                    ),
+                                                  );
+
+                                                  if (result == true) {
+                                                    _loadBookings();
+                                                  }
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  padding: EdgeInsets.zero,
+                                                  minimumSize: const Size(0, 0),
+                                                  tapTargetSize:
+                                                      MaterialTapTargetSize
+                                                          .shrinkWrap,
+                                                ),
+                                                child: Text(
+                                                  'View Details',
+                                                  style: GoogleFonts.dosis(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        const Color(0xFF6E4B3A),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
     );
   }

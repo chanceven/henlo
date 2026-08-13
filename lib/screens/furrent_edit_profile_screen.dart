@@ -326,125 +326,132 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
   Widget build(BuildContext context) {
     final currentPicUrl = widget.furrentData?['profile_picture_url'];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
         backgroundColor: const Color(0xFFF8F8F8),
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'Edit Profile',
-          style: GoogleFonts.dosis(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6E4B3A),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF8F8F8),
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            'Edit Profile',
+            style: GoogleFonts.dosis(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6E4B3A),
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(
-            16, 0, 16, 24 + MediaQuery.of(context).padding.bottom),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6E4B3A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6E4B3A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: isLoading ? null : _saveProfile,
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        'Save Changes',
+                        style: GoogleFonts.dosis(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFDDC7A9),
+                        ),
+                      ),
               ),
             ),
-            onPressed: isLoading ? null : _saveProfile,
-            child: isLoading
-                ? const CircularProgressIndicator(color: Colors.white)
-                : Text(
-                    'Save Changes',
-                    style: GoogleFonts.dosis(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFFDDC7A9),
-                    ),
-                  ),
           ),
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                CircleAvatar(
-                  radius: 75,
-                  backgroundColor:
-                      _profileImageBytes != null || currentPicUrl != null
-                          ? Colors.transparent
-                          : const Color(0xFF6E4B3A),
-                  backgroundImage: _profileImageBytes != null
-                      ? MemoryImage(_profileImageBytes!) // ← MemoryImage
-                      : (currentPicUrl != null
-                          ? NetworkImage(
-                              '$currentPicUrl?t=${DateTime.now().millisecondsSinceEpoch}')
-                          : null) as ImageProvider?,
-                  child: _profileImageBytes == null && currentPicUrl == null
-                      ? const Icon(Icons.person,
-                          size: 75, color: Color(0xFFDDC7A9))
-                      : null,
-                ),
-                GestureDetector(
-                  onTap: _pickProfileImage,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFDDC7A9),
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: const Icon(Icons.camera_alt,
-                        color: Color(0xFF6E4B3A), size: 20),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 75,
+                    backgroundColor:
+                        _profileImageBytes != null || currentPicUrl != null
+                            ? Colors.transparent
+                            : const Color(0xFF6E4B3A),
+                    backgroundImage: _profileImageBytes != null
+                        ? MemoryImage(_profileImageBytes!) // ← MemoryImage
+                        : (currentPicUrl != null
+                            ? NetworkImage(
+                                '$currentPicUrl?t=${DateTime.now().millisecondsSinceEpoch}')
+                            : null) as ImageProvider?,
+                    child: _profileImageBytes == null && currentPicUrl == null
+                        ? const Icon(Icons.person,
+                            size: 75, color: Color(0xFFDDC7A9))
+                        : null,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            customTextField(
-                controller: _fullNameController, label: 'Full Name'),
-            customTextField(
-              controller: _contactNumberController,
-              label: 'Contact Number',
-              errorText: _contactNumberError,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [
-                // Allow digits and a leading "+" (for +63 format).
-                FilteringTextInputFormatter.allow(RegExp(r'[\d+]')),
-                LengthLimitingTextInputFormatter(13),
-              ],
-            ),
-            customTextField(
-                controller: _emailController,
-                label: 'Email',
-                errorText: _emailError,
-                keyboardType: TextInputType.emailAddress),
-            customTextField(
-              controller: _passwordController,
-              label: 'Password',
-              errorText: _passwordError,
-              isPassword: true,
-              obscureText: _isPasswordObscured,
-              onTap: () {
-                if (_isPasswordObscured) {
-                  setState(() {
-                    _isPasswordObscured = false;
-                    _passwordController.text = '';
-                  });
-                }
-              },
-            ),
-          ],
+                  GestureDetector(
+                    onTap: _pickProfileImage,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFDDC7A9),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(Icons.camera_alt,
+                          color: Color(0xFF6E4B3A), size: 20),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              customTextField(
+                  controller: _fullNameController, label: 'Full Name'),
+              customTextField(
+                controller: _contactNumberController,
+                label: 'Contact Number',
+                errorText: _contactNumberError,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  // Allow digits and a leading "+" (for +63 format).
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d+]')),
+                  LengthLimitingTextInputFormatter(13),
+                ],
+              ),
+              customTextField(
+                  controller: _emailController,
+                  label: 'Email',
+                  errorText: _emailError,
+                  keyboardType: TextInputType.emailAddress),
+              customTextField(
+                controller: _passwordController,
+                label: 'Password',
+                errorText: _passwordError,
+                isPassword: true,
+                obscureText: _isPasswordObscured,
+                onTap: () {
+                  if (_isPasswordObscured) {
+                    setState(() {
+                      _isPasswordObscured = false;
+                      _passwordController.text = '';
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

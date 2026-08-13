@@ -73,8 +73,6 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
           .eq('id', user.id)
           .maybeSingle();
 
-      final now = DateTime.now();
-
       final bookingsQuery = await supabase
           .from('bookings')
           .select(
@@ -930,7 +928,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
           color: const Color(0xFFF8F8F8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 12,
               offset: const Offset(0, -4),
             ),

@@ -124,31 +124,69 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
       confirmDismiss: (direction) async {
         return await showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+          builder: (context) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Are you sure you want to delete this pet?',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.dosis(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: const Color(0xFF6E4B3A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'This action cannot be undone.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.dosis(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                    color: const Color(0xFF6E4B3A),
+                  ),
+                ),
+              ],
             ),
-            title: styledText(
-              "Delete this pet?",
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF6E4B3A),
-            ),
-            content: styledText(
-              "This action cannot be undone.",
-              fontSize: 16,
-              color: const Color(0xFF6E4B3A),
-            ),
+            actionsAlignment: MainAxisAlignment.center,
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: styledText("Cancel",
-                    fontSize: 16, color: const Color(0xFF6E4B3A)),
+              SizedBox(
+                width: 120,
+                height: 40,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6E4B3A),
+                  ),
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.dosis(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: const Color(0xFFDDC7A9),
+                    ),
+                  ),
+                ),
               ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: styledText("Delete",
-                    fontSize: 16, color: const Color(0xFF8B0000)),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 120,
+                height: 40,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B0000),
+                  ),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(
+                    'Delete',
+                    style: GoogleFonts.dosis(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: const Color(0xFFF8F8F8),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -304,34 +342,35 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                   itemCount: pets.length,
                   itemBuilder: (_, i) => _petCard(pets[i]),
                 ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(
-            16, 0, 16, 24 + MediaQuery.of(context).padding.bottom),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6E4B3A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FurrentAddPetScreen(),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6E4B3A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-              _loadPets();
-            },
-            child: Text(
-              'Add Pet',
-              style: GoogleFonts.dosis(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFFDDC7A9),
+              ),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FurrentAddPetScreen(),
+                  ),
+                );
+                _loadPets();
+              },
+              child: Text(
+                'Add Pet',
+                style: GoogleFonts.dosis(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFDDC7A9),
+                ),
               ),
             ),
           ),

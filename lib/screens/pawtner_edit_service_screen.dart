@@ -154,7 +154,22 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
     super.dispose();
   }
 
-  // ---------------- LOAD EXISTING SERVICE ----------------
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(
+            color: const Color(0xFF6E4B3A),
+          ),
+        ),
+        backgroundColor: const Color(0xFFDDC7A9),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      ),
+    );
+  }
+
   Future<void> _loadService() async {
     final service = await supabase
         .from('services')
@@ -219,11 +234,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
       });
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Service updated successfully.',
-          style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-      backgroundColor: const Color(0xFFDDC7A9),
-    ));
+    _showToast('Service updated successfully.');
     Navigator.pop(context);
   }
 
@@ -431,8 +442,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
           ),
         ),
         body: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -694,41 +704,47 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
                   ),
                 );
               }).toList(),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6E4B3A),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancel',
-                        style: GoogleFonts.dosis(
-                            color: const Color(0xFFDDC7A9),
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDDC7A9),
-                      ),
-                      onPressed: _updateService,
-                      child: Text(
-                        'Save Changes',
-                        style: GoogleFonts.dosis(
-                            color: const Color(0xFF6E4B3A),
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
+          ),
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFFDDC7A9),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDDC7A9),
+                    ),
+                    onPressed: _updateService,
+                    child: Text(
+                      'Save Changes',
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFF6E4B3A),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

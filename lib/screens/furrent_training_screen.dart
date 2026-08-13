@@ -55,7 +55,9 @@ class _FurrentTrainingScreenState extends State<FurrentTrainingScreen> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       if (!mounted) return;
@@ -287,7 +289,8 @@ class _FurrentTrainingScreenState extends State<FurrentTrainingScreen> {
                             });
 
                             _loadServices();
-                            if (mounted) Navigator.pop(context);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
                           }
@@ -793,119 +796,125 @@ class _FurrentTrainingScreenState extends State<FurrentTrainingScreen> {
         .map((id) => services.firstWhere((s) => s['pawtners']?['id'] == id))
         .toList();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF6E4B3A),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFDDC7A9)),
-          onPressed: () => Navigator.pop(context),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F8F8),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF6E4B3A),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFFDDC7A9)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Training',
+            style: GoogleFonts.dosis(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFDDC7A9)),
+          ),
+          centerTitle: true,
         ),
-        title: Text(
-          'Training',
-          style: GoogleFonts.dosis(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFFDDC7A9)),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-              decoration: const BoxDecoration(
-                color: Color(0xFF6E4B3A),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF6E4B3A),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: _pickLocationManually,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on,
-                            color: Color(0xFFDDC7A9), size: 16),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            _locationLabel,
-                            style: GoogleFonts.dosis(
-                              fontSize: 16,
-                              color: const Color(0xFFDDC7A9),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const Icon(Icons.keyboard_arrow_down,
-                            color: Color(0xFFDDC7A9), size: 16),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, color: Color(0xFF6E4B3A)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            textAlignVertical: TextAlignVertical.center,
-                            style: GoogleFonts.dosis(
-                                fontSize: 16, color: const Color(0xFF6E4B3A)),
-                            decoration: InputDecoration(
-                              hintText: 'Search for pawtners or services',
-                              hintStyle: GoogleFonts.dosis(
-                                color: const Color(0xFFBDBDBD),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: _pickLocationManually,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on,
+                              color: Color(0xFFDDC7A9), size: 16),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _locationLabel,
+                              style: GoogleFonts.dosis(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFFDDC7A9),
+                                fontWeight: FontWeight.w500,
                               ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 0),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            onChanged: (value) => _loadServices(),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildPillTabs(),
-            const SizedBox(height: 8),
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: ListView.builder(
-                        itemCount: pawtnerList.length,
-                        itemBuilder: (context, index) {
-                          return _buildServiceCard(pawtnerList[index]);
-                        },
+                          const Icon(Icons.keyboard_arrow_down,
+                              color: Color(0xFFDDC7A9), size: 16),
+                        ],
                       ),
                     ),
-            ),
-          ],
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFFFF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search, color: Color(0xFF6E4B3A)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              textAlignVertical: TextAlignVertical.center,
+                              style: GoogleFonts.dosis(
+                                  fontSize: 16, color: const Color(0xFF6E4B3A)),
+                              decoration: InputDecoration(
+                                hintText: 'Search for pawtners or services',
+                                hintStyle: GoogleFonts.dosis(
+                                  color: const Color(0xFFBDBDBD),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 0),
+                              ),
+                              onChanged: (value) => _loadServices(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildPillTabs(),
+              const SizedBox(height: 8),
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: ListView.builder(
+                          itemCount: pawtnerList.length,
+                          itemBuilder: (context, index) {
+                            return _buildServiceCard(pawtnerList[index]);
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

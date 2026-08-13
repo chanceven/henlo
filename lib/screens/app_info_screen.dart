@@ -7,9 +7,9 @@ class AppInfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: const Color(0xFFDDC7A9),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F8F8),
+        backgroundColor: const Color(0xFFDDC7A9),
         elevation: 0,
         centerTitle: true,
         title: Text(
@@ -34,13 +34,13 @@ class AppInfoScreen extends StatelessWidget {
               const SizedBox(height: 20),
               Center(
                 child: Image.asset(
-                  'lib/assets/images/bitmap.png',
-                  width: 120,
+                  'lib/assets/images/henlo_logo_v2.png',
+                  width: 150,
                 ),
               ),
               const SizedBox(height: 36),
               Divider(
-                color: const Color(0xFF6E4B3A).withOpacity(0.2),
+                color: const Color(0xFF6E4B3A).withValues(alpha: 0.2),
               ),
               const SizedBox(height: 20),
               Text(
@@ -62,7 +62,7 @@ class AppInfoScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Divider(
-                color: const Color(0xFF6E4B3A).withOpacity(0.2),
+                color: const Color(0xFF6E4B3A).withValues(alpha: 0.2),
               ),
               const SizedBox(height: 20),
               Text(
@@ -84,7 +84,7 @@ class AppInfoScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Divider(
-                color: const Color(0xFF6E4B3A).withOpacity(0.2),
+                color: const Color(0xFF6E4B3A).withValues(alpha: 0.2),
               ),
               const SizedBox(height: 20),
               Text(
@@ -105,17 +105,19 @@ class AppInfoScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Center(
-                child: Text(
-                  '© 2026 Henlo. All rights reserved.',
-                  style: GoogleFonts.dosis(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF8A6A5A),
+              SafeArea(
+                top: false,
+                child: Center(
+                  child: Text(
+                    '© 2026 Henlo. All rights reserved.',
+                    style: GoogleFonts.dosis(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF8A6A5A),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
             ],
           ),
         ),

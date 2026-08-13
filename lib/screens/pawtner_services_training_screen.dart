@@ -280,40 +280,41 @@ class _PawtnerServicesTrainingScreenState
                           },
                         ),
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    16,
-                    16,
-                    24 + MediaQuery.of(context).padding.bottom,
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDDC7A9)),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const PawtnerAddServiceScreen(
-                                  preselectedServiceType: 'Training')),
-                        );
-                        fetchTrainingServices();
-                      },
-                      child: Text(
-                        'Add Service',
-                        style: GoogleFonts.dosis(
-                            color: const Color(0xFF6E4B3A),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDDC7A9),
+              ),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PawtnerAddServiceScreen(
+                      preselectedServiceType: 'Training',
+                    ),
+                  ),
+                );
+                fetchTrainingServices();
+              },
+              child: Text(
+                'Add Service',
+                style: GoogleFonts.dosis(
+                  color: const Color(0xFF6E4B3A),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

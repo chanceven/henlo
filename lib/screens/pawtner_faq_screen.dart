@@ -18,6 +18,7 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
   Map<String, bool> expandedCategories = {};
   bool isLoading = true;
   String searchQuery = '';
+  final Map<dynamic, ExpansibleController> _faqControllers = {};
 
   @override
   void initState() {
@@ -102,72 +103,77 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: SizedBox(
-                      height: 40,
-                      child: TextField(
-                        style: GoogleFonts.dosis(
-                          color: const Color(0xFF6E4B3A),
-                          fontSize: 16,
-                        ),
-                        onChanged: (value) =>
-                            setState(() => searchQuery = value),
-                        decoration: InputDecoration(
-                          hintText: 'Search',
-                          hintStyle: GoogleFonts.dosis(
-                            color: const Color(0xFFBDBDBD),
+      body: SafeArea(
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: SizedBox(
+                        height: 40,
+                        child: TextField(
+                          onTapOutside: (_) {
+                            FocusScope.of(context).unfocus();
+                          },
+                          style: GoogleFonts.dosis(
+                            color: const Color(0xFF6E4B3A),
                             fontSize: 16,
                           ),
-                          fillColor: const Color(0xFFFFFFFF),
-                          filled: true,
-                          prefixIcon: const Icon(Icons.search,
-                              color: Color(0xFF6E4B3A)),
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 16),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                          onChanged: (value) =>
+                              setState(() => searchQuery = value),
+                          decoration: InputDecoration(
+                            hintText: 'Search',
+                            hintStyle: GoogleFonts.dosis(
+                              color: const Color(0xFFBDBDBD),
+                              fontSize: 16,
+                            ),
+                            fillColor: const Color(0xFFFFFFFF),
+                            filled: true,
+                            prefixIcon: const Icon(Icons.search,
+                                color: Color(0xFF6E4B3A)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: filteredFaqs.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No FAQs found',
-                            style: GoogleFonts.dosis(
-                                fontSize: 16, color: const Color(0xFF6E4B3A)),
+                  Expanded(
+                    child: filteredFaqs.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No FAQs found',
+                              style: GoogleFonts.dosis(
+                                  fontSize: 16, color: const Color(0xFF6E4B3A)),
+                            ),
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            children: filteredFaqs.entries
+                                .map((entry) => _buildCategorySection(
+                                    entry.key, entry.value))
+                                .toList(),
                           ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          children: filteredFaqs.entries
-                              .map((entry) =>
-                                  _buildCategorySection(entry.key, entry.value))
-                              .toList(),
-                        ),
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 
@@ -216,6 +222,12 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
   }
 
   Widget _buildFAQTile(Map<String, dynamic> faq) {
+    final faqKey = faq['id'] ?? faq;
+    final controller = _faqControllers.putIfAbsent(
+      faqKey,
+      () => ExpansibleController(),
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -227,6 +239,7 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
           dividerColor: const Color(0xFF6E4B3A),
         ),
         child: ExpansionTile(
+          controller: controller,
           iconColor: const Color(0xFF6E4B3A),
           collapsedIconColor: const Color(0xFF6E4B3A),
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -236,6 +249,15 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
             ),
             child: _highlightText(faq['question'] ?? 'No question'),
           ),
+          onExpansionChanged: (expanded) {
+            if (expanded) {
+              for (final entry in _faqControllers.entries) {
+                if (entry.key != faqKey && entry.value.isExpanded) {
+                  entry.value.collapse();
+                }
+              }
+            }
+          },
           children: [
             Container(
               width: double.infinity,

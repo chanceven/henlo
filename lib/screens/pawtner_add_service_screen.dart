@@ -406,8 +406,7 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
           ),
         ),
         body: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -647,41 +646,47 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                   ),
                 );
               }).toList(),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6E4B3A),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancel',
-                        style: GoogleFonts.dosis(
-                            color: const Color(0xFFDDC7A9),
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDDC7A9),
-                      ),
-                      onPressed: _saveService,
-                      child: Text(
-                        'Save Changes',
-                        style: GoogleFonts.dosis(
-                            color: const Color(0xFF6E4B3A),
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
+          ),
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFFDDC7A9),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDDC7A9),
+                    ),
+                    onPressed: _saveService,
+                    child: Text(
+                      'Save Changes',
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFF6E4B3A),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -689,17 +694,6 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
   }
 }
 
-/// Inline segmented time input.
-///
-/// Collapsed state shows e.g. "9:00 AM" inside a bordered box.
-/// Tapping it expands into three editable segments: [hour] [minute] [AM/PM].
-/// - Typing a 2-digit hour (or a single digit that can't extend, e.g. 2-9)
-///   auto-advances focus to the minute segment.
-/// - Typing a 2-digit minute (or a first digit 6-9) auto-advances focus to
-///   the AM/PM segment.
-/// - Typing "A" or "P" in the period segment sets AM/PM directly.
-/// - Tapping anywhere outside the three segments commits the value and
-///   collapses back to display mode. No popup, sheet, or dropdown is used.
 class _TimeSegmentInput extends StatefulWidget {
   final String initialTime;
   final ValueChanged<String> onChanged;

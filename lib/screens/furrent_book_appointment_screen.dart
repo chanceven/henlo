@@ -1004,192 +1004,199 @@ class _FurrentBookAppointmentScreenState
         ),
         centerTitle: true,
       ),
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.fromLTRB(
-            16, 0, 16, 16 + MediaQuery.of(context).padding.bottom),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6E4B3A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6E4B3A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            ),
-            onPressed: selectedTime != null &&
-                    (!isBoardingService || selectedEndDate != null) &&
-                    (!(selectedSubtype == 'Home Service' ||
-                            selectedSubtype == 'Home Training') ||
-                        furrentAddress.isNotEmpty)
-                ? () async {
-                    try {
-                      final furrentId = supabase.auth.currentUser!.id;
+              onPressed: selectedTime != null &&
+                      (!isBoardingService || selectedEndDate != null) &&
+                      (!(selectedSubtype == 'Home Service' ||
+                              selectedSubtype == 'Home Training') ||
+                          furrentAddress.isNotEmpty)
+                  ? () async {
+                      try {
+                        final furrentId = supabase.auth.currentUser!.id;
 
-                      final scheduledStart = DateTime(
-                        selectedDate.year,
-                        selectedDate.month,
-                        selectedDate.day,
-                        selectedTime!.hour,
-                        selectedTime!.minute,
-                      );
-
-                      String location;
-
-                      if (selectedSubtype == 'Pet Shop' ||
-                          selectedSubtype == 'Pet Hotel' ||
-                          selectedSubtype == 'Home Boarding' ||
-                          selectedSubtype == 'Training Center') {
-                        location = pawtnerAddress;
-                      } else {
-                        location = furrentAddress;
-                      }
-
-                      final confirm = await _showConfirmBookingModal(
-                        serviceName: serviceName,
-                        pawtnerName: widget.pawtnerName,
-                        location: location,
-                        schedule: isBoardingService && selectedEndDate != null
-                            ? (selectedDate.month == selectedEndDate!.month
-                                ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
-                                : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
-                            : DateFormat('MMM d').format(selectedDate),
-                        time: selectedTime!.format(context),
-                        petName: petName,
-                        total: isBoardingService ? totalPrice : servicePrice,
-                      );
-
-                      if (confirm != true) return;
-
-                      DateTime? scheduledEnd;
-
-                      if (isBoardingService && selectedEndDate != null) {
-                        scheduledEnd = DateTime(
-                          selectedEndDate!.year,
-                          selectedEndDate!.month,
-                          selectedEndDate!.day,
+                        final scheduledStart = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
                           selectedTime!.hour,
                           selectedTime!.minute,
                         );
-                      } else {
-                        scheduledEnd = scheduledStart.add(
-                          Duration(minutes: serviceDurationMinutes),
-                        );
-                      }
 
-                      if (isBoardingService) {
-                        final existing = await supabase
-                            .from('bookings')
-                            .select('id')
-                            .eq('pawtner_id', widget.pawtnerId)
-                            .lt('scheduled_start',
-                                scheduledEnd.toUtc().toIso8601String())
-                            .gt('scheduled_end',
-                                scheduledStart.toUtc().toIso8601String());
+                        String location;
 
-                        if (existing.isNotEmpty) {
-                          _showToast('Selected dates are not available.');
-                          return;
+                        if (selectedSubtype == 'Pet Shop' ||
+                            selectedSubtype == 'Pet Hotel' ||
+                            selectedSubtype == 'Home Boarding' ||
+                            selectedSubtype == 'Training Center') {
+                          location = pawtnerAddress;
+                        } else {
+                          location = furrentAddress;
                         }
+
+                        final confirm = await _showConfirmBookingModal(
+                          serviceName: serviceName,
+                          pawtnerName: widget.pawtnerName,
+                          location: location,
+                          schedule: isBoardingService && selectedEndDate != null
+                              ? (selectedDate.month == selectedEndDate!.month
+                                  ? "${DateFormat('MMM d').format(selectedDate)}–${selectedEndDate!.day}, $boardingDays Days"
+                                  : "${DateFormat('MMM d').format(selectedDate)}–${DateFormat('MMM d').format(selectedEndDate!)}, $boardingDays Days")
+                              : DateFormat('MMM d').format(selectedDate),
+                          time: selectedTime!.format(context),
+                          petName: petName,
+                          total: isBoardingService ? totalPrice : servicePrice,
+                        );
+
+                        if (confirm != true) return;
+
+                        DateTime? scheduledEnd;
+
+                        if (isBoardingService && selectedEndDate != null) {
+                          scheduledEnd = DateTime(
+                            selectedEndDate!.year,
+                            selectedEndDate!.month,
+                            selectedEndDate!.day,
+                            selectedTime!.hour,
+                            selectedTime!.minute,
+                          );
+                        } else {
+                          scheduledEnd = scheduledStart.add(
+                            Duration(minutes: serviceDurationMinutes),
+                          );
+                        }
+
+                        if (isBoardingService) {
+                          final existing = await supabase
+                              .from('bookings')
+                              .select('id')
+                              .eq('pawtner_id', widget.pawtnerId)
+                              .lt('scheduled_start',
+                                  scheduledEnd.toUtc().toIso8601String())
+                              .gt('scheduled_end',
+                                  scheduledStart.toUtc().toIso8601String());
+
+                          if (existing.isNotEmpty) {
+                            _showToast('Selected dates are not available.');
+                            return;
+                          }
+                        }
+
+                        await supabase.from('bookings').insert({
+                          'furrent_id': furrentId,
+                          'pawtner_id': widget.pawtnerId,
+                          'service_id': widget.serviceId,
+                          'pet_id': widget.petId,
+                          'scheduled_start':
+                              scheduledStart.toUtc().toIso8601String(),
+                          'scheduled_end':
+                              scheduledEnd.toUtc().toIso8601String(),
+                          'furrent_address':
+                              (selectedSubtype == 'Home Service' ||
+                                      selectedSubtype == 'Home Training')
+                                  ? furrentAddress
+                                  : null,
+                          'status': 'Upcoming',
+                          'notes': notesController.text,
+                          'chosen_service_subtype': selectedSubtype,
+                        });
+
+                        _showToast('Booking successful.');
+
+                        Navigator.pop(context);
+                      } catch (e) {
+                        _showToast('Booking failed: $e');
                       }
-
-                      await supabase.from('bookings').insert({
-                        'furrent_id': furrentId,
-                        'pawtner_id': widget.pawtnerId,
-                        'service_id': widget.serviceId,
-                        'pet_id': widget.petId,
-                        'scheduled_start':
-                            scheduledStart.toUtc().toIso8601String(),
-                        'scheduled_end': scheduledEnd.toUtc().toIso8601String(),
-                        'furrent_address': (selectedSubtype == 'Home Service' ||
-                                selectedSubtype == 'Home Training')
-                            ? furrentAddress
-                            : null,
-                        'status': 'Upcoming',
-                        'notes': notesController.text,
-                        'chosen_service_subtype': selectedSubtype,
-                      });
-
-                      _showToast('Booking successful.');
-
-                      Navigator.pop(context);
-                    } catch (e) {
-                      _showToast('Booking failed: $e');
                     }
-                  }
-                : null,
-            child: Text(
-              'Book Now',
-              style: GoogleFonts.dosis(
-                color: const Color(0xFFDDC7A9),
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+                  : null,
+              child: Text(
+                'Book Now',
+                style: GoogleFonts.dosis(
+                  color: const Color(0xFFDDC7A9),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                ),
               ),
             ),
           ),
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildServiceSubtypeTabs(),
-              const SizedBox(height: 16),
-              const Padding(
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildServiceSubtypeTabs(),
+                const SizedBox(height: 16),
+                const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Text('Select Date',
+                        style: TextStyle(
+                          color: Color(0xFF6E4B3A),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ))),
+                const SizedBox(height: 8),
+                _buildCalendar(),
+                const SizedBox(height: 16),
+                const Padding(
                   padding: EdgeInsets.only(left: 8),
-                  child: Text('Select Date',
-                      style: TextStyle(
-                        color: Color(0xFF6E4B3A),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ))),
-              const SizedBox(height: 8),
-              _buildCalendar(),
-              const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Text(
-                  'Select Time',
-                  style: TextStyle(
-                    color: Color(0xFF6E4B3A),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  child: Text(
+                    'Select Time',
+                    style: TextStyle(
+                      color: Color(0xFF6E4B3A),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              _buildTimeSlots(),
-              const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
-                decoration: InputDecoration(
-                  hintText: 'Notes to Pawtner',
-                  hintStyle: GoogleFonts.dosis(
-                    color: const Color(0xFFBDBDBD),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
+                const SizedBox(height: 8),
+                _buildTimeSlots(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: notesController,
+                  style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
+                  decoration: InputDecoration(
+                    hintText: 'Notes to Pawtner',
+                    hintStyle: GoogleFonts.dosis(
+                      color: const Color(0xFFBDBDBD),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF6E4B3A)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6E4B3A), width: 1.5),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF6E4B3A)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Color(0xFF6E4B3A), width: 1.5),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  maxLines: 3,
                 ),
-                maxLines: 3,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

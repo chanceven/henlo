@@ -229,6 +229,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
     final currentUser = supabase.auth.currentUser;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -245,282 +246,506 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x14000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      style: GoogleFonts.dosis(
-                        color: const Color(0xFF6E4B3A),
+          : GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                FocusScope.of(context).unfocus();
+              },
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x14000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      onChanged: (value) => setState(() => searchQuery = value),
-                      decoration: InputDecoration(
-                        hintText: 'Search',
-                        hintStyle: GoogleFonts.dosis(
-                          color: const Color(0xFFBDBDBD),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
+                      child: TextField(
+                        style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
                         ),
-                        fillColor: const Color(0xFFFFFFFF),
-                        filled: true,
-                        prefixIcon:
-                            const Icon(Icons.search, color: Color(0xFF6E4B3A)),
-                        contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                        onChanged: (value) =>
+                            setState(() => searchQuery = value),
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle: GoogleFonts.dosis(
+                            color: const Color(0xFFBDBDBD),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          fillColor: const Color(0xFFFFFFFF),
+                          filled: true,
+                          prefixIcon: const Icon(Icons.search,
+                              color: Color(0xFF6E4B3A)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: List.generate(tabs.length, (index) {
-                    final isSelected = selectedTabIndex == index;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() => selectedTabIndex = index);
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFFDDC7A9)
-                                : const Color(0xFFF2F2F2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                customText(
-                                  tabs[index],
-                                  fontSize: 18,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  color: isSelected
-                                      ? const Color(0xFF6E4B3A)
-                                      : const Color(0xFF6E4B3A),
-                                ),
-                                if ((index == 0 && unreadChatsCount > 0) ||
-                                    (index == 1 &&
-                                        unreadNotificationsCount > 0))
-                                  Container(
-                                    margin: const EdgeInsets.only(left: 6),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      index == 0
-                                          ? unreadChatsCount.toString()
-                                          : unreadNotificationsCount.toString(),
-                                      style: GoogleFonts.dosis(
-                                        color: const Color(0xFFFFFFFF),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                  const SizedBox(height: 16),
+                  Row(
+                    children: List.generate(tabs.length, (index) {
+                      final isSelected = selectedTabIndex == index;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => selectedTabIndex = index);
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFDDC7A9)
+                                  : const Color(0xFFF2F2F2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  customText(
+                                    tabs[index],
+                                    fontSize: 18,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: isSelected
+                                        ? const Color(0xFF6E4B3A)
+                                        : const Color(0xFF6E4B3A),
+                                  ),
+                                  if ((index == 0 && unreadChatsCount > 0) ||
+                                      (index == 1 &&
+                                          unreadNotificationsCount > 0))
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        index == 0
+                                            ? unreadChatsCount.toString()
+                                            : unreadNotificationsCount
+                                                .toString(),
+                                        style: GoogleFonts.dosis(
+                                          color: const Color(0xFFFFFFFF),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: itemsToShow.isEmpty
-                      ? Center(
-                          child: customText(
-                            selectedTabIndex == 0
-                                ? 'No chats'
-                                : 'No notifications',
-                            fontSize: 16,
-                            color: const Color(0xFF6E4B3A),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: itemsToShow.length,
-                          itemBuilder: (context, index) {
-                            final item = itemsToShow[index];
-                            if (selectedTabIndex == 0) {
-                              final furrent =
-                                  item['furrents'] as Map<String, dynamic>? ??
-                                      {};
-                              final bool isDeletedAccount =
-                                  furrent.isEmpty || furrent['id'] == null;
-                              final String displayName = isDeletedAccount
-                                  ? 'Deleted Account'
-                                  : (furrent['full_name'] ?? '');
-                              final profilePic = isDeletedAccount
-                                  ? ''
-                                  : (furrent['profile_picture_url'] ?? '');
-                              final lastMessageDate =
-                                  item['last_message_at'] != null
-                                      ? DateTime.parse(item['last_message_at'])
-                                          .toLocal()
-                                      : null;
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: itemsToShow.isEmpty
+                        ? Center(
+                            child: customText(
+                              selectedTabIndex == 0
+                                  ? 'No chats'
+                                  : 'No notifications',
+                              fontSize: 16,
+                              color: const Color(0xFF6E4B3A),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: itemsToShow.length,
+                            itemBuilder: (context, index) {
+                              final item = itemsToShow[index];
+                              if (selectedTabIndex == 0) {
+                                final furrent =
+                                    item['furrents'] as Map<String, dynamic>? ??
+                                        {};
+                                final bool isDeletedAccount =
+                                    furrent.isEmpty || furrent['id'] == null;
+                                final String displayName = isDeletedAccount
+                                    ? 'Deleted Account'
+                                    : (furrent['full_name'] ?? '');
+                                final profilePic = isDeletedAccount
+                                    ? ''
+                                    : (furrent['profile_picture_url'] ?? '');
+                                final lastMessageDate =
+                                    item['last_message_at'] != null
+                                        ? DateTime.parse(
+                                                item['last_message_at'])
+                                            .toLocal()
+                                        : null;
 
-                              String formattedDate = '';
-                              if (lastMessageDate != null) {
-                                final now = DateTime.now();
-                                if (lastMessageDate.year == now.year &&
-                                    lastMessageDate.month == now.month &&
-                                    lastMessageDate.day == now.day) {
-                                  formattedDate =
-                                      formatTime12Hour(lastMessageDate);
-                                } else {
-                                  formattedDate =
-                                      "${lastMessageDate.month}/${lastMessageDate.day}/${lastMessageDate.year}";
+                                String formattedDate = '';
+                                if (lastMessageDate != null) {
+                                  final now = DateTime.now();
+                                  if (lastMessageDate.year == now.year &&
+                                      lastMessageDate.month == now.month &&
+                                      lastMessageDate.day == now.day) {
+                                    formattedDate =
+                                        formatTime12Hour(lastMessageDate);
+                                  } else {
+                                    formattedDate =
+                                        "${lastMessageDate.month}/${lastMessageDate.day}/${lastMessageDate.year.toString().substring(2)}";
+                                  }
                                 }
-                              }
 
-                              String lastMessageText =
-                                  item['last_message'] ?? '';
-                              final lastMessageSender =
-                                  item['last_message_sender_id'];
-                              if (lastMessageSender == currentUser?.id) {
-                                lastMessageText = "You: $lastMessageText";
-                              }
+                                String lastMessageText =
+                                    item['last_message'] ?? '';
+                                final lastMessageSender =
+                                    item['last_message_sender_id'];
+                                if (lastMessageSender == currentUser?.id) {
+                                  lastMessageText = "You: $lastMessageText";
+                                }
 
-                              final unreadCount =
-                                  (item['unread_count_pawtner'] ?? 0) as num;
-                              final isUnread = unreadCount > 0;
+                                final unreadCount =
+                                    (item['unread_count_pawtner'] ?? 0) as num;
+                                final isUnread = unreadCount > 0;
 
-                              return Dismissible(
-                                key: Key(item['id']),
-                                direction: DismissDirection.endToStart,
-                                confirmDismiss: (_) async {
-                                  return await showDialog(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(14)),
-                                      title: customText(
-                                          'Delete this entire conversation?',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF6E4B3A)),
-                                      content: customText(
-                                          'This action cannot be undone.',
-                                          fontSize: 16,
-                                          color: const Color(0xFF6E4B3A)),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(ctx, false),
-                                          child: customText('Cancel',
-                                              fontSize: 16,
-                                              color: const Color(0xFF6E4B3A)),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(ctx, true),
-                                          child: customText('Delete',
-                                              fontSize: 16,
-                                              color: const Color(0xFFFF3B30)),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                onDismissed: (_) async {
-                                  await supabase
-                                      .from('messages')
-                                      .update({'deleted_for_pawtner': true}).eq(
-                                          'conversation_id', item['id']);
-                                  await supabase.from('conversations').update({
-                                    'hidden_for_pawtner': true,
-                                    'pawtner_cleared_at':
-                                        DateTime.now().toIso8601String(),
-                                  }).eq('id', item['id']);
-                                  setState(() => chats.removeWhere(
-                                      (c) => c['id'] == item['id']));
-
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
+                                return Dismissible(
+                                  key: Key(item['id']),
+                                  direction: DismissDirection.endToStart,
+                                  confirmDismiss: (_) async {
+                                    return await showDialog(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(14)),
+                                        title: customText(
+                                            'Delete this entire conversation?',
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF6E4B3A)),
                                         content: customText(
-                                          'Chat has been deleted',
-                                          color: const Color(0xFF6E4B3A),
-                                        ),
-                                        backgroundColor:
-                                            const Color(0xFFDDC7A9),
-                                        duration: const Duration(seconds: 2),
+                                            'This action cannot be undone.',
+                                            fontSize: 16,
+                                            color: const Color(0xFF6E4B3A)),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, false),
+                                            child: customText('Cancel',
+                                                fontSize: 16,
+                                                color: const Color(0xFF6E4B3A)),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, true),
+                                            child: customText('Delete',
+                                                fontSize: 16,
+                                                color: const Color(0xFFFF3B30)),
+                                          ),
+                                        ],
                                       ),
                                     );
-                                  }
-                                },
-                                background: Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFF3B30),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  child: const Icon(Icons.delete,
-                                      color: Color(0xFFFFFFFF), size: 30),
-                                ),
-                                child: GestureDetector(
-                                  onTap: () async {
+                                  },
+                                  onDismissed: (_) async {
+                                    await supabase.from('messages').update({
+                                      'deleted_for_pawtner': true
+                                    }).eq('conversation_id', item['id']);
                                     await supabase
                                         .from('conversations')
                                         .update({
-                                      'unread_count_pawtner': 0,
+                                      'hidden_for_pawtner': true,
+                                      'pawtner_cleared_at':
+                                          DateTime.now().toIso8601String(),
                                     }).eq('id', item['id']);
+                                    setState(() => chats.removeWhere(
+                                        (c) => c['id'] == item['id']));
 
-                                    setState(() {
-                                      unreadChatsCount = (unreadChatsCount -
-                                              unreadCount.toInt())
-                                          .clamp(0, 999)
-                                          .toInt();
-                                    });
-                                    _updateAppBadge();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: customText(
+                                            'Chat has been deleted',
+                                            color: const Color(0xFF6E4B3A),
+                                          ),
+                                          backgroundColor:
+                                              const Color(0xFFDDC7A9),
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  background: Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFF3B30),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20),
+                                    child: const Icon(Icons.delete,
+                                        color: Color(0xFFFFFFFF), size: 30),
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      await supabase
+                                          .from('conversations')
+                                          .update({
+                                        'unread_count_pawtner': 0
+                                      }).eq('id', item['id']);
+
+                                      if (!context.mounted) return;
+
+                                      setState(() {
+                                        unreadChatsCount = (unreadChatsCount -
+                                                unreadCount.toInt())
+                                            .clamp(0, 999)
+                                            .toInt();
+                                      });
+                                      _updateAppBadge();
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ChatScreen(
+                                            conversationId: item['id'],
+                                            otherUserId: furrent['id'] ?? '',
+                                            otherUserName: displayName,
+                                            otherUserAvatar: profilePic,
+                                            currentUserType: 'pawtner',
+                                            isDeletedAccount: isDeletedAccount,
+                                          ),
+                                        ),
+                                      ).then((_) {
+                                        if (mounted) _loadData();
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFFFFF),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                              color: Color(0x1F000000),
+                                              blurRadius: 4,
+                                              offset: Offset(0, 2))
+                                        ],
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 24,
+                                            backgroundColor:
+                                                const Color(0xFFDDC7A9),
+                                            backgroundImage:
+                                                profilePic.isNotEmpty
+                                                    ? NetworkImage(profilePic)
+                                                    : null,
+                                            child: profilePic.isEmpty
+                                                ? const Icon(Icons.person,
+                                                    size: 24,
+                                                    color: Color(0xFF6E4B3A))
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    customText(
+                                                      displayName,
+                                                      fontSize: 17,
+                                                      fontWeight: isUnread
+                                                          ? FontWeight.w800
+                                                          : FontWeight.w600,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
+                                                    customText(
+                                                      formattedDate,
+                                                      fontSize: 12,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        lastMessageText,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style:
+                                                            GoogleFonts.dosis(
+                                                          fontSize: 15,
+                                                          fontWeight: isUnread
+                                                              ? FontWeight.w700
+                                                              : FontWeight
+                                                                  .normal,
+                                                          color: const Color(
+                                                              0xFF6E4B3A),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    if (unreadCount > 0)
+                                                      Container(
+                                                        margin: const EdgeInsets
+                                                            .only(left: 4),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal: 6,
+                                                                vertical: 2),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.red,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(20),
+                                                        ),
+                                                        child: Text(
+                                                          unreadCount
+                                                              .toInt()
+                                                              .toString(),
+                                                          style:
+                                                              GoogleFonts.dosis(
+                                                            color: const Color(
+                                                                0xFFFFFFFF),
+                                                            fontSize: 11,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                final title = item['title'] ?? '';
+                                final isReadNotif = item['is_read'] == true;
+
+                                final createdAt = item['created_at'] != null
+                                    ? DateTime.parse(item['created_at'])
+                                        .toLocal()
+                                    : null;
+
+                                String formattedDate = '';
+
+                                if (createdAt != null) {
+                                  final now = DateTime.now();
+
+                                  if (createdAt.year == now.year &&
+                                      createdAt.month == now.month &&
+                                      createdAt.day == now.day) {
+                                    formattedDate = formatTime12Hour(createdAt);
+                                  } else {
+                                    formattedDate =
+                                        "${createdAt.month}/${createdAt.day}/${createdAt.year.toString().substring(2)}";
+                                  }
+                                }
+
+                                IconData notifIcon;
+                                Color notifColor;
+                                if (title == 'New Booking Request') {
+                                  notifIcon = Icons.calendar_today;
+                                  notifColor = const Color(0xFF6E4B3A);
+                                } else if (title == 'Booking Cancelled') {
+                                  notifIcon = Icons.cancel;
+                                  notifColor = const Color(0xFFFF3B30);
+                                } else if (title == 'Booking Rescheduled') {
+                                  notifIcon = Icons.event_repeat;
+                                  notifColor = const Color(0xFFFF9500);
+                                } else if (title == 'New Review') {
+                                  notifIcon = Icons.star;
+                                  notifColor = const Color(0xFFFFCC00);
+                                } else {
+                                  notifIcon = Icons.campaign;
+                                  notifColor = const Color(0xFF007AFF);
+                                }
+
+                                return GestureDetector(
+                                  onTap: () async {
+                                    if (!isReadNotif) {
+                                      await supabase
+                                          .from('notifications')
+                                          .update({'is_read': true}).eq(
+                                              'id', item['id']);
+                                      setState(() {
+                                        item['is_read'] = true;
+                                        unreadNotificationsCount =
+                                            (unreadNotificationsCount - 1)
+                                                .clamp(0, 999)
+                                                .toInt();
+                                      });
+                                      _updateAppBadge();
+                                    }
+
+                                    final bookingId = item['booking_id'];
+                                    if (bookingId == null) return;
+
+                                    final booking = await supabase
+                                        .from('bookings')
+                                        .select(
+                                            '*, pets(*), furrents(*), services(*)')
+                                        .eq('id', bookingId)
+                                        .maybeSingle();
+
+                                    if (booking == null || !context.mounted) {
+                                      return;
+                                    }
 
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ChatScreen(
-                                          conversationId: item['id'],
-                                          otherUserId: furrent['id'] ?? '',
-                                          otherUserName: displayName,
-                                          otherUserAvatar: profilePic,
-                                          currentUserType: 'pawtner',
-                                          isDeletedAccount: isDeletedAccount,
+                                        builder: (_) =>
+                                            PawtnerBookingDetailsScreen(
+                                          booking: Map<String, dynamic>.from(
+                                              booking),
                                         ),
                                       ),
-                                    ).then((_) => _loadData());
+                                    );
                                   },
                                   child: Container(
                                     margin: const EdgeInsets.only(bottom: 12),
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFFFFFF),
+                                      color: isReadNotif
+                                          ? const Color(0xFFFFFFFF)
+                                          : notifColor.withValues(alpha: 0.07),
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: const [
                                         BoxShadow(
@@ -533,18 +758,16 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        CircleAvatar(
-                                          radius: 24,
-                                          backgroundColor:
-                                              const Color(0xFFDDC7A9),
-                                          backgroundImage: profilePic.isNotEmpty
-                                              ? NetworkImage(profilePic)
-                                              : null,
-                                          child: profilePic.isEmpty
-                                              ? const Icon(Icons.person,
-                                                  size: 24,
-                                                  color: Color(0xFF6E4B3A))
-                                              : null,
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: notifColor.withValues(
+                                                alpha: 0.15),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(notifIcon,
+                                              color: notifColor, size: 20),
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -553,79 +776,46 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  customText(
-                                                    displayName,
-                                                    fontSize: 17,
-                                                    fontWeight: isUnread
-                                                        ? FontWeight.w800
-                                                        : FontWeight.w600,
-                                                    color:
-                                                        const Color(0xFF6E4B3A),
-                                                  ),
-                                                  customText(
-                                                    formattedDate,
-                                                    fontSize: 12,
-                                                    color:
-                                                        const Color(0xFF6E4B3A),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      lastMessageText,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: GoogleFonts.dosis(
-                                                        fontSize: 15,
-                                                        fontWeight: isUnread
-                                                            ? FontWeight.w700
-                                                            : FontWeight.normal,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Expanded(
+                                                      child: customText(
+                                                        item['title'] ?? '',
+                                                        fontWeight: isReadNotif
+                                                            ? FontWeight.w600
+                                                            : FontWeight.w800,
                                                         color: const Color(
                                                             0xFF6E4B3A),
                                                       ),
                                                     ),
-                                                  ),
-                                                  if (unreadCount > 0)
-                                                    Container(
-                                                      margin:
-                                                          const EdgeInsets.only(
-                                                              left: 4),
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 6,
-                                                          vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.red,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(20),
-                                                      ),
-                                                      child: Text(
-                                                        unreadCount
-                                                            .toInt()
-                                                            .toString(),
-                                                        style:
-                                                            GoogleFonts.dosis(
-                                                          color: const Color(
-                                                              0xFFFFFFFF),
-                                                          fontSize: 11,
-                                                          fontWeight:
-                                                              FontWeight.bold,
+                                                    const SizedBox(width: 8),
+                                                    customText(
+                                                      formattedDate,
+                                                      fontSize: 12,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
+                                                    if (!isReadNotif) ...[
+                                                      const SizedBox(width: 6),
+                                                      Container(
+                                                        width: 8,
+                                                        height: 8,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: notifColor,
+                                                          shape:
+                                                              BoxShape.circle,
                                                         ),
                                                       ),
-                                                    ),
-                                                ],
+                                                    ],
+                                                  ]),
+                                              const SizedBox(height: 4),
+                                              customText(
+                                                item['message'] ?? '',
+                                                fontSize: 14,
+                                                color: const Color(0xFF6E4B3A),
                                               ),
                                             ],
                                           ),
@@ -633,203 +823,46 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                       ],
                                     ),
                                   ),
-                                ),
-                              );
-                            } else {
-                              final type = item['type'] ?? '';
-                              final isReadNotif = item['is_read'] == true;
-
-                              final createdAt = item['created_at'] != null
-                                  ? DateTime.parse(item['created_at']).toLocal()
-                                  : null;
-
-                              String formattedDate = '';
-
-                              if (createdAt != null) {
-                                final now = DateTime.now();
-
-                                if (createdAt.year == now.year &&
-                                    createdAt.month == now.month &&
-                                    createdAt.day == now.day) {
-                                  formattedDate = formatTime12Hour(createdAt);
-                                } else {
-                                  formattedDate =
-                                      "${createdAt.month}/${createdAt.day}/${createdAt.year}";
-                                }
+                                );
                               }
-
-                              IconData notifIcon;
-                              Color notifColor;
-
-                              if (type == 'booking') {
-                                notifIcon = Icons.calendar_today;
-                                notifColor = const Color(0xFF6E4B3A);
-                              } else if (type == 'reminder') {
-                                notifIcon = Icons.alarm;
-                                notifColor = const Color(0xFFFF9500);
-                              } else if (type == 'review') {
-                                notifIcon = Icons.star;
-                                notifColor = const Color(0xFFFFCC00);
-                              } else {
-                                notifIcon = Icons.campaign;
-                                notifColor = const Color(0xFF007AFF);
-                              }
-
-                              return GestureDetector(
-                                onTap: () async {
-                                  if (!isReadNotif) {
-                                    await supabase.from('notifications').update(
-                                        {'is_read': true}).eq('id', item['id']);
-                                    setState(() {
-                                      item['is_read'] = true;
-                                      unreadNotificationsCount =
-                                          (unreadNotificationsCount - 1)
-                                              .clamp(0, 999)
-                                              .toInt();
-                                    });
-                                    _updateAppBadge();
-                                  }
-
-                                  final bookingId = item['booking_id'];
-                                  if (bookingId == null) return;
-
-                                  final booking = await supabase
-                                      .from('bookings')
-                                      .select(
-                                          '*, pets(*), furrents(*), services(*)')
-                                      .eq('id', bookingId)
-                                      .maybeSingle();
-
-                                  if (booking == null || !context.mounted) {
-                                    return;
-                                  }
-
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          PawtnerBookingDetailsScreen(
-                                        booking:
-                                            Map<String, dynamic>.from(booking),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: isReadNotif
-                                        ? const Color(0xFFFFFFFF)
-                                        : notifColor.withOpacity(0.07),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                          color: Color(0x1F000000),
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2))
-                                    ],
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: notifColor.withOpacity(0.15),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(notifIcon,
-                                            color: notifColor, size: 20),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Expanded(
-                                                    child: customText(
-                                                      item['title'] ?? '',
-                                                      fontWeight: isReadNotif
-                                                          ? FontWeight.w600
-                                                          : FontWeight.w800,
-                                                      color: const Color(
-                                                          0xFF6E4B3A),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  customText(
-                                                    formattedDate,
-                                                    fontSize: 12,
-                                                    color:
-                                                        const Color(0xFF6E4B3A),
-                                                  ),
-                                                  if (!isReadNotif) ...[
-                                                    const SizedBox(width: 6),
-                                                    Container(
-                                                      width: 8,
-                                                      height: 8,
-                                                      decoration: BoxDecoration(
-                                                        color: notifColor,
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ]),
-                                            const SizedBox(height: 4),
-                                            customText(
-                                              item['message'] ?? '',
-                                              fontSize: 14,
-                                              color: const Color(0xFF6E4B3A),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                ),
-              ],
-            ),
-      floatingActionButton: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: const Color(0xFFDDC7A9),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.add, color: Color(0xFF6E4B3A)),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    const NewChatScreen(currentUserType: "pawtner"),
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ).then((_) => _loadData());
-          },
-        ),
-      ),
+            ),
+      floatingActionButton: selectedTabIndex == 0
+          ? Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDDC7A9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.add,
+                  color: Color(0xFF6E4B3A),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const NewChatScreen(currentUserType: "pawtner"),
+                    ),
+                  ).then((_) => _loadData());
+                },
+              ),
+            )
+          : null,
     );
   }
 }

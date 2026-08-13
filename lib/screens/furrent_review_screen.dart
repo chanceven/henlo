@@ -52,7 +52,7 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
         ),
         backgroundColor: const Color(0xFF6E4B3A),
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -119,182 +119,192 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
         : '';
     final profileUrl = bookingData?['pawtners']?['profile_picture_url'];
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F8F8),
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'Review',
-          style: GoogleFonts.dosis(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6E4B3A),
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      behavior: HitTestBehavior.translucent,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF8F8F8),
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            'Review',
+            style: GoogleFonts.dosis(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6E4B3A),
+            ),
           ),
+          iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
         ),
-        iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x33000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: const Color(0xFF6E4B3A),
-                            image: profileUrl != null
-                                ? DecorationImage(
-                                    image: NetworkImage(profileUrl),
-                                    fit: BoxFit.cover,
-                                  )
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x33000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: const Color(0xFF6E4B3A),
+                              image: profileUrl != null
+                                  ? DecorationImage(
+                                      image: NetworkImage(profileUrl),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: profileUrl == null
+                                ? const Icon(Icons.person,
+                                    color: Color(0xFFDDC7A9), size: 28)
                                 : null,
                           ),
-                          child: profileUrl == null
-                              ? const Icon(Icons.person,
-                                  color: Color(0xFFDDC7A9), size: 28)
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                pawtnerName,
-                                style: GoogleFonts.dosis(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF6E4B3A),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pawtnerName,
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                serviceName,
-                                style: GoogleFonts.dosis(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6E4B3A),
+                                const SizedBox(height: 4),
+                                Text(
+                                  serviceName,
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                scheduledStart,
-                                style: GoogleFonts.dosis(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF6E4B3A),
+                                const SizedBox(height: 4),
+                                Text(
+                                  scheduledStart,
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 60),
-                  Text(
-                    'How was your experience?',
-                    style: GoogleFonts.dosis(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6E4B3A),
+                    const SizedBox(height: 60),
+                    Text(
+                      'How was your experience?',
+                      style: GoogleFonts.dosis(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6E4B3A),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        icon: Icon(
-                          index < rating ? Icons.star : Icons.star_border,
-                          color: const Color(0xFF6E4B3A),
-                          size: 36,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            rating = index + 1.0;
-                          });
-                        },
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 40),
-                  TextField(
-                    controller: reviewController,
-                    maxLines: 5,
-                    style: const TextStyle(
-                      color: Color(0xFF6E4B3A),
-                      fontSize: 16,
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return IconButton(
+                          icon: Icon(
+                            index < rating ? Icons.star : Icons.star_border,
+                            color: const Color(0xFF6E4B3A),
+                            size: 36,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              rating = index + 1.0;
+                            });
+                          },
+                        );
+                      }),
                     ),
-                    decoration: InputDecoration(
-                      hintText: 'Share your experience',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFFAAAAAA),
+                    const SizedBox(height: 40),
+                    TextField(
+                      controller: reviewController,
+                      maxLines: 5,
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFF6E4B3A),
                         fontSize: 16,
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: Color(0xFF6E4B3A), width: 1),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: Color(0xFF6E4B3A), width: 1),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: Color(0xFF6E4B3A), width: 1),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 120),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: submitReview,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6E4B3A),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Submit Review',
-                        style: GoogleFonts.dosis(
+                      decoration: InputDecoration(
+                        hintText: 'Share your experience',
+                        hintStyle: GoogleFonts.dosis(
+                          color: const Color(0xFFAAAAAA),
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFDDC7A9),
                         ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF6E4B3A), width: 1),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF6E4B3A), width: 1),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF6E4B3A), width: 1),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
                       ),
                     ),
+                  ],
+                ),
+              ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: submitReview,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6E4B3A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                ),
+                child: Text(
+                  'Submit Review',
+                  style: GoogleFonts.dosis(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFDDC7A9),
+                  ),
+                ),
               ),
             ),
+          ),
+        ),
+      ),
     );
   }
 }

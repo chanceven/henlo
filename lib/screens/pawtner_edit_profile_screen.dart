@@ -48,6 +48,11 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
   bool dropdownOpenBusinessType = false;
   bool dropdownOpenAvailableAreas = false;
 
+  OverlayEntry? _dropdownOverlay;
+  final LayerLink _businessTypeLink = LayerLink();
+  final LayerLink _serviceTypeLink = LayerLink();
+  final LayerLink _availableAreasLink = LayerLink();
+
   final List<String> serviceOptions = ["Grooming", "Boarding", "Training"];
   final List<String> businessTypeOptions = ["Home", "Shop"];
   List<String> selectedServices = [];
@@ -91,6 +96,291 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
     locationController.dispose();
     availableAreasController.dispose();
     super.dispose();
+  }
+
+  void _toggleBusinessTypeDropdown() {
+    _dropdownOverlay?.remove();
+    _dropdownOverlay = null;
+
+    if (dropdownOpenBusinessType) {
+      setState(() => dropdownOpenBusinessType = false);
+      return;
+    }
+
+    setState(() => dropdownOpenBusinessType = true);
+
+    _dropdownOverlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                _dropdownOverlay?.remove();
+                _dropdownOverlay = null;
+                setState(() => dropdownOpenBusinessType = false);
+              },
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _businessTypeLink,
+            showWhenUnlinked: false,
+            offset: const Offset(140, 40),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 240,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: businessTypeOptions.map((s) {
+                    final selected = selectedBusinessTypes.contains(s);
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (!selected) {
+                            selectedBusinessTypes.add(s);
+                          } else {
+                            selectedBusinessTypes.remove(s);
+                          }
+
+                          businessTypeController.text =
+                              selectedBusinessTypes.join(", ");
+                        });
+
+                        _dropdownOverlay?.markNeedsBuild();
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        color: selected
+                            ? const Color(0xFF6E4B3A).withValues(alpha: 0.2)
+                            : Colors.transparent,
+                        child: Text(
+                          s,
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Overlay.of(context).insert(_dropdownOverlay!);
+  }
+
+  void _toggleServiceTypeDropdown() {
+    _dropdownOverlay?.remove();
+    _dropdownOverlay = null;
+
+    if (dropdownOpenServiceType) {
+      setState(() => dropdownOpenServiceType = false);
+      return;
+    }
+
+    setState(() => dropdownOpenServiceType = true);
+
+    _dropdownOverlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                _dropdownOverlay?.remove();
+                _dropdownOverlay = null;
+                setState(() => dropdownOpenServiceType = false);
+              },
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _serviceTypeLink,
+            showWhenUnlinked: false,
+            offset: const Offset(140, 40),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 240,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: serviceOptions.map((s) {
+                    final selected = selectedServices.contains(s);
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (!selected) {
+                            selectedServices.add(s);
+                          } else {
+                            selectedServices.remove(s);
+                          }
+
+                          serviceTypeController.text =
+                              selectedServices.join(", ");
+                        });
+
+                        _dropdownOverlay?.markNeedsBuild();
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        color: selected
+                            ? const Color(0xFF6E4B3A).withValues(alpha: 0.2)
+                            : Colors.transparent,
+                        child: Text(
+                          s,
+                          style: GoogleFonts.dosis(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6E4B3A),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Overlay.of(context).insert(_dropdownOverlay!);
+  }
+
+  void _toggleAvailableAreasDropdown() {
+    _dropdownOverlay?.remove();
+    _dropdownOverlay = null;
+
+    if (dropdownOpenAvailableAreas) {
+      setState(() => dropdownOpenAvailableAreas = false);
+      return;
+    }
+
+    setState(() => dropdownOpenAvailableAreas = true);
+
+    _dropdownOverlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () {
+                _dropdownOverlay?.remove();
+                _dropdownOverlay = null;
+                setState(() => dropdownOpenAvailableAreas = false);
+              },
+            ),
+          ),
+          CompositedTransformFollower(
+            link: _availableAreasLink,
+            showWhenUnlinked: false,
+            offset: const Offset(140, 40),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 240,
+                constraints: const BoxConstraints(maxHeight: 300),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: metroManilaCities.map((area) {
+                      final selected = selectedAreas.contains(area);
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (!selected) {
+                              selectedAreas.add(area);
+                            } else {
+                              selectedAreas.remove(area);
+                            }
+
+                            availableAreasController.text =
+                                selectedAreas.join(", ");
+                          });
+
+                          _dropdownOverlay?.markNeedsBuild();
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          color: selected
+                              ? const Color(0xFF6E4B3A).withValues(alpha: 0.2)
+                              : Colors.transparent,
+                          child: Text(
+                            area,
+                            style: GoogleFonts.dosis(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF6E4B3A),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Overlay.of(context).insert(_dropdownOverlay!);
   }
 
   void loadData() {
@@ -508,7 +798,8 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                               locationController.text = shortAddress;
                             });
 
-                            if (mounted) Navigator.pop(context);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
                           }
@@ -573,8 +864,6 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                 setState(() {
                   if (label == "Service Type") {
                     dropdownOpenServiceType = !dropdownOpenServiceType;
-                  } else if (label == "Business Type") {
-                    dropdownOpenBusinessType = !dropdownOpenBusinessType;
                   } else if (label == "Available Areas") {
                     dropdownOpenAvailableAreas = !dropdownOpenAvailableAreas;
                   }
@@ -655,64 +944,86 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6E4B3A)),
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancel',
-                    style: GoogleFonts.dosis(
-                        color: const Color(0xFFDDC7A9),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6E4B3A)),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.dosis(
+                          color: const Color(0xFFDDC7A9),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDDC7A9)),
-                  onPressed: () async {
-                    setState(() {
-                      _emailError = null;
-                      _contactNumberError = null;
-                    });
-                    final user = supabase.auth.currentUser;
-                    if (user == null) return;
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDDC7A9)),
+                    onPressed: () async {
+                      setState(() {
+                        _emailError = null;
+                        _contactNumberError = null;
+                      });
+                      final user = supabase.auth.currentUser;
+                      if (user == null) return;
 
-                    bool hasError = false;
+                      bool hasError = false;
 
-                    if (!_isValidContactNumber(contactNumberController.text)) {
-                      _contactNumberError =
-                          'Please enter a valid contact number';
-                      hasError = true;
-                    }
+                      if (!_isValidContactNumber(
+                          contactNumberController.text)) {
+                        _contactNumberError =
+                            'Please enter a valid contact number';
+                        hasError = true;
+                      }
 
-                    final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+                      final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
-                    if (!emailRegex.hasMatch(emailController.text.trim())) {
-                      _emailError = 'Please enter a valid email';
-                      hasError = true;
-                    }
+                      if (!emailRegex.hasMatch(emailController.text.trim())) {
+                        _emailError = 'Please enter a valid email';
+                        hasError = true;
+                      }
 
-                    if (hasError) {
-                      setState(() {});
-                      return;
-                    }
+                      if (hasError) {
+                        setState(() {});
+                        return;
+                      }
 
-                    try {
-                      await supabase.from('pawtners').update({
+                      try {
+                        await supabase.from('pawtners').update({
+                          'full_name': fullNameController.text,
+                          'email': emailController.text,
+                          'contact_number': contactNumberController.text,
+                          'business_name': businessNameController.text,
+                          'service_type': serviceTypeController.text,
+                          'business_type': businessTypeController.text,
+                          'business_address': locationController.text,
+                          'available_areas': availableAreasController.text,
+                        }).eq('id', user.id);
+                      } catch (e) {
+                        debugPrint('Profile update error: $e');
+                        if (mounted) {
+                          _showToast(
+                              'Could not save changes. Please try again.');
+                        }
+                        return;
+                      }
+
+                      final updatedData = {
+                        ...pawtner,
                         'full_name': fullNameController.text,
                         'email': emailController.text,
                         'contact_number': contactNumberController.text,
@@ -721,47 +1032,29 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                         'business_type': businessTypeController.text,
                         'business_address': locationController.text,
                         'available_areas': availableAreasController.text,
-                      }).eq('id', user.id);
-                    } catch (e) {
-                      debugPrint('Profile update error: $e');
-                      if (mounted) {
-                        _showToast('Could not save changes. Please try again.');
-                      }
-                      return;
-                    }
+                      };
 
-                    final updatedData = {
-                      ...pawtner,
-                      'full_name': fullNameController.text,
-                      'email': emailController.text,
-                      'contact_number': contactNumberController.text,
-                      'business_name': businessNameController.text,
-                      'service_type': serviceTypeController.text,
-                      'business_type': businessTypeController.text,
-                      'business_address': locationController.text,
-                      'available_areas': availableAreasController.text,
-                    };
+                      widget.onProfileUpdated(updatedData);
 
-                    widget.onProfileUpdated(updatedData);
+                      if (!context.mounted) return;
 
-                    if (mounted) {
                       _showToast('Profile updated successfully.',
                           isError: false);
-                    }
 
-                    Navigator.pop(context);
-                  },
-                  child: Text(
-                    'Save Changes',
-                    style: GoogleFonts.dosis(
-                        color: const Color(0xFF6E4B3A),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16),
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Save Changes',
+                      style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       appBar: AppBar(
@@ -778,202 +1071,116 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
         ),
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            sectionTitle("Personal Details"),
-            const SizedBox(height: 8),
-            infoLine("Full Name", fullNameController),
-            infoLine(
-              "Email",
-              emailController,
-              keyboardType: TextInputType.emailAddress,
-              errorText: _emailError,
-            ),
-            infoLine(
-              "Contact Number",
-              contactNumberController,
-              errorText: _contactNumberError,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [
-                // Allow digits and a leading "+" (for +63 format).
-                FilteringTextInputFormatter.allow(RegExp(r'[\d+]')),
-                LengthLimitingTextInputFormatter(13),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Divider(color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            sectionTitle("Business Details"),
-            const SizedBox(height: 8),
-            infoLine("Business Name", businessNameController),
-            infoLine("Business Type", businessTypeController),
-            if (dropdownOpenBusinessType)
-              Padding(
-                padding: const EdgeInsets.only(left: 140, top: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: businessTypeOptions.map((s) {
-                    final selected = selectedBusinessTypes.contains(s);
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (!selected) {
-                            selectedBusinessTypes.add(s);
-                          } else {
-                            selectedBusinessTypes.remove(s);
-                          }
-                          businessTypeController.text =
-                              selectedBusinessTypes.join(", ");
-                        });
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        color: selected
-                            ? const Color(0xFF6E4B3A).withOpacity(0.2)
-                            : Colors.transparent,
-                        child: Text(
-                          s,
-                          style: GoogleFonts.dosis(
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF6E4B3A),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              sectionTitle("Personal Details"),
+              const SizedBox(height: 8),
+              infoLine("Full Name", fullNameController),
+              infoLine(
+                "Email",
+                emailController,
+                keyboardType: TextInputType.emailAddress,
+                errorText: _emailError,
               ),
-            infoLine("Service Type", serviceTypeController),
-            if (dropdownOpenServiceType)
-              Padding(
-                padding: const EdgeInsets.only(left: 140, top: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: serviceOptions.map((s) {
-                    final selected = selectedServices.contains(s);
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (!selected) {
-                            selectedServices.add(s);
-                          } else {
-                            selectedServices.remove(s);
-                          }
-                          serviceTypeController.text =
-                              selectedServices.join(", ");
-                        });
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        color: selected
-                            ? const Color(0xFF6E4B3A).withOpacity(0.2)
-                            : Colors.transparent,
-                        child: Text(
-                          s,
-                          style: GoogleFonts.dosis(
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF6E4B3A),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            GestureDetector(
-              onTap: () async {
-                await _pickLocation();
-              },
-              child: AbsorbPointer(
-                child: infoLine("Location", locationController),
-              ),
-            ),
-            if (selectedBusinessTypes.contains("Home"))
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  infoLine("Available Areas", availableAreasController),
-                  if (dropdownOpenAvailableAreas)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 140, top: 4),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: metroManilaCities.map((area) {
-                          final selected = selectedAreas.contains(area);
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (!selected) {
-                                  selectedAreas.add(area);
-                                } else {
-                                  selectedAreas.remove(area);
-                                }
-                                availableAreasController.text =
-                                    selectedAreas.join(", ");
-                              });
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              color: selected
-                                  ? const Color(0xFF6E4B3A).withOpacity(0.2)
-                                  : Colors.transparent,
-                              child: Text(
-                                area,
-                                style: GoogleFonts.dosis(
-                                  textStyle: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF6E4B3A),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
+              infoLine(
+                "Contact Number",
+                contactNumberController,
+                errorText: _contactNumberError,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  // Allow digits and a leading "+" (for +63 format).
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d+]')),
+                  LengthLimitingTextInputFormatter(13),
                 ],
               ),
-            const SizedBox(height: 12),
-            Divider(color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            sectionTitle("Uploads"),
-            const SizedBox(height: 8),
-            Text("Business Permit",
-                style: GoogleFonts.dosis(
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6E4B3A))),
-            const SizedBox(height: 6),
-            uploadBox(
-              fileName: businessPermitName,
-              onUpload: () => _chooseAndUploadFile("permit"),
-              onDelete: _deletePermitName,
-            ),
-            const SizedBox(height: 6),
-            Text("Government ID",
-                style: GoogleFonts.dosis(
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6E4B3A))),
-            const SizedBox(height: 6),
-            uploadBox(
-              fileName: governmentIdName,
-              onUpload: () => _chooseAndUploadFile("govt"),
-              onDelete: _deleteGovtIdName,
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 12),
+              Divider(color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              sectionTitle("Business Details"),
+              const SizedBox(height: 8),
+              infoLine("Business Name", businessNameController),
+              CompositedTransformTarget(
+                link: _businessTypeLink,
+                child: GestureDetector(
+                  onTap: _toggleBusinessTypeDropdown,
+                  child: AbsorbPointer(
+                    child: infoLine(
+                      "Business Type",
+                      businessTypeController,
+                    ),
+                  ),
+                ),
+              ),
+              CompositedTransformTarget(
+                link: _serviceTypeLink,
+                child: GestureDetector(
+                  onTap: _toggleServiceTypeDropdown,
+                  child: AbsorbPointer(
+                    child: infoLine(
+                      "Service Type",
+                      serviceTypeController,
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () async {
+                  await _pickLocation();
+                },
+                child: AbsorbPointer(
+                  child: infoLine("Location", locationController),
+                ),
+              ),
+              if (selectedBusinessTypes.contains("Home"))
+                CompositedTransformTarget(
+                  link: _availableAreasLink,
+                  child: GestureDetector(
+                    onTap: _toggleAvailableAreasDropdown,
+                    child: AbsorbPointer(
+                      child: infoLine(
+                        "Available Areas",
+                        availableAreasController,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              Divider(color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              sectionTitle("Uploads"),
+              const SizedBox(height: 8),
+              Text("Business Permit",
+                  style: GoogleFonts.dosis(
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6E4B3A))),
+              const SizedBox(height: 6),
+              uploadBox(
+                fileName: businessPermitName,
+                onUpload: () => _chooseAndUploadFile("permit"),
+                onDelete: _deletePermitName,
+              ),
+              const SizedBox(height: 6),
+              Text("Government ID",
+                  style: GoogleFonts.dosis(
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6E4B3A))),
+              const SizedBox(height: 6),
+              uploadBox(
+                fileName: governmentIdName,
+                onUpload: () => _chooseAndUploadFile("govt"),
+                onDelete: _deleteGovtIdName,
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

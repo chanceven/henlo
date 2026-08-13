@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'furrent_contact_us_screen.dart';
+import 'contact_us_screen.dart';
 import 'furrent_faq_screen.dart';
 
 class FurrentSupportScreen extends StatelessWidget {
@@ -52,7 +52,9 @@ class FurrentSupportScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FurrentContactUsScreen(),
+                  builder: (_) => const ContactUsScreen(
+                    userType: 'furrent',
+                  ),
                 ),
               );
             },
@@ -63,7 +65,9 @@ class FurrentSupportScreen extends StatelessWidget {
   }
 
   Widget _supportOption(BuildContext context,
-      {required IconData icon, required String title, required VoidCallback onTap}) {
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -88,7 +92,8 @@ class FurrentSupportScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Color(0xFF6E4B3A), size: 18),
+            const Icon(Icons.arrow_forward_ios,
+                color: Color(0xFF6E4B3A), size: 18),
           ],
         ),
       ),

@@ -92,88 +92,94 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFF6E4B3A);
 
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFFF8F8F8),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: primaryColor,
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: TextField(
-          controller: _controller,
-          autofocus: true,
-          onChanged: _onSearchChanged,
-          textInputAction: TextInputAction.search,
-          style: GoogleFonts.dosis(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: const Color(0xFFF8F8F8),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
             color: primaryColor,
+            onPressed: () => Navigator.pop(context),
           ),
-          decoration: InputDecoration(
-            hintText: 'Search for services or pawtners',
-            hintStyle: GoogleFonts.dosis(
-              color: const Color(0xFFBDBDBD),
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
+          title: TextField(
+            controller: _controller,
+            autofocus: true,
+            onChanged: _onSearchChanged,
+            textInputAction: TextInputAction.search,
+            style: GoogleFonts.dosis(
+              color: primaryColor,
             ),
-            border: InputBorder.none,
+            decoration: InputDecoration(
+              hintText: 'Search for services or pawtners',
+              hintStyle: GoogleFonts.dosis(
+                color: const Color(0xFFBDBDBD),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+              border: InputBorder.none,
+            ),
           ),
         ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : results.isEmpty
+                ? const SizedBox.shrink()
+                : ListView.builder(
+                    itemCount: results.length,
+                    itemBuilder: (context, index) {
+                      final item = results[index];
+
+                      final isService =
+                          item['subtitle'] != ''; // service vs pawtner
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FurrentPawtnerDetailScreen(
+                                pawtnerId: item['pawtnerId'],
+                                initialServiceId:
+                                    isService ? item['serviceId'] : null,
+                              ),
+                            ),
+                          );
+                        },
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.brown.shade100,
+                            child: Icon(item['icon'], color: primaryColor),
+                          ),
+                          title: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              item['title'] ?? '',
+                              style: GoogleFonts.dosis(
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF6E4B3A),
+                              ),
+                            ),
+                          ),
+                          subtitle: isService
+                              ? Text(
+                                  item['subtitle'] ?? '',
+                                  style: GoogleFonts.dosis(
+                                    color: const Color(0xFF6E4B3A),
+                                  ),
+                                )
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : results.isEmpty
-              ? const SizedBox.shrink()
-              : ListView.builder(
-                  itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final item = results[index];
-
-                    final isService =
-                        item['subtitle'] != ''; // service vs pawtner
-
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FurrentPawtnerDetailScreen(
-                              pawtnerId: item['pawtnerId'],
-                              initialServiceId:
-                                  isService ? item['serviceId'] : null,
-                            ),
-                          ),
-                        );
-                      },
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.brown.shade100,
-                          child: Icon(item['icon'], color: primaryColor),
-                        ),
-                        title: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            item['title'] ?? '',
-                            style: GoogleFonts.dosis(
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF6E4B3A),
-                            ),
-                          ),
-                        ),
-                        subtitle: isService
-                            ? Text(
-                                item['subtitle'] ?? '',
-                                style: GoogleFonts.dosis(
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              )
-                            : null,
-                      ),
-                    );
-                  },
-                ),
     );
   }
 }

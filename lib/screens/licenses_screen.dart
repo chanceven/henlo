@@ -94,117 +94,120 @@ class _LicensesScreenState extends State<LicensesScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _filter,
-                      style: GoogleFonts.dosis(
-                        fontSize: 16,
-                        color: const Color(0xFF6E4B3A),
+      body: SafeArea(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'Search packages',
-                        hintStyle: GoogleFonts.dosis(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _filter,
+                        style: GoogleFonts.dosis(
                           fontSize: 16,
-                          color: const Color(0xFFBDBDBD),
+                          color: const Color(0xFF6E4B3A),
                         ),
-                        prefixIcon:
-                            const Icon(Icons.search, color: Color(0xFF6E4B3A)),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                        decoration: InputDecoration(
+                          hintText: 'Search packages',
+                          hintStyle: GoogleFonts.dosis(
+                            fontSize: 16,
+                            color: const Color(0xFFBDBDBD),
+                          ),
+                          prefixIcon: const Icon(Icons.search,
+                              color: Color(0xFF6E4B3A)),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: _filtered.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No licenses found.',
-                            style: GoogleFonts.dosis(
-                              fontSize: 16,
-                              color: const Color(0xFF6E4B3A),
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _filtered.length,
-                          itemBuilder: (context, index) {
-                            final item = _filtered[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                  Expanded(
+                    child: _filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No licenses found.',
+                              style: GoogleFonts.dosis(
+                                fontSize: 16,
+                                color: const Color(0xFF6E4B3A),
                               ),
-                              child: Theme(
-                                data: Theme.of(context).copyWith(
-                                  dividerColor: const Color(0xFF6E4B3A),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _filtered.length,
+                            itemBuilder: (context, index) {
+                              final item = _filtered[index];
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: ExpansionTile(
-                                  iconColor: const Color(0xFF6E4B3A),
-                                  collapsedIconColor: const Color(0xFF6E4B3A),
-                                  title: Text(
-                                    item.name,
-                                    style: GoogleFonts.dosis(
-                                      fontSize: 16,
-                                      color: const Color(0xFF6E4B3A),
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                child: Theme(
+                                  data: Theme.of(context).copyWith(
+                                    dividerColor: const Color(0xFF6E4B3A),
                                   ),
-                                  children: [
-                                    Container(
-                                      width: double.infinity,
-                                      color: const Color(0xFFF8F8F8),
-                                      padding: const EdgeInsets.all(16),
-                                      child: ConstrainedBox(
-                                        constraints: const BoxConstraints(
-                                          maxHeight: 300,
-                                        ),
-                                        child: Scrollbar(
-                                          child: SingleChildScrollView(
-                                            child: SelectableText(
-                                              item.text,
-                                              style: GoogleFonts.dosis(
-                                                fontSize: 14,
-                                                color: const Color(0xFF6E4B3A),
-                                                height: 1.4,
+                                  child: ExpansionTile(
+                                    iconColor: const Color(0xFF6E4B3A),
+                                    collapsedIconColor: const Color(0xFF6E4B3A),
+                                    title: Text(
+                                      item.name,
+                                      style: GoogleFonts.dosis(
+                                        fontSize: 16,
+                                        color: const Color(0xFF6E4B3A),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    children: [
+                                      Container(
+                                        width: double.infinity,
+                                        color: const Color(0xFFF8F8F8),
+                                        padding: const EdgeInsets.all(16),
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxHeight: 300,
+                                          ),
+                                          child: Scrollbar(
+                                            child: SingleChildScrollView(
+                                              child: SelectableText(
+                                                item.text,
+                                                style: GoogleFonts.dosis(
+                                                  fontSize: 14,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                  height: 1.4,
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

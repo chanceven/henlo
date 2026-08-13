@@ -160,105 +160,111 @@ class _NewChatScreenState extends State<NewChatScreen> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x14000000),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: TextField(
-                textAlignVertical: TextAlignVertical.center,
-                onChanged: (value) {
-                  searchQuery = value;
-                  if (value.isNotEmpty) {
-                    _searchUsers(value);
-                  } else {
-                    setState(() {
-                      users = [];
-                      isSearching = false;
-                      noResults = false;
-                    });
-                  }
-                },
-                style: GoogleFonts.dosis(
-                  fontSize: 16,
-                  color: const Color(0xFF6E4B3A),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
-                decoration: InputDecoration(
-                  hintText: hintText,
-                  hintStyle: GoogleFonts.dosis(
-                    color: const Color(0xFFBDBDBD),
+                child: TextField(
+                  textAlignVertical: TextAlignVertical.center,
+                  onChanged: (value) {
+                    searchQuery = value;
+                    if (value.isNotEmpty) {
+                      _searchUsers(value);
+                    } else {
+                      setState(() {
+                        users = [];
+                        isSearching = false;
+                        noResults = false;
+                      });
+                    }
+                  },
+                  style: GoogleFonts.dosis(
                     fontSize: 16,
-                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF6E4B3A),
                   ),
-                  prefixIcon:
-                      const Icon(Icons.search, color: Color(0xFF6E4B3A)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                  decoration: InputDecoration(
+                    hintText: hintText,
+                    hintStyle: GoogleFonts.dosis(
+                      color: const Color(0xFFBDBDBD),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    prefixIcon:
+                        const Icon(Icons.search, color: Color(0xFF6E4B3A)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: isSearching
-                ? users.isNotEmpty
-                    ? ListView.builder(
-                        itemCount: users.length,
-                        itemBuilder: (context, index) {
-                          final user = users[index];
+            Expanded(
+              child: isSearching
+                  ? users.isNotEmpty
+                      ? ListView.builder(
+                          itemCount: users.length,
+                          itemBuilder: (context, index) {
+                            final user = users[index];
 
-                          final displayName =
-                              (widget.currentUserType == "furrent" &&
-                                      user['business_name'] != null &&
-                                      user['business_name']
-                                          .toString()
-                                          .trim()
-                                          .isNotEmpty)
-                                  ? user['business_name']
-                                  : user['full_name'];
+                            final displayName =
+                                (widget.currentUserType == "furrent" &&
+                                        user['business_name'] != null &&
+                                        user['business_name']
+                                            .toString()
+                                            .trim()
+                                            .isNotEmpty)
+                                    ? user['business_name']
+                                    : user['full_name'];
 
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: user['profile_picture_url'] !=
-                                      null
-                                  ? NetworkImage(user['profile_picture_url'])
-                                  : null,
-                              backgroundColor: const Color(0xFFDDC7A9),
-                              child: user['profile_picture_url'] == null
-                                  ? const Icon(Icons.person,
-                                      color: Color(0xFF6E4B3A))
-                                  : null,
-                            ),
-                            title: customText(displayName,
-                                fontSize: 16, fontWeight: FontWeight.w500),
-                            onTap: () => _startChat(user),
-                          );
-                        },
-                      )
-                    : noResults
-                        ? Center(
-                            child: customText('No users found', fontSize: 16))
-                        : const SizedBox.shrink()
-                : const SizedBox.shrink(),
-          ),
-        ],
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: user['profile_picture_url'] !=
+                                        null
+                                    ? NetworkImage(user['profile_picture_url'])
+                                    : null,
+                                backgroundColor: const Color(0xFFDDC7A9),
+                                child: user['profile_picture_url'] == null
+                                    ? const Icon(Icons.person,
+                                        color: Color(0xFF6E4B3A))
+                                    : null,
+                              ),
+                              title: customText(displayName,
+                                  fontSize: 16, fontWeight: FontWeight.w500),
+                              onTap: () => _startChat(user),
+                            );
+                          },
+                        )
+                      : noResults
+                          ? Center(
+                              child: customText('No users found', fontSize: 16))
+                          : const SizedBox.shrink()
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }

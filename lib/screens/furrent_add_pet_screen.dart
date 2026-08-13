@@ -45,10 +45,21 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
   final List<String> petTypes = ['Dog', 'Cat'];
   final List<String> genders = ['Boy', 'Girl'];
   final List<String> months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
-  final List<int> years = List.generate(20, (index) => DateTime.now().year - index);
+  final List<int> years =
+      List.generate(20, (index) => DateTime.now().year - index);
 
   // Reusable label style for 100% consistency
   final TextStyle _labelStyle = GoogleFonts.dosis(
@@ -114,10 +125,14 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
               ),
               const SizedBox(height: 8),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: Color(0xFF6E4B3A)),
+                leading:
+                    const Icon(Icons.photo_library, color: Color(0xFF6E4B3A)),
                 title: Text(
                   'Select photo',
-                  style: GoogleFonts.dosis(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF6E4B3A)),
+                  style: GoogleFonts.dosis(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6E4B3A)),
                 ),
                 onTap: () => Navigator.pop(_, 'gallery'),
               ),
@@ -125,7 +140,10 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
                 leading: const Icon(Icons.camera_alt, color: Color(0xFF6E4B3A)),
                 title: Text(
                   'Take a photo',
-                  style: GoogleFonts.dosis(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF6E4B3A)),
+                  style: GoogleFonts.dosis(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6E4B3A)),
                 ),
                 onTap: () => Navigator.pop(_, 'camera'),
               ),
@@ -133,7 +151,10 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
                 leading: const Icon(Icons.delete, color: Color(0xFF8B0000)),
                 title: Text(
                   'Remove photo',
-                  style: GoogleFonts.dosis(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF8B0000)),
+                  style: GoogleFonts.dosis(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF8B0000)),
                 ),
                 onTap: () => Navigator.pop(_, 'remove'),
               ),
@@ -149,8 +170,10 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
         return;
       }
 
-      final source = choice == 'camera' ? ImageSource.camera : ImageSource.gallery;
-      final XFile? image = await picker.pickImage(source: source, maxWidth: 800, maxHeight: 800, imageQuality: 80);
+      final source =
+          choice == 'camera' ? ImageSource.camera : ImageSource.gallery;
+      final XFile? image = await picker.pickImage(
+          source: source, maxWidth: 800, maxHeight: 800, imageQuality: 80);
 
       if (image != null) {
         final bytes = await image.readAsBytes();
@@ -180,13 +203,15 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
 
       int monthIndex = months.indexOf(_selectedMonth!) + 1;
       final birthDate = DateTime(_selectedYear!, monthIndex, _selectedDay!);
-      final birthDateStr = '${birthDate.year.toString().padLeft(4, '0')}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
+      final birthDateStr =
+          '${birthDate.year.toString().padLeft(4, '0')}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
 
       Map<String, dynamic> petData = {
         'furrent_id': user.id,
         'name': _nameController.text,
         'type': _petType,
-        'breed': _breedController.text.isNotEmpty ? _breedController.text : null,
+        'breed':
+            _breedController.text.isNotEmpty ? _breedController.text : null,
         'birth_date': birthDateStr,
         'gender': _gender,
         'created_at': DateTime.now().toIso8601String(),
@@ -194,18 +219,22 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
       };
 
       if (_petImageBytes != null) {
-        final fileName = '${user.id}/pet_${_nameController.text.trim().toLowerCase().replaceAll(' ', '_')}.png';
+        final fileName =
+            '${user.id}/pet_${_nameController.text.trim().toLowerCase().replaceAll(' ', '_')}.png';
         await supabase.storage.from('profile_pictures').uploadBinary(
               fileName,
               _petImageBytes!,
-              fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+              fileOptions:
+                  const FileOptions(cacheControl: '3600', upsert: true),
             );
 
-        final publicUrl = supabase.storage.from('profile_pictures').getPublicUrl(fileName);
+        final publicUrl =
+            supabase.storage.from('profile_pictures').getPublicUrl(fileName);
         petData['profile_picture_url'] = publicUrl;
       }
 
-      final insertedPet = await supabase.from('pets').insert(petData).select().single();
+      final insertedPet =
+          await supabase.from('pets').insert(petData).select().single();
 
       if (mounted) {
         _showToast('Pet added successfully!');
@@ -231,9 +260,11 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
         TextField(
           controller: controller,
           onTap: _hideDropdowns,
-          style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A), fontWeight: FontWeight.w400),
+          style: GoogleFonts.dosis(
+              color: const Color(0xFF6E4B3A), fontWeight: FontWeight.w400),
           decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             filled: true,
             fillColor: Colors.white,
             enabledBorder: OutlineInputBorder(
@@ -270,7 +301,10 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
           const SizedBox(height: 8),
         ],
         GestureDetector(
-          onTap: () => _toggleDropdown(dropdownType),
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            _toggleDropdown(dropdownType);
+          },
           child: Container(
             height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -284,20 +318,27 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
                 Expanded(
                   child: Text(
                     value != null
-                        ? (truncateValue && value is String ? value.substring(0, 3) : value.toString())
+                        ? (truncateValue && value is String
+                            ? value.substring(0, 3)
+                            : value.toString())
                         : (placeholder ?? ''),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: value == null ? TextAlign.center : TextAlign.left,
+                    textAlign:
+                        value == null ? TextAlign.center : TextAlign.left,
                     style: GoogleFonts.dosis(
-                      color: value != null ? const Color(0xFF6E4B3A) : Colors.grey[500],
+                      color: value != null
+                          ? const Color(0xFF6E4B3A)
+                          : Colors.grey[500],
                       fontWeight: FontWeight.w400,
                       fontSize: 16,
                     ),
                   ),
                 ),
                 Icon(
-                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  isExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                   color: const Color(0xFF6E4B3A),
                 ),
               ],
@@ -361,7 +402,8 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
       case DropdownType.day:
         activeKey = _dayKey;
         options = (_selectedMonth != null && _selectedYear != null)
-            ? getDaysInMonth(months.indexOf(_selectedMonth!) + 1, _selectedYear!)
+            ? getDaysInMonth(
+                months.indexOf(_selectedMonth!) + 1, _selectedYear!)
             : List.generate(31, (index) => index + 1);
         currentValue = _selectedDay;
         maxHeight = 150;
@@ -393,7 +435,8 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
         return const SizedBox.shrink();
     }
 
-    final renderBox = activeKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox =
+        activeKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return const SizedBox.shrink();
 
     final position = renderBox.localToGlobal(Offset.zero);
@@ -401,13 +444,23 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
     final screenSize = MediaQuery.of(context).size;
     final bottomBarPadding = MediaQuery.of(context).padding.bottom + 74;
 
-    final calculatedContentHeight = (options.length * 45.0).clamp(0.0, maxHeight);
-    final spaceBelow = screenSize.height - position.dy - size.height - bottomBarPadding;
+    final calculatedContentHeight =
+        (options.length * 45.0).clamp(0.0, maxHeight);
+    final spaceBelow =
+        screenSize.height - position.dy - size.height - bottomBarPadding;
     final bool openUpward = spaceBelow < calculatedContentHeight;
 
     final topOffset = openUpward
-        ? (position.dy - calculatedContentHeight - kToolbarHeight - MediaQuery.of(context).padding.top - 8)
-        : (position.dy + size.height - kToolbarHeight - MediaQuery.of(context).padding.top - 12);
+        ? (position.dy -
+            calculatedContentHeight -
+            kToolbarHeight -
+            MediaQuery.of(context).padding.top -
+            8)
+        : (position.dy +
+            size.height -
+            kToolbarHeight -
+            MediaQuery.of(context).padding.top -
+            12);
 
     return Positioned(
       top: topOffset,
@@ -434,11 +487,16 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
                       child: Container(
                         width: double.infinity,
                         alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        color: e == currentValue ? const Color(0xFF6E4B3A).withOpacity(0.2) : Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        color: e == currentValue
+                            ? const Color(0xFF6E4B3A).withOpacity(0.2)
+                            : Colors.transparent,
                         child: Text(
                           e.toString(),
-                          style: const TextStyle(color: Color(0xFF6E4B3A), fontWeight: FontWeight.w400),
+                          style: const TextStyle(
+                              color: Color(0xFF6E4B3A),
+                              fontWeight: FontWeight.w400),
                         ),
                       ),
                     ),
@@ -516,18 +574,27 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
                   ? Text.rich(
                       TextSpan(
                         text: 'Upload Pet Photo ',
-                        style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A), fontWeight: FontWeight.w400, fontSize: 16),
+                        style: GoogleFonts.dosis(
+                            color: const Color(0xFF6E4B3A),
+                            fontWeight: FontWeight.w400,
+                            fontSize: 16),
                         children: [
                           TextSpan(
                             text: '(Optional)',
-                            style: GoogleFonts.dosis(color: Colors.grey[500], fontWeight: FontWeight.w400, fontSize: 16),
+                            style: GoogleFonts.dosis(
+                                color: Colors.grey[500],
+                                fontWeight: FontWeight.w400,
+                                fontSize: 16),
                           ),
                         ],
                       ),
                     )
                   : Text(
                       'Photo Selected',
-                      style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A), fontWeight: FontWeight.w400, fontSize: 16),
+                      style: GoogleFonts.dosis(
+                          color: const Color(0xFF6E4B3A),
+                          fontWeight: FontWeight.w400,
+                          fontSize: 16),
                     ),
             ),
           ],
@@ -539,7 +606,10 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _hideDropdowns,
+      onTap: () {
+        _hideDropdowns();
+        FocusScope.of(context).unfocus();
+      },
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F8F8),
@@ -549,30 +619,39 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
           centerTitle: true,
           title: Text(
             'Add Pet',
-            style: GoogleFonts.dosis(fontSize: 24, fontWeight: FontWeight.w600, color: const Color(0xFF6E4B3A)),
+            style: GoogleFonts.dosis(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF6E4B3A)),
           ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)),
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        bottomNavigationBar: Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + MediaQuery.of(context).padding.bottom),
-          child: SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6E4B3A),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6E4B3A),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: isSaving ? null : _savePet,
+                child: isSaving
+                    ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
+                    : Text(
+                        'Add Pet',
+                        style: GoogleFonts.dosis(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFDDC7A9)),
+                      ),
               ),
-              onPressed: isSaving ? null : _savePet,
-              child: isSaving
-                  ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
-                  : Text(
-                      'Add Pet',
-                      style: GoogleFonts.dosis(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFFDDC7A9)),
-                    ),
             ),
           ),
         ),
@@ -608,7 +687,10 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
                           children: [
                             TextSpan(
                               text: '(Optional)',
-                              style: GoogleFonts.dosis(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.grey[500]),
+                              style: GoogleFonts.dosis(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.grey[500]),
                             ),
                           ],
                         ),

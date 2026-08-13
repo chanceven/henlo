@@ -329,7 +329,10 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
           const SizedBox(height: 8),
         ],
         GestureDetector(
-          onTap: () => _toggleDropdown(dropdownType),
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            _toggleDropdown(dropdownType);
+          },
           child: Container(
             height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -646,7 +649,10 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _hideDropdowns,
+      onTap: () {
+        _hideDropdowns();
+        FocusScope.of(context).unfocus();
+      },
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F8F8),
@@ -667,32 +673,33 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        bottomNavigationBar: Padding(
-          padding: EdgeInsets.fromLTRB(
-              16, 0, 16, 24 + MediaQuery.of(context).padding.bottom),
-          child: SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6E4B3A),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6E4B3A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-              onPressed: isSaving ? null : _updatePet,
-              child: isSaving
-                  ? const CircularProgressIndicator(
-                      color: Color(0xFFDDC7A9),
-                    )
-                  : Text(
-                      'Save Changes',
-                      style: GoogleFonts.dosis(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFDDC7A9),
+                onPressed: isSaving ? null : _updatePet,
+                child: isSaving
+                    ? const CircularProgressIndicator(
+                        color: Color(0xFFDDC7A9),
+                      )
+                    : Text(
+                        'Save Changes',
+                        style: GoogleFonts.dosis(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFDDC7A9),
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         ),

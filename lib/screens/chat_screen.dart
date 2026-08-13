@@ -227,6 +227,92 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         curr.year != prev.year;
   }
 
+  Widget _buildAttachmentPanel() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Material(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF8F8F8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F8F8),
+            border: Border.all(color: const Color(0xFF6E4B3A), width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                leading: const Icon(Icons.insert_drive_file,
+                    color: Color(0xFF6E4B3A), size: 18),
+                title: Text(
+                  'Choose File',
+                  style: GoogleFonts.dosis(
+                    color: const Color(0xFF6E4B3A),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
+                ),
+                onTap: () async {
+                  setState(() => _showAttachmentOptions = false);
+                  final result = await FilePicker.platform.pickFiles();
+                  if (result != null && result.files.single.path != null) {
+                    _uploadFile(File(result.files.single.path!));
+                  }
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                leading:
+                    const Icon(Icons.image, color: Color(0xFF6E4B3A), size: 18),
+                title: Text(
+                  'Choose Image',
+                  style: GoogleFonts.dosis(
+                    color: const Color(0xFF6E4B3A),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
+                ),
+                onTap: () async {
+                  setState(() => _showAttachmentOptions = false);
+                  final image = await ImagePicker()
+                      .pickImage(source: ImageSource.gallery);
+                  if (image != null) _uploadFile(File(image.path));
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                leading: const Icon(Icons.camera_alt,
+                    color: Color(0xFF6E4B3A), size: 18),
+                title: Text(
+                  'Take Photo',
+                  style: GoogleFonts.dosis(
+                    color: const Color(0xFF6E4B3A),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
+                ),
+                onTap: () async {
+                  setState(() => _showAttachmentOptions = false);
+                  final photo =
+                      await ImagePicker().pickImage(source: ImageSource.camera);
+                  if (photo != null) _uploadFile(File(photo.path));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     String? lastReadMessageId;
@@ -238,349 +324,323 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
     }
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF8F8F8),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundImage: widget.otherUserAvatar.isNotEmpty
-                  ? NetworkImage(widget.otherUserAvatar)
-                  : null,
-              backgroundColor: const Color(0xFFDDC7A9),
-              child: widget.otherUserAvatar.isEmpty
-                  ? const Icon(Icons.person, color: Color(0xFF6E4B3A))
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              widget.otherUserName,
-              style: GoogleFonts.dosis(
-                color: const Color(0xFF6E4B3A),
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+        if (_showAttachmentOptions) {
+          setState(() => _showAttachmentOptions = false);
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF8F8F8),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundImage: widget.otherUserAvatar.isNotEmpty
+                    ? NetworkImage(widget.otherUserAvatar)
+                    : null,
+                backgroundColor: const Color(0xFFDDC7A9),
+                child: widget.otherUserAvatar.isEmpty
+                    ? const Icon(Icons.person, color: Color(0xFF6E4B3A))
+                    : null,
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Text(
+                widget.otherUserName,
+                style: GoogleFonts.dosis(
+                  color: const Color(0xFF6E4B3A),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, color: Color(0xFFE0E0E0)),
+          ),
         ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFE0E0E0)),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: messages.length,
-                reverse: true,
-                itemBuilder: (context, index) {
-                  final msg = messages[messages.length - 1 - index];
-                  final isMe = msg['sender_id'] == userId;
-                  final time = DateFormat('hh:mm a')
-                      .format(DateTime.parse(msg['created_at']).toLocal());
+        body: SafeArea(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount: messages.length,
+                      reverse: true,
+                      itemBuilder: (context, index) {
+                        final msg = messages[messages.length - 1 - index];
+                        final isMe = msg['sender_id'] == userId;
+                        final time = DateFormat('hh:mm a').format(
+                            DateTime.parse(msg['created_at']).toLocal());
 
-                  return Column(
-                    children: [
-                      if (_showDateHeader(index))
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF2F2F2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              DateFormat('MMMM d, y').format(
-                                  DateTime.parse(msg['created_at']).toLocal()),
-                              style: GoogleFonts.dosis(
-                                color: const Color(0xFF6E4B3A),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ),
-                      Align(
-                        alignment:
-                            isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          padding: const EdgeInsets.all(10),
-                          constraints: const BoxConstraints(maxWidth: 280),
-                          decoration: BoxDecoration(
-                            color: isMe
-                                ? const Color(0xFF6E4B3A)
-                                : const Color(0xFFF8F8F8),
-                            border: Border.all(color: const Color(0xFF6E4B3A)),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: IntrinsicWidth(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (msg['file_url'] != null)
-                                  GestureDetector(
-                                    onTap: () async {
-                                      final uri = Uri.parse(msg['file_url']);
-                                      await launchUrl(uri,
-                                          mode: LaunchMode.externalApplication);
-                                    },
-                                    child: Image.network(
-                                      msg['file_url'],
-                                      width: 200,
-                                      errorBuilder: (_, __, ___) => Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.attach_file,
-                                              size: 16,
-                                              color: isMe
-                                                  ? const Color(0xFFF8F8F8)
-                                                  : const Color(0xFF6E4B3A)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Attachment',
-                                            style: GoogleFonts.dosis(
-                                              fontSize: 15,
-                                              color: isMe
-                                                  ? const Color(0xFFF8F8F8)
-                                                  : const Color(0xFF6E4B3A),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                        return Column(
+                          children: [
+                            if (_showDateHeader(index))
+                              Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF2F2F2),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                if (msg['message'] != null &&
-                                    msg['message'].toString().isNotEmpty)
-                                  Text(
-                                    msg['message'],
-                                    style: GoogleFonts.dosis(
-                                      fontSize: 15,
-                                      color: isMe
-                                          ? const Color(0xFFF8F8F8)
-                                          : const Color(0xFF6E4B3A),
-                                    ),
-                                  ),
-                                const SizedBox(height: 4),
-                                Align(
-                                  alignment: Alignment.centerRight,
                                   child: Text(
-                                    time,
+                                    DateFormat('MMMM d, y').format(
+                                        DateTime.parse(msg['created_at'])
+                                            .toLocal()),
                                     style: GoogleFonts.dosis(
-                                        fontSize: 10,
-                                        color: isMe
-                                            ? const Color(0xFFF8F8F8)
-                                            : const Color(0xFFBDBDBD)),
+                                      color: const Color(0xFF6E4B3A),
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
-                              ],
+                              ),
+                            Align(
+                              alignment: isMe
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.all(10),
+                                constraints:
+                                    const BoxConstraints(maxWidth: 280),
+                                decoration: BoxDecoration(
+                                  color: isMe
+                                      ? const Color(0xFF6E4B3A)
+                                      : const Color(0xFFF8F8F8),
+                                  border: Border.all(
+                                      color: const Color(0xFF6E4B3A)),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: IntrinsicWidth(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (msg['file_url'] != null)
+                                        GestureDetector(
+                                          onTap: () async {
+                                            final uri =
+                                                Uri.parse(msg['file_url']);
+                                            await launchUrl(uri,
+                                                mode: LaunchMode
+                                                    .externalApplication);
+                                          },
+                                          child: Image.network(
+                                            msg['file_url'],
+                                            width: 200,
+                                            errorBuilder: (_, __, ___) => Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.attach_file,
+                                                    size: 16,
+                                                    color: isMe
+                                                        ? const Color(
+                                                            0xFFF8F8F8)
+                                                        : const Color(
+                                                            0xFF6E4B3A)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Attachment',
+                                                  style: GoogleFonts.dosis(
+                                                    fontSize: 15,
+                                                    color: isMe
+                                                        ? const Color(
+                                                            0xFFF8F8F8)
+                                                        : const Color(
+                                                            0xFF6E4B3A),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      if (msg['message'] != null &&
+                                          msg['message'].toString().isNotEmpty)
+                                        Text(
+                                          msg['message'],
+                                          style: GoogleFonts.dosis(
+                                            fontSize: 15,
+                                            color: isMe
+                                                ? const Color(0xFFF8F8F8)
+                                                : const Color(0xFF6E4B3A),
+                                          ),
+                                        ),
+                                      const SizedBox(height: 4),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          time,
+                                          style: GoogleFonts.dosis(
+                                              fontSize: 10,
+                                              color: isMe
+                                                  ? const Color(0xFFF8F8F8)
+                                                  : const Color(0xFFBDBDBD)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                      if (msg['id'] == lastReadMessageId)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.only(right: 12, bottom: 4),
-                            child: CircleAvatar(
-                              radius: 10,
-                              backgroundColor: const Color(0xFFDDC7A9),
-                              backgroundImage: widget.otherUserAvatar.isNotEmpty
-                                  ? NetworkImage(widget.otherUserAvatar)
-                                  : null,
-                              child: widget.otherUserAvatar.isEmpty
-                                  ? const Icon(Icons.person,
-                                      size: 10, color: Color(0xFF6E4B3A))
-                                  : null,
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            if (_showAttachmentOptions)
-              Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF8F8F8),
-                  border: Border(
-                    top: BorderSide(color: Color(0xFFE0E0E0)),
+                            if (msg['id'] == lastReadMessageId)
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                      right: 12, bottom: 4),
+                                  child: CircleAvatar(
+                                    radius: 10,
+                                    backgroundColor: const Color(0xFFDDC7A9),
+                                    backgroundImage: widget
+                                            .otherUserAvatar.isNotEmpty
+                                        ? NetworkImage(widget.otherUserAvatar)
+                                        : null,
+                                    child: widget.otherUserAvatar.isEmpty
+                                        ? const Icon(Icons.person,
+                                            size: 10, color: Color(0xFF6E4B3A))
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 66),
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(
-                        vertical: -3,
-                      ),
-                      leading: const Icon(Icons.insert_drive_file,
-                          color: Color(0xFF6E4B3A)),
-                      title: Text(
-                        'Choose File',
-                        style: GoogleFonts.dosis(
-                          color: const Color(0xFF6E4B3A),
-                          fontWeight: FontWeight.w500,
+                    if (_showAttachmentOptions) _buildAttachmentPanel(),
+                    Container(
+                      color: const Color(0xFFF8F8F8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _showAttachmentOptions
+                                    ? Icons.close
+                                    : Icons.add,
+                                color: const Color(0xFF6E4B3A),
+                              ),
+                              onPressed: widget.isDeletedAccount
+                                  ? null
+                                  : () {
+                                      setState(() => _showAttachmentOptions =
+                                          !_showAttachmentOptions);
+                                    },
+                            ),
+                            Expanded(
+                              child: widget.isDeletedAccount
+                                  ? Container(
+                                      height: 50,
+                                      alignment: Alignment.centerLeft,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: const Color(0xFF6E4B3A)),
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      child: Text(
+                                        'This account has been deleted.',
+                                        style: GoogleFonts.dosis(
+                                          color: const Color(0xFFBDBDBD),
+                                        ),
+                                      ),
+                                    )
+                                  : TextField(
+                                      controller: _messageController,
+                                      minLines: 1,
+                                      maxLines: 5,
+                                      onTap: () {
+                                        if (_showAttachmentOptions) {
+                                          setState(() =>
+                                              _showAttachmentOptions = false);
+                                        }
+                                      },
+                                      style: GoogleFonts.dosis(
+                                        color: const Color(0xFF6E4B3A),
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Type a message',
+                                        hintStyle: GoogleFonts.dosis(
+                                          color: const Color(0xFFBDBDBD),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF6E4B3A),
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(24),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF6E4B3A),
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(24),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 14,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF6E4B3A),
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.send,
+                                    color: Color(0xFFDDC7A9)),
+                                onPressed: widget.isDeletedAccount
+                                    ? null
+                                    : () => _sendMessage(
+                                          text: _messageController.text,
+                                        ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      onTap: () async {
-                        setState(() => _showAttachmentOptions = false);
-                        final result = await FilePicker.platform.pickFiles();
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          _uploadFile(File(result.files.single.path!));
-                        }
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(
-                        vertical: -3,
-                      ),
-                      leading:
-                          const Icon(Icons.image, color: Color(0xFF6E4B3A)),
-                      title: Text(
-                        'Choose Image',
-                        style: GoogleFonts.dosis(
-                          color: const Color(0xFF6E4B3A),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      onTap: () async {
-                        setState(() => _showAttachmentOptions = false);
-                        final image = await ImagePicker()
-                            .pickImage(source: ImageSource.gallery);
-                        if (image != null) _uploadFile(File(image.path));
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(
-                        vertical: -3,
-                      ),
-                      leading: const Icon(Icons.camera_alt,
-                          color: Color(0xFF6E4B3A)),
-                      title: Text(
-                        'Take Photo',
-                        style: GoogleFonts.dosis(
-                          color: const Color(0xFF6E4B3A),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      onTap: () async {
-                        setState(() => _showAttachmentOptions = false);
-                        final photo = await ImagePicker()
-                            .pickImage(source: ImageSource.camera);
-                        if (photo != null) _uploadFile(File(photo.path));
-                      },
                     ),
                   ],
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _showAttachmentOptions ? Icons.close : Icons.add,
-                      color: const Color(0xFF6E4B3A),
-                    ),
-                    onPressed: widget.isDeletedAccount
-                        ? null
-                        : () {
-                            setState(() => _showAttachmentOptions =
-                                !_showAttachmentOptions);
-                          },
-                  ),
-                  Expanded(
-                    child: widget.isDeletedAccount
-                        ? Container(
-                            height: 50,
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              border:
-                                  Border.all(color: const Color(0xFF6E4B3A)),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Text(
-                              'This account has been deleted.',
-                              style: GoogleFonts.dosis(
-                                color: const Color(0xFFBDBDBD),
-                              ),
-                            ),
-                          )
-                        : TextField(
-                            controller: _messageController,
-                            minLines: 1,
-                            maxLines: 5,
-                            style: GoogleFonts.dosis(
-                              color: const Color(0xFF6E4B3A),
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Type a message',
-                              hintStyle: GoogleFonts.dosis(
-                                color: const Color(0xFFBDBDBD),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF6E4B3A),
-                                ),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF6E4B3A),
-                                ),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                            ),
-                          ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF6E4B3A),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Color(0xFFDDC7A9)),
-                      onPressed: widget.isDeletedAccount
-                          ? null
-                          : () => _sendMessage(
-                                text: _messageController.text,
-                              ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

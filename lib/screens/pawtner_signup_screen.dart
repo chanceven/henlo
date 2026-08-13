@@ -139,7 +139,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 12, horizontal: 16),
                         color: isSelected
-                            ? const Color(0xFF6E4B3A).withOpacity(0.15)
+                            ? const Color(0xFF6E4B3A).withValues(alpha: 0.15)
                             : Colors.transparent,
                         child: Center(
                           child: Text(
@@ -180,7 +180,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(
-            color: const Color(0xFF6E4B3A).withOpacity(0.3), width: 1),
+            color: const Color(0xFF6E4B3A).withValues(alpha: 0.3), width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -267,7 +267,9 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom +
+                MediaQuery.of(context).viewPadding.bottom +
+                24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -430,7 +432,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                               locationController.text = shortAddress;
                             });
 
-                            if (mounted) Navigator.pop(context);
+                            if (context.mounted) Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
                           }
@@ -571,7 +573,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 60),
                       Form(
                         key: _formKey,
                         child: Column(
@@ -736,69 +738,6 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                           ],
                         ),
                       ),
-                      const Spacer(flex: 1),
-                      Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _continue,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF6E4B3A),
-                                foregroundColor: const Color(0xFFDDC7A9),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14)),
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Color(0xFFDDC7A9)))
-                                  : Text(
-                                      'Continue',
-                                      style: GoogleFonts.dosis(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Already have an account? ",
-                                style: GoogleFonts.dosis(
-                                  fontSize: 16,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => const SignInScreen()),
-                                  );
-                                },
-                                child: Text(
-                                  "Sign In",
-                                  style: GoogleFonts.dosis(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF6E4B3A),
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 24),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -815,12 +754,15 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8F8),
       body: GestureDetector(
-        onTap: () => _closeDropdownOverlay(),
+        onTap: () {
+          _closeDropdownOverlay();
+          FocusScope.of(context).unfocus();
+        },
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+                padding: const EdgeInsets.fromLTRB(24, 60, 24, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1026,34 +968,31 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
             ),
 
             // Continue button pinned to bottom
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                8,
-                16,
-                MediaQuery.of(context).viewPadding.bottom + 16,
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _goToReviewStep,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6E4B3A),
-                    foregroundColor: const Color(0xFFDDC7A9),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : _goToReviewStep,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                      foregroundColor: const Color(0xFFDDC7A9),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(
+                            color: Color(0xFFDDC7A9))
+                        : Text(
+                            "Continue",
+                            style: GoogleFonts.dosis(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFDDC7A9)),
+                          ),
                   ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(
-                          color: Color(0xFFDDC7A9))
-                      : Text(
-                          "Continue",
-                          style: GoogleFonts.dosis(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFDDC7A9)),
-                        ),
                 ),
               ),
             ),
@@ -1130,7 +1069,11 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       );
       return;
     }
+
     final user = res.user;
+
+    if (!mounted) return;
+
     if (user == null) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1175,184 +1118,193 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
     }
   }
 
-Widget _buildReviewStep() {
-    return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
-                      border: Border.all(
-                          color: const Color(0xFF6E4B3A), width: 1.5),
-                      borderRadius: BorderRadius.circular(12),
+  Widget _buildReviewStep() {
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFFFF),
+                        border: Border.all(
+                            color: const Color(0xFF6E4B3A), width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Account Details",
+                            style: GoogleFonts.dosis(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6E4B3A),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildRow("Full Name", _nameCtrl.text),
+                          _buildRow("Email", _emailCtrl.text),
+                          _buildRow("Contact Number", _contactCtrl.text),
+                          const Divider(
+                              color: Color(0xFF6E4B3A),
+                              thickness: 1,
+                              height: 24),
+                          Text(
+                            "Business Details",
+                            style: GoogleFonts.dosis(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6E4B3A),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildRow(
+                              "Business Name", businessNameController.text),
+                          _buildRow(
+                              "Service Type", selectedServices.join(", ")),
+                          _buildRow("Business Type",
+                              selectedBusinessTypes.join(", ")),
+                          if (selectedBusinessTypes.contains("Home"))
+                            _buildRow(
+                                "Available Areas", selectedAreas.join(", ")),
+                          _buildRow(
+                              "Business Location", locationController.text),
+                        ],
+                      ),
                     ),
-                    child: Column(
+                    const SizedBox(height: 8),
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Account Details",
-                          style: GoogleFonts.dosis(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6E4B3A),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRow("Full Name", _nameCtrl.text),
-                        _buildRow("Email", _emailCtrl.text),
-                        _buildRow("Contact Number", _contactCtrl.text),
-                        const Divider(
-                            color: Color(0xFF6E4B3A), thickness: 1, height: 24),
-                        Text(
-                          "Business Details",
-                          style: GoogleFonts.dosis(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6E4B3A),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildRow("Business Name", businessNameController.text),
-                        _buildRow("Service Type", selectedServices.join(", ")),
-                        _buildRow(
-                            "Business Type", selectedBusinessTypes.join(", ")),
-                        if (selectedBusinessTypes.contains("Home"))
-                          _buildRow(
-                              "Available Areas", selectedAreas.join(", ")),
-                        _buildRow("Business Location", locationController.text),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Transform.translate(
-                        offset: const Offset(-10, -4),
-                        child: Checkbox(
-                          value: agreeTerms,
-                          onChanged: (val) =>
-                              setState(() => agreeTerms = val ?? false),
-                          activeColor: const Color(0xFF6E4B3A),
-                          checkColor: const Color(0xFFDDC7A9),
-                          side: const BorderSide(
-                            color: Color(0xFF6E4B3A),
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Transform.translate(
-                          offset: const Offset(-8, 0),
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Wrap(
-                              children: [
-                                Text(
-                                  'By creating an account, you agree to our ',
-                                  style: GoogleFonts.dosis(
-                                    fontSize: 16,
-                                    color: const Color(0xFF6E4B3A),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const TermsAndConditionsScreen(),
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    'Terms & Conditions',
-                                    style: GoogleFonts.dosis(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF6E4B3A),
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  ' and ',
-                                  style: GoogleFonts.dosis(
-                                    fontSize: 16,
-                                    color: const Color(0xFF6E4B3A),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const PrivacyPolicyScreen(),
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    'Privacy Policy.',
-                                    style: GoogleFonts.dosis(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF6E4B3A),
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                        Transform.translate(
+                          offset: const Offset(-10, -4),
+                          child: Checkbox(
+                            value: agreeTerms,
+                            onChanged: (val) =>
+                                setState(() => agreeTerms = val ?? false),
+                            activeColor: const Color(0xFF6E4B3A),
+                            checkColor: const Color(0xFFDDC7A9),
+                            side: const BorderSide(
+                              color: Color(0xFF6E4B3A),
+                              width: 1.5,
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-Padding(
-  padding: EdgeInsets.fromLTRB(
-    16,
-    8,
-    16,
-    MediaQuery.of(context).viewPadding.bottom + 16,
-  ),
-  child: SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: agreeTerms && !isLoading ? _createAccount : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6E4B3A),
-                  foregroundColor: const Color(0xFFDDC7A9),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
-                    : Text(
-                        "Create Account",
-                        style: GoogleFonts.dosis(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFDDC7A9),
+                        Expanded(
+                          child: Transform.translate(
+                            offset: const Offset(-8, 0),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Wrap(
+                                children: [
+                                  Text(
+                                    'By creating an account, you agree to our ',
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 16,
+                                      color: const Color(0xFF6E4B3A),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const TermsAndConditionsScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      'Terms & Conditions',
+                                      style: GoogleFonts.dosis(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF6E4B3A),
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    ' and ',
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 16,
+                                      color: const Color(0xFF6E4B3A),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PrivacyPolicyScreen(),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      'Privacy Policy.',
+                                      style: GoogleFonts.dosis(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF6E4B3A),
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: agreeTerms && !isLoading ? _createAccount : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                      foregroundColor: const Color(0xFFDDC7A9),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(
+                            color: Color(0xFFDDC7A9))
+                        : Text(
+                            "Create Account",
+                            style: GoogleFonts.dosis(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFDDC7A9),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1372,44 +1324,125 @@ Padding(
           Navigator.of(context).pop();
         }
       },
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: const Color(0xFFF8F8F8),
-        appBar: AppBar(
+      child: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
           backgroundColor: const Color(0xFFF8F8F8),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Color(0xFF6E4B3A),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFF8F8F8),
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back,
+                color: Color(0xFF6E4B3A),
+              ),
+              onPressed: () {
+                if (_currentStep == 3) {
+                  _goToBusinessStep();
+                } else if (_currentStep == 2) {
+                  _goToAccountStep();
+                } else {
+                  Navigator.pop(context);
+                }
+              },
             ),
-            onPressed: () {
-              if (_currentStep == 3) {
-                _goToBusinessStep();
-              } else if (_currentStep == 2) {
-                _goToAccountStep();
-              } else {
-                Navigator.pop(context);
-              }
-            },
+            title: Text(
+              'Sign Up',
+              style: GoogleFonts.dosis(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF6E4B3A),
+              ),
+            ),
+            centerTitle: true,
           ),
-          title: Text(
-            'Sign Up',
-            style: GoogleFonts.dosis(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF6E4B3A),
-            ),
+          body: Column(
+            children: [
+              _buildStepIndicator(),
+              Expanded(
+                child: _buildCurrentStep(),
+              ),
+            ],
           ),
-          centerTitle: true,
-        ),
-        body: Column(
-          children: [
-            _buildStepIndicator(),
-            Expanded(
-              child: _buildCurrentStep(),
-            ),
-          ],
+          bottomNavigationBar: _currentStep == 1
+              ? SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _continue,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6E4B3A),
+                              foregroundColor: const Color(0xFFDDC7A9),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Color(0xFFDDC7A9),
+                                    ),
+                                  )
+                                : Text(
+                                    'Continue',
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Already have an account? ",
+                              style: GoogleFonts.dosis(
+                                fontSize: 16,
+                                color: const Color(0xFF6E4B3A),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SignInScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                "Sign In",
+                                style: GoogleFonts.dosis(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF6E4B3A),
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                )
+              : null,
         ),
       ),
     );

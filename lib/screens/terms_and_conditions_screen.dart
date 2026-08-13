@@ -68,27 +68,29 @@ class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF6E4B3A),
-                ),
-              )
-            : SingleChildScrollView(
-                child: SelectableText(
-                  terms ?? '',
-                  style: GoogleFonts.dosis(
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF6E4B3A),
-                      height: 1.6,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF6E4B3A),
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: SelectableText(
+                    terms ?? '',
+                    style: GoogleFonts.dosis(
+                      textStyle: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF6E4B3A),
+                        height: 1.6,
+                      ),
                     ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }

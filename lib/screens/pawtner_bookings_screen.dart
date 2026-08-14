@@ -401,7 +401,7 @@ furrents(full_name)
 
                               return Container(
                                 margin: const EdgeInsets.symmetric(vertical: 4),
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFFFFFF),
                                   borderRadius: BorderRadius.circular(12),
@@ -445,25 +445,25 @@ furrents(full_name)
                                         children: [
                                           customText(
                                             service?['service_type'] ?? '',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
                                             color: const Color(0xFF6E4B3A),
                                           ),
-                                          const SizedBox(height: 8),
+                                          const SizedBox(height: 5),
                                           customText(
                                             service?['service_name'] ?? '',
-                                            fontSize: 14,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                             color: const Color(0xFF6E4B3A),
                                           ),
-                                          const SizedBox(height: 8),
+                                          const SizedBox(height: 5),
                                           customText(
                                             '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
-                                            fontSize: 14,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                             color: const Color(0xFF6E4B3A),
                                           ),
-                                          const SizedBox(height: 8),
+                                          const SizedBox(height: 5),
                                           Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,

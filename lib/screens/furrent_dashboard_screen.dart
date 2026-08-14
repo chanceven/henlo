@@ -386,7 +386,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                               },
                               child: Container(
                                 margin: const EdgeInsets.symmetric(vertical: 4),
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFFFFFF),
                                   borderRadius: BorderRadius.circular(12),
@@ -431,25 +431,25 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                         children: [
                                           customText(
                                             service?['service_type'] ?? '',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
                                             color: const Color(0xFF6E4B3A),
                                           ),
-                                          const SizedBox(height: 2),
+                                          const SizedBox(height: 5),
                                           customText(
                                             pawtner?['business_name'] ?? '',
-                                            fontSize: 14,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                             color: const Color(0xFF6E4B3A),
                                           ),
-                                          const SizedBox(height: 2),
+                                          const SizedBox(height: 5),
                                           customText(
                                             'Pet: ${pet?['name'] ?? ''}',
-                                            fontSize: 14,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                             color: const Color(0xFF6E4B3A),
                                           ),
-                                          const SizedBox(height: 2),
+                                          const SizedBox(height: 5),
                                           customText(
                                             formattedDate,
                                             fontSize: 14,
@@ -921,6 +921,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8F8),
       body: getBody(),
       bottomNavigationBar: Container(

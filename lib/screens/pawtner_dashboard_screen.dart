@@ -323,6 +323,18 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
     final name = picked.name;
     if (bytes == null) return null;
 
+    if (bytes.length > 6 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File must be smaller than 6MB.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return null;
+    }
+
     final user = supabase.auth.currentUser;
     if (user == null) return null;
 
@@ -628,7 +640,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
 
                             return Container(
                               margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
@@ -669,25 +681,25 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                                       children: [
                                         customText(
                                           service?['service_type'] ?? '',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
                                           color: const Color(0xFF6E4B3A),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 5),
                                         customText(
                                           service?['service_name'] ?? '',
-                                          fontSize: 14,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           color: const Color(0xFF6E4B3A),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 5),
                                         customText(
                                           '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
-                                          fontSize: 14,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           color: const Color(0xFF6E4B3A),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 5),
                                         Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
@@ -772,7 +784,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
 
                             return Container(
                               margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
@@ -813,25 +825,25 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                                       children: [
                                         customText(
                                           service?['service_type'] ?? '',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
                                           color: const Color(0xFF6E4B3A),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 5),
                                         customText(
                                           service?['service_name'] ?? '',
-                                          fontSize: 14,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           color: const Color(0xFF6E4B3A),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 5),
                                         customText(
                                           '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
-                                          fontSize: 14,
+                                          fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           color: const Color(0xFF6E4B3A),
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 5),
                                         Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
@@ -895,6 +907,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F8F8),
       body: _getBody(),
       bottomNavigationBar: Container(

@@ -509,7 +509,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                     Text(
                       "Already have an account? ",
                       style: GoogleFonts.dosis(
-                        fontSize: 16,
+                        fontSize: 18,
                         color: const Color(0xFF6E4B3A),
                       ),
                     ),
@@ -518,7 +518,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                       child: Text(
                         "Sign In",
                         style: GoogleFonts.dosis(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: const Color(0xFF6E4B3A),
                           decoration: TextDecoration.underline,
@@ -527,7 +527,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
               ],
             ),
           ),

@@ -22,9 +22,9 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 void main() async {
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
+  runZonedGuarded(() async {
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
     };
@@ -102,6 +102,12 @@ void main() async {
 
     runApp(const MyApp());
   }, (error, stack) {
+    if (error is AuthException &&
+        error.message.toLowerCase().contains('refresh token')) {
+      debugPrint('Ignoring stale refresh token error: $error');
+      return;
+    }
+
     runApp(MaterialApp(
       home: Scaffold(
         body: Center(

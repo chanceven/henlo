@@ -21,36 +21,53 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 3));
 
     final supabase = Supabase.instance.client;
-    final session = supabase.auth.currentSession;
 
-// 🚫 No user logged in → go to Sign In
-    if (session == null) {
-      Navigator.pushReplacementNamed(context, '/sign_in');
-      return;
+    try {
+      final session = supabase.auth.currentSession;
+
+      // 🚫 No user logged in → go to Sign In
+      if (session == null) {
+        if (mounted) Navigator.pushReplacementNamed(context, '/sign_in');
+        return;
+      }
+
+      final userId = session.user.id;
+
+      // 🔍 Check if user exists in "furrents"
+      final furrent = await supabase
+          .from('furrents')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (furrent != null) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/furrent_dashboard');
+        }
+        return;
+      }
+
+      // 🔍 Check if user exists in "pawtners"
+      final pawtner = await supabase
+          .from('pawtners')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (pawtner != null) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/pawtner_dashboard');
+        }
+        return;
+      }
+
+      // ❗ User logged in but not in either table → force sign in again
+      if (mounted) Navigator.pushReplacementNamed(context, '/sign_in');
+    } catch (e) {
+      debugPrint('Splash startup error: $e');
+      await supabase.auth.signOut().catchError((_) {});
+      if (mounted) Navigator.pushReplacementNamed(context, '/sign_in');
     }
-
-    final userId = session.user.id;
-
-    // 🔍 Check if user exists in "furrents"
-    final furrent =
-        await supabase.from('furrents').select().eq('id', userId).maybeSingle();
-
-    if (furrent != null) {
-      Navigator.pushReplacementNamed(context, '/furrent_dashboard');
-      return;
-    }
-
-    // 🔍 Check if user exists in "pawtners"
-    final pawtner =
-        await supabase.from('pawtners').select().eq('id', userId).maybeSingle();
-
-    if (pawtner != null) {
-      Navigator.pushReplacementNamed(context, '/pawtner_dashboard');
-      return;
-    }
-
-    // ❗ User logged in but not in either table → force sign in again
-    Navigator.pushReplacementNamed(context, '/sign_in');
   }
 
   @override
@@ -60,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: Image.asset(
           'lib/assets/images/henlo_logo_v2.png',
-          width: 150,
+          width: 220,
         ),
       ),
     );

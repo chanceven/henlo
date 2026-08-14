@@ -182,7 +182,7 @@ class OnboardingScreen extends StatelessWidget {
                     "Already have an account? ",
                     style: GoogleFonts.dosis(
                       textStyle: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.w400,
                         color: Color(0xFF6E4B3A),
                       ),
@@ -199,7 +199,7 @@ class OnboardingScreen extends StatelessWidget {
                       "Sign In",
                       style: GoogleFonts.dosis(
                         textStyle: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF6E4B3A),
                           decoration: TextDecoration.underline,

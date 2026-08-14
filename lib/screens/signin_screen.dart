@@ -258,8 +258,8 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ),
                     AnimatedPositioned(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
                       left: 0,
                       right: 0,
                       top: MediaQuery.of(context).viewInsets.bottom > 0
@@ -276,8 +276,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         ),
                         child: AnimatedPadding(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOut,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
                           padding: const EdgeInsets.fromLTRB(24, 56, 24, 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -340,7 +340,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 16),
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: GestureDetector(
@@ -356,7 +356,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   child: Text(
                                     'Forgot password?',
                                     style: GoogleFonts.dosis(
-                                      fontSize: 16,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: const Color(0xFF6E4B3A),
                                     ),
@@ -404,14 +404,14 @@ class _SignInScreenState extends State<SignInScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "Don't have an account? ",
                         style: GoogleFonts.dosis(
-                          fontSize: 16,
+                          fontSize: 18,
                           color: const Color(0xFF6E4B3A),
                         ),
                       ),
@@ -432,7 +432,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: Text(
                           "Sign Up",
                           style: GoogleFonts.dosis(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.w600,
                             decoration: TextDecoration.underline,
                             color: const Color(0xFF6E4B3A),
@@ -441,7 +441,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

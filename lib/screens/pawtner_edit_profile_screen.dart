@@ -535,6 +535,17 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
     final name = picked.name;
     if (bytes == null) return;
 
+    if (bytes.length > 6 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('File must be smaller than 6MB.',
+              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+          backgroundColor: const Color(0xFFDDC7A9),
+        ));
+      }
+      return;
+    }
+
     final user = supabase.auth.currentUser;
     if (user == null) return;
 

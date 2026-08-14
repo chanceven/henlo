@@ -190,6 +190,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _uploadFile(File file) async {
+    final fileSize = await file.length();
+
+    if (fileSize > 6 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'File must be smaller than 6MB',
+              style: GoogleFonts.dosis(color: const Color(0xFFF8F8F8)),
+            ),
+            backgroundColor: const Color(0xFF6E4B3A),
+          ),
+        );
+      }
+      return;
+    }
+
     final ext = file.path.split('.').last;
     final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.$ext';
 
@@ -210,8 +227,30 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       await _sendMessage(fileUrl: signedUrl);
     } on StorageException catch (e) {
       debugPrint("Storage error: ${e.message}");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unable to send this file. Unsupported file type or size.',
+              style: GoogleFonts.dosis(color: const Color(0xFFF8F8F8)),
+            ),
+            backgroundColor: const Color(0xFF6E4B3A),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint("Upload error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unable to send this file. Please try again.',
+              style: GoogleFonts.dosis(color: const Color(0xFFF8F8F8)),
+            ),
+            backgroundColor: const Color(0xFF6E4B3A),
+          ),
+        );
+      }
     }
   }
 
@@ -228,85 +267,115 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildAttachmentPanel() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Material(
-        elevation: 6,
-        borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFFF8F8F8),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F8F8),
-            border: Border.all(color: const Color(0xFF6E4B3A), width: 1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                leading: const Icon(Icons.insert_drive_file,
-                    color: Color(0xFF6E4B3A), size: 18),
-                title: Text(
-                  'Choose File',
-                  style: GoogleFonts.dosis(
-                    color: const Color(0xFF6E4B3A),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
-                  ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width / 2,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
                 ),
-                onTap: () async {
-                  setState(() => _showAttachmentOptions = false);
-                  final result = await FilePicker.platform.pickFiles();
-                  if (result != null && result.files.single.path != null) {
-                    _uploadFile(File(result.files.single.path!));
-                  }
-                },
-              ),
-              const Divider(height: 1),
-              ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                leading:
-                    const Icon(Icons.image, color: Color(0xFF6E4B3A), size: 18),
-                title: Text(
-                  'Choose Image',
-                  style: GoogleFonts.dosis(
-                    color: const Color(0xFF6E4B3A),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  dense: true,
+                  visualDensity:
+                      const VisualDensity(horizontal: -3, vertical: -3),
+                  minVerticalPadding: 4,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  leading: const Icon(Icons.insert_drive_file,
+                      color: Color(0xFF6E4B3A), size: 16),
+                  title: Text(
+                    'Choose File',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
                   ),
+                  onTap: () async {
+                    setState(() => _showAttachmentOptions = false);
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: [
+                        'jpg',
+                        'jpeg',
+                        'png',
+                        'pdf',
+                        'doc',
+                        'docx',
+                        'mp4',
+                      ],
+                    );
+                    if (result != null && result.files.single.path != null) {
+                      _uploadFile(File(result.files.single.path!));
+                    }
+                  },
                 ),
-                onTap: () async {
-                  setState(() => _showAttachmentOptions = false);
-                  final image = await ImagePicker()
-                      .pickImage(source: ImageSource.gallery);
-                  if (image != null) _uploadFile(File(image.path));
-                },
-              ),
-              const Divider(height: 1),
-              ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                leading: const Icon(Icons.camera_alt,
-                    color: Color(0xFF6E4B3A), size: 18),
-                title: Text(
-                  'Take Photo',
-                  style: GoogleFonts.dosis(
-                    color: const Color(0xFF6E4B3A),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
+                const Divider(height: 1),
+                ListTile(
+                  dense: true,
+                  visualDensity:
+                      const VisualDensity(horizontal: -3, vertical: -3),
+                  minVerticalPadding: 4,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  leading: const Icon(Icons.image,
+                      color: Color(0xFF6E4B3A), size: 16),
+                  title: Text(
+                    'Choose Image',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
                   ),
+                  onTap: () async {
+                    setState(() => _showAttachmentOptions = false);
+                    final image = await ImagePicker()
+                        .pickImage(source: ImageSource.gallery);
+                    if (image != null) _uploadFile(File(image.path));
+                  },
                 ),
-                onTap: () async {
-                  setState(() => _showAttachmentOptions = false);
-                  final photo =
-                      await ImagePicker().pickImage(source: ImageSource.camera);
-                  if (photo != null) _uploadFile(File(photo.path));
-                },
-              ),
-            ],
+                const Divider(height: 1),
+                ListTile(
+                  dense: true,
+                  visualDensity:
+                      const VisualDensity(horizontal: -3, vertical: -3),
+                  minVerticalPadding: 4,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  leading: const Icon(Icons.camera_alt,
+                      color: Color(0xFF6E4B3A), size: 16),
+                  title: Text(
+                    'Take Photo',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                  ),
+                  onTap: () async {
+                    setState(() => _showAttachmentOptions = false);
+                    final photo = await ImagePicker()
+                        .pickImage(source: ImageSource.camera);
+                    if (photo != null) _uploadFile(File(photo.path));
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -477,7 +546,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                         Text(
                                           msg['message'],
                                           style: GoogleFonts.dosis(
-                                            fontSize: 15,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
                                             color: isMe
                                                 ? const Color(0xFFF8F8F8)
                                                 : const Color(0xFF6E4B3A),

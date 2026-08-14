@@ -243,338 +243,568 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
 
     final user = supabase.auth.currentUser;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: const Color(0xFFF8F8F8),
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
+    return MediaQuery.removeViewInsets(
+      context: context,
+      removeBottom: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
           backgroundColor: const Color(0xFFF8F8F8),
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
-          title: customText(
-            'Messages',
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF6E4B3A),
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: const Color(0xFFF8F8F8),
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
+            title: customText(
+              'Messages',
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF6E4B3A),
+            ),
+            centerTitle: true,
           ),
-          centerTitle: true,
-        ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  const SizedBox(height: 16),
-                  Row(
-                    children: List.generate(tabs.length, (index) {
-                      final isSelected = selectedTabIndex == index;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() => selectedTabIndex = index);
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF6E4B3A)
-                                  : const Color(0xFFF2F2F2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  customText(
-                                    tabs[index],
-                                    fontSize: 18,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    color: isSelected
-                                        ? const Color(0xFFDDC7A9)
-                                        : const Color(0xFF6E4B3A),
-                                  ),
-                                  if ((index == 0 && unreadChatsCount > 0) ||
-                                      (index == 1 &&
-                                          unreadNotificationsCount > 0))
-                                    Container(
-                                      margin: const EdgeInsets.only(left: 6),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        index == 0
-                                            ? unreadChatsCount.toString()
-                                            : unreadNotificationsCount
-                                                .toString(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    Row(
+                      children: List.generate(tabs.length, (index) {
+                        final isSelected = selectedTabIndex == index;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => selectedTabIndex = index);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF6E4B3A)
+                                    : const Color(0xFFF2F2F2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    customText(
+                                      tabs[index],
+                                      fontSize: 18,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      color: isSelected
+                                          ? const Color(0xFFDDC7A9)
+                                          : const Color(0xFF6E4B3A),
+                                    ),
+                                    if ((index == 0 && unreadChatsCount > 0) ||
+                                        (index == 1 &&
+                                            unreadNotificationsCount > 0))
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          index == 0
+                                              ? unreadChatsCount.toString()
+                                              : unreadNotificationsCount
+                                                  .toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: SizedBox(
-                        height: 44,
-                        child: TextField(
-                          style: GoogleFonts.dosis(
-                            color: const Color(0xFF6E4B3A),
-                          ),
-                          onChanged: (value) =>
-                              setState(() => searchQuery = value),
-                          decoration: InputDecoration(
-                            hintText: 'Search',
-                            hintStyle: GoogleFonts.dosis(
-                              color: const Color(0xFFBDBDBD),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                            fillColor: const Color(0xFFFFFFFF),
-                            filled: true,
-                            prefixIcon: const Icon(Icons.search,
-                                color: Color(0xFF6E4B3A)),
-                            contentPadding: const EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                          ],
+                        ),
+                        child: SizedBox(
+                          height: 44,
+                          child: TextField(
+                            style: GoogleFonts.dosis(
+                              color: const Color(0xFF6E4B3A),
+                            ),
+                            onChanged: (value) =>
+                                setState(() => searchQuery = value),
+                            decoration: InputDecoration(
+                              hintText: 'Search',
+                              hintStyle: GoogleFonts.dosis(
+                                color: const Color(0xFFBDBDBD),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              fillColor: const Color(0xFFFFFFFF),
+                              filled: true,
+                              prefixIcon: const Icon(Icons.search,
+                                  color: Color(0xFF6E4B3A)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 16),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: itemsToShow.isEmpty
-                        ? Center(
-                            child: customText(
-                              selectedTabIndex == 0
-                                  ? 'No chats'
-                                  : 'No notifications',
-                              fontSize: 16,
-                              color: const Color(0xFF6E4B3A),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: itemsToShow.length,
-                            itemBuilder: (context, index) {
-                              final item = itemsToShow[index];
-                              if (selectedTabIndex == 0) {
-                                final pawtner =
-                                    item['pawtners'] as Map<String, dynamic>? ??
-                                        {};
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: itemsToShow.isEmpty
+                          ? Center(
+                              child: customText(
+                                selectedTabIndex == 0
+                                    ? 'No chats'
+                                    : 'No notifications',
+                                fontSize: 16,
+                                color: const Color(0xFF6E4B3A),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: itemsToShow.length,
+                              itemBuilder: (context, index) {
+                                final item = itemsToShow[index];
+                                if (selectedTabIndex == 0) {
+                                  final pawtner = item['pawtners']
+                                          as Map<String, dynamic>? ??
+                                      {};
 
-                                final bool isDeletedAccount =
-                                    pawtner.isEmpty || pawtner['id'] == null;
+                                  final bool isDeletedAccount =
+                                      pawtner.isEmpty || pawtner['id'] == null;
 
-                                final String displayName = isDeletedAccount
-                                    ? 'Deleted Account'
-                                    : ((pawtner['business_name'] != null &&
-                                            pawtner['business_name']
-                                                .toString()
-                                                .trim()
-                                                .isNotEmpty)
-                                        ? pawtner['business_name']
-                                        : (pawtner['full_name'] ?? ''));
+                                  final String displayName = isDeletedAccount
+                                      ? 'Deleted Account'
+                                      : ((pawtner['business_name'] != null &&
+                                              pawtner['business_name']
+                                                  .toString()
+                                                  .trim()
+                                                  .isNotEmpty)
+                                          ? pawtner['business_name']
+                                          : (pawtner['full_name'] ?? ''));
 
-                                final profilePic = isDeletedAccount
-                                    ? ''
-                                    : (pawtner['profile_picture_url'] ?? '');
-                                final lastMessageDate =
-                                    item['last_message_at'] != null
-                                        ? DateTime.parse(
-                                                item['last_message_at'])
-                                            .toLocal()
-                                        : null;
+                                  final profilePic = isDeletedAccount
+                                      ? ''
+                                      : (pawtner['profile_picture_url'] ?? '');
+                                  final lastMessageDate =
+                                      item['last_message_at'] != null
+                                          ? DateTime.parse(
+                                                  item['last_message_at'])
+                                              .toLocal()
+                                          : null;
 
-                                String formattedDate = '';
-                                if (lastMessageDate != null) {
-                                  final now = DateTime.now();
-                                  if (lastMessageDate.year == now.year &&
-                                      lastMessageDate.month == now.month &&
-                                      lastMessageDate.day == now.day) {
-                                    formattedDate =
-                                        formatTime12Hour(lastMessageDate);
-                                  } else {
-                                    formattedDate =
-                                        "${lastMessageDate.month}/${lastMessageDate.day}/${lastMessageDate.year.toString().substring(2)}";
+                                  String formattedDate = '';
+                                  if (lastMessageDate != null) {
+                                    final now = DateTime.now();
+                                    if (lastMessageDate.year == now.year &&
+                                        lastMessageDate.month == now.month &&
+                                        lastMessageDate.day == now.day) {
+                                      formattedDate =
+                                          formatTime12Hour(lastMessageDate);
+                                    } else {
+                                      formattedDate =
+                                          "${lastMessageDate.month}/${lastMessageDate.day}/${lastMessageDate.year.toString().substring(2)}";
+                                    }
                                   }
-                                }
 
-                                String lastMessageText =
-                                    item['last_message'] ?? '';
-                                final lastMessageSender =
-                                    item['last_message_sender_id'];
-                                if (lastMessageSender == user?.id) {
-                                  lastMessageText = "You: $lastMessageText";
-                                }
+                                  String lastMessageText =
+                                      item['last_message'] ?? '';
+                                  final lastMessageSender =
+                                      item['last_message_sender_id'];
+                                  if (lastMessageSender == user?.id) {
+                                    lastMessageText = "You: $lastMessageText";
+                                  }
 
-                                final isFurrent =
-                                    item['furrent_id'] == user?.id;
+                                  final isFurrent =
+                                      item['furrent_id'] == user?.id;
 
-                                final unreadCount = isFurrent
-                                    ? (item['unread_count_furrent'] ?? 0)
-                                    : (item['unread_count_pawtner'] ?? 0);
+                                  final unreadCount = isFurrent
+                                      ? (item['unread_count_furrent'] ?? 0)
+                                      : (item['unread_count_pawtner'] ?? 0);
 
-                                final isUnread = unreadCount > 0;
+                                  final isUnread = unreadCount > 0;
 
-                                return Dismissible(
-                                  key: Key(item['id']),
-                                  direction: DismissDirection.endToStart,
-                                  confirmDismiss: (_) async {
-                                    return await showDialog(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(14)),
-                                        title: customText(
-                                            'Delete this entire conversation?',
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF6E4B3A)),
-                                        content: customText(
-                                            'This action cannot be undone.',
-                                            fontSize: 16,
-                                            color: const Color(0xFF6E4B3A)),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, false),
-                                            child: customText('Cancel',
-                                                fontSize: 16,
-                                                color: const Color(0xFF6E4B3A)),
-                                          ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, true),
-                                            child: customText('Delete',
-                                                fontSize: 16,
-                                                color: const Color(0xFFFF3B30)),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                  onDismissed: (_) async {
-                                    await supabase.from('messages').update({
-                                      'deleted_for_furrent': true
-                                    }).eq('conversation_id', item['id']);
-                                    await supabase
-                                        .from('conversations')
-                                        .update({
-                                      'hidden_for_furrent': true,
-                                      'furrent_cleared_at':
-                                          DateTime.now().toIso8601String(),
-                                    }).eq('id', item['id']);
-                                    setState(() => chats.removeWhere(
-                                        (c) => c['id'] == item['id']));
-
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
+                                  return Dismissible(
+                                    key: Key(item['id']),
+                                    direction: DismissDirection.endToStart,
+                                    confirmDismiss: (_) async {
+                                      return await showDialog(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14)),
+                                          title: customText(
+                                              'Delete this entire conversation?',
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF6E4B3A)),
                                           content: customText(
-                                            'Chat has been deleted',
-                                            color: const Color(0xFF6E4B3A),
-                                          ),
-                                          backgroundColor:
-                                              const Color(0xFFDDC7A9),
-                                          duration: const Duration(seconds: 2),
+                                              'This action cannot be undone.',
+                                              fontSize: 16,
+                                              color: const Color(0xFF6E4B3A)),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, false),
+                                              child: customText('Cancel',
+                                                  fontSize: 16,
+                                                  color:
+                                                      const Color(0xFF6E4B3A)),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, true),
+                                              child: customText('Delete',
+                                                  fontSize: 16,
+                                                  color:
+                                                      const Color(0xFFFF3B30)),
+                                            ),
+                                          ],
                                         ),
                                       );
-                                    }
-                                  },
-                                  background: Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFF3B30),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    alignment: Alignment.centerRight,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20),
-                                    child: const Icon(Icons.delete,
-                                        color: Colors.white, size: 30),
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      final currentUserId =
-                                          supabase.auth.currentUser?.id;
-                                      final isFurrent =
-                                          item['furrent_id'] == currentUserId;
-
+                                    },
+                                    onDismissed: (_) async {
+                                      await supabase.from('messages').update({
+                                        'deleted_for_furrent': true
+                                      }).eq('conversation_id', item['id']);
                                       await supabase
                                           .from('conversations')
                                           .update({
-                                        if (isFurrent)
-                                          'unread_count_furrent': 0
-                                        else
-                                          'unread_count_pawtner': 0,
+                                        'hidden_for_furrent': true,
+                                        'furrent_cleared_at':
+                                            DateTime.now().toIso8601String(),
                                       }).eq('id', item['id']);
+                                      setState(() => chats.removeWhere(
+                                          (c) => c['id'] == item['id']));
 
-                                      setState(() {
-                                        unreadChatsCount = (unreadChatsCount -
-                                                unreadCount.toInt())
-                                            .clamp(0, 999)
-                                            .toInt();
-                                      });
-                                      _updateAppBadge();
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: customText(
+                                              'Chat has been deleted',
+                                              color: const Color(0xFF6E4B3A),
+                                            ),
+                                            backgroundColor:
+                                                const Color(0xFFDDC7A9),
+                                            duration:
+                                                const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    background: Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFF3B30),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      alignment: Alignment.centerRight,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20),
+                                      child: const Icon(Icons.delete,
+                                          color: Colors.white, size: 30),
+                                    ),
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        final currentUserId =
+                                            supabase.auth.currentUser?.id;
+                                        final isFurrent =
+                                            item['furrent_id'] == currentUserId;
+
+                                        await supabase
+                                            .from('conversations')
+                                            .update({
+                                          if (isFurrent)
+                                            'unread_count_furrent': 0
+                                          else
+                                            'unread_count_pawtner': 0,
+                                        }).eq('id', item['id']);
+
+                                        setState(() {
+                                          unreadChatsCount = (unreadChatsCount -
+                                                  unreadCount.toInt())
+                                              .clamp(0, 999)
+                                              .toInt();
+                                        });
+                                        _updateAppBadge();
+
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ChatScreen(
+                                              conversationId: item['id'],
+                                              otherUserId: pawtner['id'] ?? '',
+                                              otherUserName: displayName,
+                                              otherUserAvatar: profilePic,
+                                              currentUserType: 'furrent',
+                                              isDeletedAccount:
+                                                  isDeletedAccount,
+                                            ),
+                                          ),
+                                        ).then((_) => _loadData());
+                                      },
+                                      child: Container(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFFFFFF),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                                color: Color(0x1F000000),
+                                                blurRadius: 4,
+                                                offset: Offset(0, 2))
+                                          ],
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 24,
+                                              backgroundColor:
+                                                  const Color(0xFF6E4B3A),
+                                              backgroundImage:
+                                                  profilePic.isNotEmpty
+                                                      ? NetworkImage(profilePic)
+                                                      : null,
+                                              child: profilePic.isEmpty
+                                                  ? const Icon(
+                                                      Icons.person,
+                                                      size: 24,
+                                                      color: Color(0xFFDDC7A9),
+                                                    )
+                                                  : null,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    displayName,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: GoogleFonts.dosis(
+                                                      fontSize: 18,
+                                                      fontWeight: isUnread
+                                                          ? FontWeight.w800
+                                                          : FontWeight.w600,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    lastMessageText,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: GoogleFonts.dosis(
+                                                      fontSize: 16,
+                                                      fontWeight: isUnread
+                                                          ? FontWeight.w700
+                                                          : FontWeight.w500,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  formattedDate,
+                                                  style: GoogleFonts.dosis(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color:
+                                                        const Color(0xFF6E4B3A),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                if (unreadCount > 0)
+                                                  Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20),
+                                                    ),
+                                                    child: Text(
+                                                      unreadCount.toString(),
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  )
+                                                else
+                                                  const SizedBox(),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  final type = item['type'] ?? '';
+                                  final isReadNotif = item['is_read'] == true;
+
+                                  IconData notifIcon;
+                                  Color notifColor;
+
+                                  final title = item['title'] ?? '';
+
+                                  final createdAt = item['created_at'] != null
+                                      ? DateTime.parse(item['created_at'])
+                                          .toLocal()
+                                      : null;
+
+                                  String formattedDate = '';
+
+                                  if (createdAt != null) {
+                                    final now = DateTime.now();
+
+                                    if (createdAt.year == now.year &&
+                                        createdAt.month == now.month &&
+                                        createdAt.day == now.day) {
+                                      formattedDate =
+                                          formatTime12Hour(createdAt);
+                                    } else {
+                                      formattedDate =
+                                          "${createdAt.month}/${createdAt.day}/${createdAt.year.toString().substring(2)}";
+                                    }
+                                  }
+
+                                  if (title == 'Booking Confirmed') {
+                                    notifIcon = Icons.check_circle;
+                                    notifColor = const Color(0xFF34C759);
+                                  } else if (title == 'Booking Cancelled') {
+                                    notifIcon = Icons.cancel;
+                                    notifColor = const Color(0xFFFF3B30);
+                                  } else if (title == 'Booking Completed') {
+                                    notifIcon = Icons.task_alt;
+                                    notifColor = const Color(0xFF6E4B3A);
+                                  } else if (title == 'Booking Missed') {
+                                    notifIcon = Icons.event_busy;
+                                    notifColor = const Color(0xFFFF9500);
+                                  } else if (type == 'reminder') {
+                                    notifIcon = Icons.alarm;
+                                    notifColor = const Color(0xFFFF9500);
+                                  } else if (type == 'promo') {
+                                    notifIcon = Icons.local_offer;
+                                    notifColor = const Color(0xFF34C759);
+                                  } else {
+                                    notifIcon = Icons.campaign;
+                                    notifColor = const Color(0xFF007AFF);
+                                  }
+
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      if (!isReadNotif) {
+                                        await supabase
+                                            .from('notifications')
+                                            .update({'is_read': true}).eq(
+                                                'id', item['id']);
+                                        setState(() {
+                                          item['is_read'] = true;
+                                          unreadNotificationsCount =
+                                              (unreadNotificationsCount - 1)
+                                                  .clamp(0, 999);
+                                        });
+                                        _updateAppBadge();
+                                      }
+
+                                      final bookingId = item['booking_id'];
+                                      if (bookingId == null) return;
+
+                                      final booking = await supabase
+                                          .from('bookings')
+                                          .select(
+                                              '*, pets(*), furrents(*), services(*), pawtners(*)')
+                                          .eq('id', bookingId)
+                                          .maybeSingle();
+
+                                      if (booking == null || !context.mounted) {
+                                        return;
+                                      }
 
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => ChatScreen(
-                                            conversationId: item['id'],
-                                            otherUserId: pawtner['id'] ?? '',
-                                            otherUserName: displayName,
-                                            otherUserAvatar: profilePic,
-                                            currentUserType: 'furrent',
-                                            isDeletedAccount: isDeletedAccount,
+                                          builder: (_) =>
+                                              FurrentBookingDetailsScreen(
+                                            booking: Map<String, dynamic>.from(
+                                                booking),
                                           ),
                                         ),
-                                      ).then((_) => _loadData());
+                                      );
                                     },
                                     child: Container(
                                       margin: const EdgeInsets.only(bottom: 12),
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFFFFF),
+                                        color: isReadNotif
+                                            ? const Color(0xFFFFFFFF)
+                                            : notifColor.withOpacity(0.07),
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: const [
                                           BoxShadow(
@@ -587,325 +817,116 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          CircleAvatar(
-                                            radius: 24,
-                                            backgroundColor:
-                                                const Color(0xFF6E4B3A),
-                                            backgroundImage:
-                                                profilePic.isNotEmpty
-                                                    ? NetworkImage(profilePic)
-                                                    : null,
-                                            child: profilePic.isEmpty
-                                                ? const Icon(
-                                                    Icons.person,
-                                                    size: 24,
-                                                    color: Color(0xFFDDC7A9),
-                                                  )
-                                                : null,
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  notifColor.withOpacity(0.15),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(notifIcon,
+                                                color: notifColor, size: 20),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
                                               children: [
-                                                Text(
-                                                  displayName,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: GoogleFonts.dosis(
-                                                    fontSize: 17,
-                                                    fontWeight: isUnread
-                                                        ? FontWeight.w800
-                                                        : FontWeight.w600,
-                                                    color:
-                                                        const Color(0xFF6E4B3A),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  lastMessageText,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: GoogleFonts.dosis(
-                                                    fontSize: 15,
-                                                    fontWeight: isUnread
-                                                        ? FontWeight.w700
-                                                        : FontWeight.w500,
-                                                    color:
-                                                        const Color(0xFF6E4B3A),
-                                                  ),
+                                                Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Expanded(
+                                                        child: customText(
+                                                          item['title'] ?? '',
+                                                          fontWeight:
+                                                              isReadNotif
+                                                                  ? FontWeight
+                                                                      .w600
+                                                                  : FontWeight
+                                                                      .w800,
+                                                          color: const Color(
+                                                              0xFF6E4B3A),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      customText(
+                                                        formattedDate,
+                                                        fontSize: 12,
+                                                        color: const Color(
+                                                            0xFF6E4B3A),
+                                                      ),
+                                                      if (!isReadNotif) ...[
+                                                        const SizedBox(
+                                                            width: 6),
+                                                        Container(
+                                                          width: 8,
+                                                          height: 8,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: notifColor,
+                                                            shape:
+                                                                BoxShape.circle,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ]),
+                                                const SizedBox(height: 4),
+                                                customText(
+                                                  item['message'] ?? '',
+                                                  fontSize: 14,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                formattedDate,
-                                                style: GoogleFonts.dosis(
-                                                  fontSize: 12,
-                                                  color:
-                                                      const Color(0xFF6E4B3A),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              if (unreadCount > 0)
-                                                Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.red,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            20),
-                                                  ),
-                                                  child: Text(
-                                                    unreadCount.toString(),
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                )
-                                              else
-                                                const SizedBox(),
-                                            ],
-                                          ),
                                         ],
                                       ),
                                     ),
-                                  ),
-                                );
-                              } else {
-                                final type = item['type'] ?? '';
-                                final isReadNotif = item['is_read'] == true;
-
-                                IconData notifIcon;
-                                Color notifColor;
-
-                                final title = item['title'] ?? '';
-
-                                final createdAt = item['created_at'] != null
-                                    ? DateTime.parse(item['created_at'])
-                                        .toLocal()
-                                    : null;
-
-                                String formattedDate = '';
-
-                                if (createdAt != null) {
-                                  final now = DateTime.now();
-
-                                  if (createdAt.year == now.year &&
-                                      createdAt.month == now.month &&
-                                      createdAt.day == now.day) {
-                                    formattedDate = formatTime12Hour(createdAt);
-                                  } else {
-                                    formattedDate =
-                                        "${createdAt.month}/${createdAt.day}/${createdAt.year.toString().substring(2)}";
-                                  }
+                                  );
                                 }
-
-                                if (title == 'Booking Confirmed') {
-                                  notifIcon = Icons.check_circle;
-                                  notifColor = const Color(0xFF34C759);
-                                } else if (title == 'Booking Cancelled') {
-                                  notifIcon = Icons.cancel;
-                                  notifColor = const Color(0xFFFF3B30);
-                                } else if (title == 'Booking Completed') {
-                                  notifIcon = Icons.task_alt;
-                                  notifColor = const Color(0xFF6E4B3A);
-                                } else if (title == 'Booking Missed') {
-                                  notifIcon = Icons.event_busy;
-                                  notifColor = const Color(0xFFFF9500);
-                                } else if (type == 'reminder') {
-                                  notifIcon = Icons.alarm;
-                                  notifColor = const Color(0xFFFF9500);
-                                } else if (type == 'promo') {
-                                  notifIcon = Icons.local_offer;
-                                  notifColor = const Color(0xFF34C759);
-                                } else {
-                                  notifIcon = Icons.campaign;
-                                  notifColor = const Color(0xFF007AFF);
-                                }
-
-                                return GestureDetector(
-                                  onTap: () async {
-                                    if (!isReadNotif) {
-                                      await supabase
-                                          .from('notifications')
-                                          .update({'is_read': true}).eq(
-                                              'id', item['id']);
-                                      setState(() {
-                                        item['is_read'] = true;
-                                        unreadNotificationsCount =
-                                            (unreadNotificationsCount - 1)
-                                                .clamp(0, 999);
-                                      });
-                                      _updateAppBadge();
-                                    }
-
-                                    final bookingId = item['booking_id'];
-                                    if (bookingId == null) return;
-
-                                    final booking = await supabase
-                                        .from('bookings')
-                                        .select(
-                                            '*, pets(*), furrents(*), services(*), pawtners(*)')
-                                        .eq('id', bookingId)
-                                        .maybeSingle();
-
-                                    if (booking == null || !context.mounted) {
-                                      return;
-                                    }
-
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            FurrentBookingDetailsScreen(
-                                          booking: Map<String, dynamic>.from(
-                                              booking),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isReadNotif
-                                          ? const Color(0xFFFFFFFF)
-                                          : notifColor.withOpacity(0.07),
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                            color: Color(0x1F000000),
-                                            blurRadius: 4,
-                                            offset: Offset(0, 2))
-                                      ],
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          width: 40,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            color: notifColor.withOpacity(0.15),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(notifIcon,
-                                              color: notifColor, size: 20),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Expanded(
-                                                      child: customText(
-                                                        item['title'] ?? '',
-                                                        fontWeight: isReadNotif
-                                                            ? FontWeight.w600
-                                                            : FontWeight.w800,
-                                                        color: const Color(
-                                                            0xFF6E4B3A),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    customText(
-                                                      formattedDate,
-                                                      fontSize: 12,
-                                                      color: const Color(
-                                                          0xFF6E4B3A),
-                                                    ),
-                                                    if (!isReadNotif) ...[
-                                                      const SizedBox(width: 6),
-                                                      Container(
-                                                        width: 8,
-                                                        height: 8,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: notifColor,
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ]),
-                                              const SizedBox(height: 4),
-                                              customText(
-                                                item['message'] ?? '',
-                                                fontSize: 14,
-                                                color: const Color(0xFF6E4B3A),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                  ),
-                ],
-              ),
-        floatingActionButton: selectedTabIndex == 0
-            ? Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6E4B3A),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                              },
+                            ),
                     ),
                   ],
                 ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.add,
-                    color: Color(0xFFDDC7A9),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const NewChatScreen(currentUserType: "furrent"),
+          floatingActionButton: selectedTabIndex == 0
+              ? Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6E4B3A),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                    ).then((_) => _loadData());
-                  },
-                ),
-              )
-            : null,
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.add,
+                      color: Color(0xFFDDC7A9),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const NewChatScreen(currentUserType: "furrent"),
+                        ),
+                      ).then((_) => _loadData());
+                    },
+                  ),
+                )
+              : null,
+        ),
       ),
     );
   }

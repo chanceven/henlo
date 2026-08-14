@@ -142,6 +142,24 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
+
+        if (bytes.length > 3 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                content: Text(
+                  'Image must be smaller than 3MB',
+                  style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
+                ),
+                backgroundColor: const Color(0xFFDDC7A9),
+              ),
+            );
+          }
+          return;
+        }
+
         final userId = supabase.auth.currentUser!.id;
         final filePath = '$userId/profile.png';
 

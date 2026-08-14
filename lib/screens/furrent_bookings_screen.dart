@@ -411,7 +411,7 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                 child: Container(
                                   margin:
                                       const EdgeInsets.symmetric(vertical: 4),
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFFFFFF),
                                     borderRadius: BorderRadius.circular(12),
@@ -464,9 +464,9 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                 Text(
                                                   serviceType,
                                                   style: GoogleFonts.dosis(
-                                                      fontSize: 16,
+                                                      fontSize: 18,
                                                       fontWeight:
-                                                          FontWeight.w600,
+                                                          FontWeight.w700,
                                                       color: const Color(
                                                           0xFF6E4B3A)),
                                                 ),
@@ -512,25 +512,25 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                   ),
                                               ],
                                             ),
-                                            const SizedBox(height: 2),
+                                            const SizedBox(height: 5),
                                             Text(
                                               businessName,
                                               style: GoogleFonts.dosis(
-                                                  fontSize: 14,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w500,
                                                   color:
                                                       const Color(0xFF6E4B3A)),
                                             ),
-                                            const SizedBox(height: 2),
+                                            const SizedBox(height: 5),
                                             Text(
                                               'Pet: ${pet?['name'] ?? ''}',
                                               style: GoogleFonts.dosis(
-                                                  fontSize: 14,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w500,
                                                   color:
                                                       const Color(0xFF6E4B3A)),
                                             ),
-                                            const SizedBox(height: 2),
+                                            const SizedBox(height: 5),
                                             Text(
                                               formattedDate,
                                               style: GoogleFonts.dosis(

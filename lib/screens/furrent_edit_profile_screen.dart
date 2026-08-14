@@ -164,6 +164,14 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
+
+        if (bytes.length > 3 * 1024 * 1024) {
+          if (mounted) {
+            _showToast('Image must be smaller than 3MB');
+          }
+          return;
+        }
+
         setState(() => _profileImageBytes = bytes);
       }
     } catch (e) {

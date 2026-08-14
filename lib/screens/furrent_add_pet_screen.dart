@@ -177,6 +177,14 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
+
+        if (bytes.length > 3 * 1024 * 1024) {
+          if (mounted) {
+            _showToast('Image must be smaller than 3MB');
+          }
+          return;
+        }
+
         setState(() => _petImageBytes = bytes);
       }
     } catch (e) {

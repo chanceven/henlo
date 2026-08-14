@@ -197,6 +197,14 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
           source: source, maxWidth: 800, maxHeight: 800, imageQuality: 80);
       if (image != null) {
         final bytes = await image.readAsBytes();
+
+        if (bytes.length > 3 * 1024 * 1024) {
+          if (mounted) {
+            _showToast('Image must be smaller than 3MB');
+          }
+          return;
+        }
+
         setState(() => _petImageBytes = bytes);
       }
     } catch (e) {

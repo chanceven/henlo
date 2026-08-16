@@ -195,14 +195,17 @@ class OnboardingScreen extends StatelessWidget {
                         MaterialPageRoute(builder: (_) => const SignInScreen()),
                       );
                     },
-                    child: Text(
-                      "Sign In",
-                      style: GoogleFonts.dosis(
-                        textStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF6E4B3A),
-                          decoration: TextDecoration.underline,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        "Sign In",
+                        style: GoogleFonts.dosis(
+                          textStyle: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF6E4B3A),
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ),

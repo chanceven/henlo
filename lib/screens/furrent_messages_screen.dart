@@ -628,7 +628,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     style: GoogleFonts.dosis(
-                                                      fontSize: 18,
+                                                      fontSize: 17,
                                                       fontWeight: isUnread
                                                           ? FontWeight.w800
                                                           : FontWeight.w600,
@@ -636,14 +636,14 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                           0xFF6E4B3A),
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 4),
+                                                  const SizedBox(height: 6),
                                                   Text(
                                                     lastMessageText,
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     style: GoogleFonts.dosis(
-                                                      fontSize: 16,
+                                                      fontSize: 15,
                                                       fontWeight: isUnread
                                                           ? FontWeight.w700
                                                           : FontWeight.w500,
@@ -842,6 +842,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                       Expanded(
                                                         child: customText(
                                                           item['title'] ?? '',
+                                                          fontSize: 15,
                                                           fontWeight:
                                                               isReadNotif
                                                                   ? FontWeight
@@ -855,7 +856,9 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                       const SizedBox(width: 8),
                                                       customText(
                                                         formattedDate,
-                                                        fontSize: 12,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                         color: const Color(
                                                             0xFF6E4B3A),
                                                       ),
@@ -878,6 +881,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                 customText(
                                                   item['message'] ?? '',
                                                   fontSize: 14,
+                                                  fontWeight: FontWeight.w400,
                                                   color:
                                                       const Color(0xFF6E4B3A),
                                                 ),

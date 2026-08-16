@@ -721,21 +721,21 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
                               locationText,
                               style: GoogleFonts.dosis(
-                                  fontSize: 14, color: const Color(0xFF6E4B3A)),
+                                  fontSize: 15, color: const Color(0xFF6E4B3A)),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             if (selectedTab == 'All')
                               Text(
                                 subtype,
                                 style: GoogleFonts.dosis(
-                                    fontSize: 14,
+                                    fontSize: 15,
                                     color: const Color(0xFF6E4B3A)),
                               ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             if (showMiniCards)
                               ...matchingServices
                                   .where((s) => (s['service_name'] ?? '')

@@ -258,8 +258,8 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ),
                     AnimatedPositioned(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
                       left: 0,
                       right: 0,
                       top: MediaQuery.of(context).viewInsets.bottom > 0
@@ -276,8 +276,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                         ),
                         child: AnimatedPadding(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
                           padding: const EdgeInsets.fromLTRB(24, 56, 24, 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -425,7 +425,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           );
                         },
                         style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 8),
                           minimumSize: const Size(0, 0),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),

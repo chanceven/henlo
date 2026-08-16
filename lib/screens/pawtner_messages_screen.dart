@@ -569,9 +569,11 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                       ? NetworkImage(profilePic)
                                                       : null,
                                               child: profilePic.isEmpty
-                                                  ? const Icon(Icons.person,
+                                                  ? const Icon(
+                                                      Icons.person,
                                                       size: 24,
-                                                      color: Color(0xFF6E4B3A))
+                                                      color: Color(0xFF6E4B3A),
+                                                    )
                                                   : null,
                                             ),
                                             const SizedBox(width: 12),
@@ -579,94 +581,88 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                               child: Column(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      customText(
-                                                        displayName,
-                                                        fontSize: 18,
-                                                        fontWeight: isUnread
-                                                            ? FontWeight.w800
-                                                            : FontWeight.w600,
-                                                        color: const Color(
-                                                            0xFF6E4B3A),
-                                                      ),
-                                                      customText(
-                                                        formattedDate,
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: const Color(
-                                                            0xFF6E4B3A),
-                                                      ),
-                                                    ],
+                                                  Text(
+                                                    displayName,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: GoogleFonts.dosis(
+                                                      fontSize: 17,
+                                                      fontWeight: isUnread
+                                                          ? FontWeight.w800
+                                                          : FontWeight.w600,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
                                                   ),
-                                                  const SizedBox(height: 4),
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Expanded(
-                                                        child: Text(
-                                                          lastMessageText,
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style:
-                                                              GoogleFonts.dosis(
-                                                            fontSize: 16,
-                                                            fontWeight: isUnread
-                                                                ? FontWeight
-                                                                    .w700
-                                                                : FontWeight
-                                                                    .w500,
-                                                            color: const Color(
-                                                                0xFF6E4B3A),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      if (unreadCount > 0)
-                                                        Container(
-                                                          margin:
-                                                              const EdgeInsets
-                                                                  .only(
-                                                                  left: 4),
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                                  horizontal: 6,
-                                                                  vertical: 2),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: Colors.red,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        20),
-                                                          ),
-                                                          child: Text(
-                                                            unreadCount
-                                                                .toInt()
-                                                                .toString(),
-                                                            style: GoogleFonts
-                                                                .dosis(
-                                                              color: const Color(
-                                                                  0xFFFFFFFF),
-                                                              fontSize: 11,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                    ],
+                                                  const SizedBox(height: 6),
+                                                  Text(
+                                                    lastMessageText,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: GoogleFonts.dosis(
+                                                      fontSize: 15,
+                                                      fontWeight: isUnread
+                                                          ? FontWeight.w700
+                                                          : FontWeight.w500,
+                                                      color: const Color(
+                                                          0xFF6E4B3A),
+                                                    ),
                                                   ),
                                                 ],
                                               ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  formattedDate,
+                                                  style: GoogleFonts.dosis(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color:
+                                                        const Color(0xFF6E4B3A),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                if (unreadCount > 0)
+                                                  Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20),
+                                                    ),
+                                                    child: Text(
+                                                      unreadCount
+                                                          .toInt()
+                                                          .toString(),
+                                                      style: GoogleFonts.dosis(
+                                                        color: const Color(
+                                                            0xFFFFFFFF),
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  )
+                                                else
+                                                  const SizedBox(),
+                                              ],
                                             ),
                                           ],
                                         ),
@@ -804,6 +800,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                       Expanded(
                                                         child: customText(
                                                           item['title'] ?? '',
+                                                          fontSize: 15,
                                                           fontWeight:
                                                               isReadNotif
                                                                   ? FontWeight
@@ -817,7 +814,9 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                       const SizedBox(width: 8),
                                                       customText(
                                                         formattedDate,
-                                                        fontSize: 12,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                         color: const Color(
                                                             0xFF6E4B3A),
                                                       ),
@@ -840,6 +839,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                 customText(
                                                   item['message'] ?? '',
                                                   fontSize: 14,
+                                                  fontWeight: FontWeight.w400,
                                                   color:
                                                       const Color(0xFF6E4B3A),
                                                 ),

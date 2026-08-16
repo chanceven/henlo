@@ -515,13 +515,16 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pushNamed(context, '/sign_in'),
-                      child: Text(
-                        "Sign In",
-                        style: GoogleFonts.dosis(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF6E4B3A),
-                          decoration: TextDecoration.underline,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          "Sign In",
+                          style: GoogleFonts.dosis(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF6E4B3A),
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ),

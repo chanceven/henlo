@@ -439,7 +439,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                     child: Text(
                       serviceName,
                       style: GoogleFonts.dosis(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF6E4B3A),
                       ),
@@ -449,7 +449,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                     child: Text(
                       '₱$price',
                       style: GoogleFonts.dosis(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF6E4B3A),
                       ).copyWith(fontFamilyFallback: const ['Roboto', 'Arial']),
@@ -461,7 +461,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
               Text(
                 description,
                 style: GoogleFonts.dosis(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w400,
                   color: const Color(0xFF6E4B3A),
                 ),
@@ -473,7 +473,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                     child: Text(
                       'Duration: $durationText',
                       style: GoogleFonts.dosis(
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFF6E4B3A),
                       ),

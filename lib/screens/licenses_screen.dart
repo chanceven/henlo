@@ -28,28 +28,36 @@ class _LicensesScreenState extends State<LicensesScreen> {
   }
 
   Future<void> _load() async {
-    final Map<String, StringBuffer> grouped = {};
+    try {
+      final Map<String, StringBuffer> grouped = {};
 
-    await for (final license in LicenseRegistry.licenses) {
-      final text = license.paragraphs.map((e) => e.text).join('\n');
-      for (final pkg in license.packages) {
-        grouped.putIfAbsent(pkg, () => StringBuffer());
-        grouped[pkg]!.writeln(text);
-        grouped[pkg]!.writeln();
+      await for (final license in LicenseRegistry.licenses) {
+        final text = license.paragraphs.map((e) => e.text).join('\n');
+        for (final pkg in license.packages) {
+          grouped.putIfAbsent(pkg, () => StringBuffer());
+          grouped[pkg]!.writeln(text);
+          grouped[pkg]!.writeln();
+        }
       }
+
+      final items = grouped.entries
+          .map((e) => _PackageLicense(e.key, e.value.toString().trim()))
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+      if (!mounted) return;
+      setState(() {
+        _all = items;
+        _filtered = items;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading licenses: $e');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
     }
-
-    final items = grouped.entries
-        .map((e) => _PackageLicense(e.key, e.value.toString().trim()))
-        .toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
-    if (!mounted) return;
-    setState(() {
-      _all = items;
-      _filtered = items;
-      _loading = false;
-    });
   }
 
   void _filter(String value) {

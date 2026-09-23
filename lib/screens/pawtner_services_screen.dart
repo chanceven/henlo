@@ -44,11 +44,13 @@ class _PawtnerServicesScreenState extends State<PawtnerServicesScreen> {
           .eq('id', user.id)
           .maybeSingle();
 
+      if (!mounted) return;
       setState(() {
         pawtnerData = pawtner;
         isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -59,7 +61,7 @@ class _PawtnerServicesScreenState extends State<PawtnerServicesScreen> {
   }
 
   bool isServiceActive(String serviceType) {
-    final typeOfServiceRaw = pawtnerData?['service_type'];
+    final typeOfServiceRaw = pawtnerData?['service_type']?.toString();
     if (typeOfServiceRaw == null || typeOfServiceRaw.trim().isEmpty) {
       return false;
     }
@@ -71,7 +73,7 @@ class _PawtnerServicesScreenState extends State<PawtnerServicesScreen> {
   }
 
   Color _serviceButtonColor(bool active) =>
-      active ? const Color(0xFFDDC7A9) : const Color(0xFFCCCCCC);
+      active ? const Color(0xFF6E4B3A) : const Color(0xFFCCCCCC);
 
   IconData _iconForService(String serviceType) {
     switch (serviceType.toLowerCase()) {
@@ -139,7 +141,7 @@ class _PawtnerServicesScreenState extends State<PawtnerServicesScreen> {
             ),
             child: Center(
               child: Icon(icon,
-                  color: active ? const Color(0xFF6E4B3A) : Colors.white,
+                  color: active ? const Color(0xFFDDC7A9) : Colors.white,
                   size: 40),
             ),
           ),

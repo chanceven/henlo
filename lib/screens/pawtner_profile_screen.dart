@@ -7,8 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'signin_screen.dart';
 import 'pawtner_edit_profile_screen.dart';
 import 'pawtner_services_screen.dart';
-import 'pawtner_support_screen.dart';
+import 'support_screen.dart';
 import 'settings_screen.dart';
+import 'account_screen.dart';
 
 class PawtnerProfileScreen extends StatefulWidget {
   final VoidCallback? onProfileUpdated; // <-- NEW
@@ -43,6 +44,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
           .eq('id', user.id)
           .maybeSingle();
 
+      if (!mounted) return;
       setState(() {
         pawtnerData = resp;
         isLoading = false;
@@ -106,12 +108,14 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
       if (choice == null) return;
 
       if (choice == 'remove') {
-        final userId = supabase.auth.currentUser!.id;
-        await supabase
-            .from('pawtners')
-            .update({'profile_picture_url': null}).eq('id', userId);
-        setState(() => pawtnerData?['profile_picture_url'] = null);
-        if (mounted) {
+        final userId = supabase.auth.currentUser?.id;
+        if (userId == null) return;
+        try {
+          await supabase
+              .from('pawtners')
+              .update({'profile_picture_url': null}).eq('id', userId);
+          if (!mounted) return;
+          setState(() => pawtnerData?['profile_picture_url'] = null);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
@@ -125,8 +129,22 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
               backgroundColor: const Color(0xFFDDC7A9),
             ),
           );
+          if (widget.onProfileUpdated != null) widget.onProfileUpdated!();
+        } catch (e) {
+          debugPrint('Error removing profile picture: $e');
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              content: Text(
+                'Failed to remove profile picture. Please try again.',
+                style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
+              ),
+              backgroundColor: const Color(0xFFDDC7A9),
+            ),
+          );
         }
-        if (widget.onProfileUpdated != null) widget.onProfileUpdated!();
         return;
       }
 
@@ -160,35 +178,72 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
           return;
         }
 
-        final userId = supabase.auth.currentUser!.id;
-        final filePath = '$userId/profile.png';
+        final userId = supabase.auth.currentUser?.id;
+        if (userId == null) return;
+        final ext = image.path.split('.').last.toLowerCase();
+        final contentType = ext == 'png' ? 'image/png' : 'image/jpeg';
+        final filePath = '$userId/profile.$ext';
 
-        // Upload to Supabase Storage
-        await supabase.storage.from('profile_pictures').uploadBinary(
-              filePath,
-              bytes,
-              fileOptions:
-                  const FileOptions(cacheControl: '3600', upsert: true),
-            );
+        // If an old photo exists at a different extension/path, delete it
+        // first so it doesn't get orphaned in storage.
+        final oldUrl = pawtnerData?['profile_picture_url'] as String?;
+        if (oldUrl != null && oldUrl.isNotEmpty) {
+          const marker = '/profile_pictures/';
+          final markerIndex = oldUrl.indexOf(marker);
+          if (markerIndex != -1) {
+            final oldPath = oldUrl.substring(markerIndex + marker.length);
+            if (oldPath != filePath) {
+              try {
+                await supabase.storage
+                    .from('profile_pictures')
+                    .remove([oldPath]);
+              } catch (e) {
+                debugPrint('Error deleting old profile photo: $e');
+              }
+            }
+          }
+        }
 
-        // Get public URL
-        final publicUrl =
-            supabase.storage.from('profile_pictures').getPublicUrl(filePath);
-        debugPrint('URL: $publicUrl');
+        try {
+          await supabase.storage.from('profile_pictures').uploadBinary(
+                filePath,
+                bytes,
+                fileOptions: FileOptions(
+                    cacheControl: '3600',
+                    upsert: true,
+                    contentType: contentType),
+              );
 
-        // Update Pawtner table
-        await supabase
-            .from('pawtners')
-            .update({'profile_picture_url': publicUrl}).eq('id', userId);
+          final publicUrl =
+              supabase.storage.from('profile_pictures').getPublicUrl(filePath);
 
-        setState(() {
-          profileImageBytes = bytes;
-          pawtnerData?['profile_picture_url'] = publicUrl;
-        });
+          await supabase
+              .from('pawtners')
+              .update({'profile_picture_url': publicUrl}).eq('id', userId);
 
-        // Trigger callback to dashboard
-        if (widget.onProfileUpdated != null) {
-          widget.onProfileUpdated!();
+          if (!mounted) return;
+          setState(() {
+            profileImageBytes = bytes;
+            pawtnerData?['profile_picture_url'] = publicUrl;
+          });
+
+          if (widget.onProfileUpdated != null) {
+            widget.onProfileUpdated!();
+          }
+        } catch (e) {
+          debugPrint('Error uploading profile picture: $e');
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              content: Text(
+                'Failed to upload profile picture. Please try again.',
+                style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
+              ),
+              backgroundColor: const Color(0xFFDDC7A9),
+            ),
+          );
         }
       }
     } catch (e) {
@@ -274,7 +329,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                         backgroundColor:
                             pawtnerData?['profile_picture_url'] != null
                                 ? Colors.transparent
-                                : const Color(0xFFDDC7A9),
+                                : const Color(0xFF6E4B3A),
                         backgroundImage: pawtnerData?['profile_picture_url'] !=
                                 null
                             ? NetworkImage(
@@ -282,19 +337,26 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                             : null,
                         child: pawtnerData?['profile_picture_url'] == null
                             ? const Icon(Icons.person,
-                                size: 75, color: Color(0xFF6E4B3A))
+                                size: 75, color: Color(0xFFDDC7A9))
                             : null,
                       ),
-                      GestureDetector(
-                        onTap: _pickProfileImage,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF6E4B3A),
-                            shape: BoxShape.circle,
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: GestureDetector(
+                          onTap: _pickProfileImage,
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFDDC7A9),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Color(0xFF6E4B3A),
+                              size: 16,
+                            ),
                           ),
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(Icons.camera_alt,
-                              color: Color(0xFFDDC7A9), size: 20),
                         ),
                       ),
                     ],
@@ -305,7 +367,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                   const SizedBox(height: 4),
                   customText(pawtnerData?['email'] ?? '',
                       fontSize: 16, fontWeight: FontWeight.w400),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   // EDIT PROFILE
                   _buildCard(
@@ -320,10 +382,10 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                           builder: (_) => PawtnerEditProfileScreen(
                             pawtnerData: pawtnerData!,
                             onProfileUpdated: (updated) {
+                              if (!mounted) return;
                               setState(() {
                                 pawtnerData = updated;
                               });
-                              // Trigger callback to dashboard
                               if (widget.onProfileUpdated != null) {
                                 widget.onProfileUpdated!();
                               }
@@ -332,7 +394,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                         ),
                       );
 
-                      // Refresh profile after returning from edit
+                      if (!mounted) return;
                       await _loadProfile();
                     },
                   ),
@@ -346,6 +408,19 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const PawtnerServicesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildCard(
+                    icon: Icons.manage_accounts_outlined,
+                    label: 'Account',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AccountScreen(),
                         ),
                       );
                     },
@@ -371,7 +446,9 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const PawtnerSupportScreen(),
+                          builder: (_) => const SupportScreen(
+                            userType: 'pawtner',
+                          ),
                         ),
                       );
                     },
@@ -380,8 +457,72 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                   _buildCard(
                     icon: Icons.logout,
                     label: 'Logout',
-                    onTap: () {
-                      supabase.auth.signOut();
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Are you sure you want to log out?',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.dosis(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: const Color(0xFF6E4B3A),
+                                ),
+                              ),
+                            ],
+                          ),
+                          actionsAlignment: MainAxisAlignment.center,
+                          actions: [
+                            SizedBox(
+                              width: 120,
+                              height: 40,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6E4B3A)),
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(
+                                  'Cancel',
+                                  style: GoogleFonts.dosis(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: const Color(0xFFDDC7A9)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              width: 120,
+                              height: 40,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF8B0000)),
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(
+                                  'Logout',
+                                  style: GoogleFonts.dosis(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: const Color(0xFFF8F8F8)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed != true) return;
+                      if (!context.mounted) return;
+
+                      try {
+                        await supabase.auth.signOut();
+                      } catch (e) {
+                        debugPrint('Error signing out: $e');
+                      }
+                      if (!context.mounted) return;
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const SignInScreen()),

@@ -3,40 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
-import 'signin_screen.dart';
+import 'reset_password_screen.dart';
 
-class OtpScreen extends StatefulWidget {
+class PasswordResetCodeScreen extends StatefulWidget {
   final String email;
-  final String name;
-  final String contact;
-  final String? businessName;
-  final String? location;
-  final String? typeOfService;
-  final String? businessType;
-  final String? availableAreas;
 
-  const OtpScreen({
-    super.key,
-    required this.email,
-    required this.name,
-    required this.contact,
-    this.businessName,
-    this.location,
-    this.typeOfService,
-    this.businessType,
-    this.availableAreas,
-  });
+  const PasswordResetCodeScreen({super.key, required this.email});
 
   @override
-  State<OtpScreen> createState() => _OtpScreenState();
+  State<PasswordResetCodeScreen> createState() =>
+      _PasswordResetCodeScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> {
+class _PasswordResetCodeScreenState extends State<PasswordResetCodeScreen> {
   final _otpController = TextEditingController();
   final _otpFocusNode = FocusNode();
   bool _isLoading = false;
   bool _isResending = false;
-  bool _isVerified = false;
 
   int _secondsRemaining = 300; // 5 minutes
   Timer? _timer;
@@ -74,14 +57,11 @@ class _OtpScreenState extends State<OtpScreen> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  Future<void> _resendOtp() async {
+  Future<void> _resendCode() async {
     if (!_canResend) return;
     setState(() => _isResending = true);
     try {
-      await Supabase.instance.client.auth.resend(
-        type: OtpType.signup,
-        email: widget.email,
-      );
+      await Supabase.instance.client.auth.resetPasswordForEmail(widget.email);
       _otpController.clear();
       _startTimer();
       if (!mounted) return;
@@ -91,7 +71,7 @@ class _OtpScreenState extends State<OtpScreen> {
               style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
           backgroundColor: const Color(0xFF6E4B3A),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 140),
         ),
       );
     } catch (e) {
@@ -102,7 +82,7 @@ class _OtpScreenState extends State<OtpScreen> {
               style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
           backgroundColor: const Color(0xFF6E4B3A),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 140),
         ),
       );
     } finally {
@@ -110,113 +90,43 @@ class _OtpScreenState extends State<OtpScreen> {
     }
   }
 
-  Future<void> _verifyOtp() async {
-    if (!_isVerified) {
-      if (_otpController.text.trim().length != 6) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Please enter the 6-digit OTP.",
-                style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
-            backgroundColor: const Color(0xFF6E4B3A),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          ),
-        );
-        return;
-      }
+  Future<void> _verifyCode() async {
+    if (_otpController.text.trim().length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Please enter the 6-digit code.",
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+        ),
+      );
+      return;
     }
 
     setState(() => _isLoading = true);
 
-    if (!_isVerified) {
-      try {
-        await Supabase.instance.client.auth.verifyOTP(
-          email: widget.email,
-          token: _otpController.text.trim(),
-          type: OtpType.signup,
-        );
-        _isVerified = true;
-      } catch (e) {
-        if (!mounted) return;
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Invalid or expired OTP. Please try again.",
-                style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
-            backgroundColor: const Color(0xFF6E4B3A),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          ),
-        );
-        return;
-      }
-    }
-
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
-        throw Exception('No authenticated user after OTP verification.');
-      }
-
-      if (widget.businessName != null) {
-        // pawtner
-        await Supabase.instance.client.from('pawtners').upsert({
-          'id': user.id,
-          'full_name': widget.name,
-          'email': widget.email,
-          'contact_number': widget.contact,
-          'business_name': widget.businessName,
-          'business_address': widget.location,
-          'city': null,
-          'location_lat': null,
-          'location_long': null,
-          'service_type': widget.typeOfService,
-          'business_type': widget.businessType,
-          'available_areas': widget.availableAreas,
-          'verified': false,
-          'created_at': DateTime.now().toUtc().toIso8601String(),
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-          'verified_at': null,
-        });
-      } else {
-        // furrent
-        await Supabase.instance.client.from('furrents').upsert({
-          'id': user.id,
-          'full_name': widget.name,
-          'email': widget.email,
-          'contact_number': widget.contact,
-          'created_at': DateTime.now().toUtc().toIso8601String(),
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        });
-      }
-
-      await Supabase.instance.client.auth.signOut();
+      await Supabase.instance.client.auth.verifyOTP(
+        email: widget.email,
+        token: _otpController.text.trim(),
+        type: OtpType.recovery,
+      );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Email verified! Please sign in.",
-              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
-          backgroundColor: const Color(0xFF6E4B3A),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        ),
-      );
-      Navigator.pushAndRemoveUntil(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const SignInScreen()),
-        (route) => false,
+        MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              "Your email was verified, but we couldn't finish setting up your account. Please tap Verify to try again.",
+          content: Text("Invalid or expired code. Please try again.",
               style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
           backgroundColor: const Color(0xFF6E4B3A),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 140),
         ),
       );
     } finally {
@@ -232,35 +142,21 @@ class _OtpScreenState extends State<OtpScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8F8F8),
         elevation: 0,
-        leading: BackButton(
-          color: const Color(0xFF6E4B3A),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const SignInScreen()),
-                (route) => false,
-              );
-            }
-          },
-        ),
+        leading: const BackButton(color: Color(0xFF6E4B3A)),
         title: const SizedBox.shrink(),
         centerTitle: true,
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           child: Stack(
             children: [
-              // Top Content
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 24),
                   Text(
-                    "We've sent a 6-digit\nverification code to",
+                    "Enter the 6-digit code\nwe sent to",
                     textAlign: TextAlign.left,
                     style: GoogleFonts.dosis(
                       fontSize: 20,
@@ -313,7 +209,6 @@ class _OtpScreenState extends State<OtpScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: List.generate(6, (index) {
                             final text = _otpController.text;
-
                             return Container(
                               width: 48,
                               height: 56,
@@ -341,7 +236,6 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                 ],
               ),
-              // Fixed Bottom Controls
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Column(
@@ -359,7 +253,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       )
                     else
                       GestureDetector(
-                        onTap: _isResending ? null : _resendOtp,
+                        onTap: _isResending ? null : _resendCode,
                         child: Text(
                           'Resend code',
                           textAlign: TextAlign.center,
@@ -375,7 +269,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     SizedBox(
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _verifyOtp,
+                        onPressed: _isLoading ? null : _verifyCode,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6E4B3A),
                           foregroundColor: const Color(0xFFDDC7A9),

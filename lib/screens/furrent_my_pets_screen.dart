@@ -31,19 +31,18 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
       final resp =
           await supabase.from('pets').select().eq('furrent_id', user.id);
 
+      if (!mounted) return;
       setState(() {
         pets = resp;
         isLoading = false;
       });
     } catch (e) {
       debugPrint("Error loading pets: $e");
+      if (!mounted) return;
       setState(() => isLoading = false);
     }
   }
 
-  // -----------------------
-  // AGE CALCULATION
-  // -----------------------
   String calculateAge(String? birthDate) {
     if (birthDate == null || birthDate.isEmpty) return "";
 
@@ -70,34 +69,41 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
     return "${years}y ${months}m";
   }
 
-  Future<void> deletePet(String petId) async {
-    try {
-      await supabase.from('pets').delete().eq('id', petId);
+  void _showDeleteToast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+        ),
+        backgroundColor: const Color(0xFF6E4B3A),
+      ),
+    );
+  }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(
-              16,
-              0,
-              16,
-              24,
-            ),
-            content: Text(
-              'Pet deleted successfully',
-              style: GoogleFonts.dosis(
-                color: const Color(0xFFDDC7A9),
-              ),
-            ),
-            backgroundColor: const Color(0xFF6E4B3A),
-          ),
-        );
+  Future<void> deletePet(String petId, String? profilePictureUrl) async {
+    try {
+      if (profilePictureUrl != null && profilePictureUrl.isNotEmpty) {
+        const marker = '/profile_pictures/';
+        final markerIndex = profilePictureUrl.indexOf(marker);
+        if (markerIndex != -1) {
+          final oldPath =
+              profilePictureUrl.substring(markerIndex + marker.length);
+          await supabase.storage.from('profile_pictures').remove([oldPath]);
+        }
       }
 
+      await supabase.from('pets').delete().eq('id', petId);
+
+      _showDeleteToast('Pet deleted successfully');
       _loadPets();
     } catch (e) {
       debugPrint("Delete error: $e");
+      _showDeleteToast('Failed to delete pet. Please try again.');
+      _loadPets();
     }
   }
 
@@ -120,7 +126,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
 
     return Dismissible(
       key: Key(pet['id']),
-      direction: DismissDirection.endToStart, // LEFT ONLY
+      direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
         return await showDialog(
           context: context,
@@ -193,10 +199,8 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
         );
       },
       onDismissed: (direction) async {
-        await deletePet(pet['id']);
+        await deletePet(pet['id'], pet['profile_picture_url']);
       },
-
-      // RED DELETE BACKGROUND HEX
       background: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
@@ -207,10 +211,8 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: const Icon(Icons.delete, color: Color(0xFFFFFFFF), size: 30),
       ),
-
       movementDuration: const Duration(milliseconds: 200),
       resizeDuration: const Duration(milliseconds: 200),
-
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(14),
@@ -227,7 +229,6 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
         ),
         child: Row(
           children: [
-            // PET PHOTO
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: pet['profile_picture_url'] != null
@@ -245,10 +246,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                           color: Color(0xFFDDC7A9), size: 32),
                     ),
             ),
-
             const SizedBox(width: 14),
-
-            // PET INFO
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,8 +274,6 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                 ],
               ),
             ),
-
-            // EDIT BUTTON
             SizedBox(
               width: 100,
               height: 40,

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'contact_us_screen.dart';
-import 'pawtner_faq_screen.dart';
+import 'change_password_screen.dart';
+import 'delete_account_screen.dart';
 
-class PawtnerSupportScreen extends StatelessWidget {
-  const PawtnerSupportScreen({super.key});
+class AccountScreen extends StatelessWidget {
+  const AccountScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class PawtnerSupportScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Support',
+          'Account',
           style: GoogleFonts.dosis(
             fontSize: 24,
             fontWeight: FontWeight.w600,
@@ -30,31 +30,30 @@ class PawtnerSupportScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _supportOption(
+          _accountOption(
             context,
-            icon: Icons.help_outline,
-            title: 'FAQ',
+            icon: Icons.lock_outline,
+            title: 'Change Password',
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const PawtnerFAQScreen(),
+                  builder: (_) => const ChangePasswordScreen(),
                 ),
               );
             },
           ),
-          const SizedBox(height: 8),
-          _supportOption(
+          const SizedBox(height: 24),
+          _accountOption(
             context,
-            icon: Icons.mail_outline,
-            title: 'Contact Us',
+            icon: Icons.delete_forever_outlined,
+            title: 'Delete Account',
+            color: const Color(0xFF8B0000),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const ContactUsScreen(
-                    userType: 'pawtner',
-                  ),
+                  builder: (_) => const DeleteAccountScreen(),
                 ),
               );
             },
@@ -64,10 +63,13 @@ class PawtnerSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _supportOption(BuildContext context,
-      {required IconData icon,
-      required String title,
-      required VoidCallback onTap}) {
+  Widget _accountOption(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color color = const Color(0xFF6E4B3A),
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -79,20 +81,21 @@ class PawtnerSupportScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF6E4B3A)),
+            Icon(icon, color: color),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 title,
                 style: GoogleFonts.dosis(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6E4B3A),
+                  fontWeight: title == 'Delete Account'
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                  color: color,
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                color: Color(0xFF6E4B3A), size: 18),
+            Icon(Icons.arrow_forward_ios, color: color, size: 18),
           ],
         ),
       ),

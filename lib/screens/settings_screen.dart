@@ -4,7 +4,6 @@ import 'app_info_screen.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_and_conditions_screen.dart';
 import 'licenses_screen.dart';
-import 'delete_account_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -84,21 +83,6 @@ class SettingsScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (_) => const LicensesScreen(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          _legalOption(
-            context,
-            icon: Icons.delete_forever_outlined,
-            title: 'Delete Account',
-            color: const Color(0xFF8B0000),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DeleteAccountScreen(),
                 ),
               );
             },

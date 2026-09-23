@@ -49,6 +49,8 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
             ),
           ),
           backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ),
       );
       return;
@@ -79,9 +81,10 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
               style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
             ),
             backgroundColor: const Color(0xFF6E4B3A),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           ),
         );
-
         return;
       }
 
@@ -98,6 +101,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
         ),
       );
     } on AuthException catch (e) {
+      debugPrint('Error signing up: ${e.message}');
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -107,15 +111,20 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
             style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
           ),
           backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ),
       );
     } catch (e) {
+      debugPrint('Error signing up: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Please wait a moment before trying again.",
               style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
           backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ),
       );
     } finally {
@@ -208,6 +217,13 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                               children: [
                                 TextFormField(
                                   controller: _fullNameController,
+                                  textCapitalization: TextCapitalization.words,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your full name';
+                                    }
+                                    return null;
+                                  },
                                   decoration: buildInputDecoration(
                                       'Full Name', Icons.person),
                                   style: GoogleFonts.dosis(
@@ -275,6 +291,9 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: !_isPasswordVisible,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  maxLength: 32,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Please enter your password';
@@ -329,12 +348,15 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
                                 TextFormField(
                                   controller: _confirmPasswordController,
                                   obscureText: !_isConfirmPasswordVisible,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Please confirm your password';
                                     }
 
-                                    if (value != _passwordController.text) {
+                                    if (value.trim() !=
+                                        _passwordController.text.trim()) {
                                       return 'Passwords do not match';
                                     }
 

@@ -45,6 +45,7 @@ class _FurrentPawtnerRatingsScreenState
           rating,
           review_comment,
           reviewed_at,
+          furrent_name,
           services:service_id (
             service_name
           ),
@@ -68,9 +69,11 @@ class _FurrentPawtnerRatingsScreenState
         averageRating = 0.0;
       }
 
+      if (!mounted) return;
       setState(() => isLoading = false);
     } catch (e) {
       debugPrint('Error loading reviews: $e');
+      if (!mounted) return;
       setState(() => isLoading = false);
     }
   }
@@ -192,7 +195,8 @@ class _FurrentPawtnerRatingsScreenState
 
   Widget _buildReviewCard(Map<String, dynamic> review) {
     final reviewer = review['furrents'] as Map<String, dynamic>?;
-    final reviewerName = reviewer?['full_name'] ?? 'Furrent';
+    final reviewerName =
+        reviewer?['full_name'] ?? review['furrent_name'] ?? 'Furrent';
     final rating = review['rating'] ?? 0;
     final comment = review['review_comment'] ?? '';
     final service = review['services'] as Map<String, dynamic>?;
@@ -200,11 +204,6 @@ class _FurrentPawtnerRatingsScreenState
     final createdAt = review['reviewed_at'] != null
         ? DateFormat('d MMM yyyy').format(DateTime.parse(review['reviewed_at']))
         : '';
-
-    final gallery = review['gallery'] as List?;
-    final images = gallery != null && gallery.isNotEmpty
-        ? (gallery.take(6).toList() as List<String>)
-        : [];
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -278,40 +277,6 @@ class _FurrentPawtnerRatingsScreenState
               ),
             ],
           ),
-          if (images.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: images.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 4,
-                crossAxisSpacing: 4,
-              ),
-              itemBuilder: (context, index) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    images[index],
-                    fit: BoxFit.cover,
-                  ),
-                );
-              },
-            ),
-            if ((gallery?.length ?? 0) > 6)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'See All',
-                  style: GoogleFonts.dosis(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6E4B3A),
-                  ),
-                ),
-              ),
-          ],
         ],
       ),
     );
@@ -361,12 +326,23 @@ class _FurrentPawtnerRatingsScreenState
                                   color: const Color(0xFF6E4B3A)),
                             ),
                           )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filteredReviews.length,
-                            itemBuilder: (context, index) =>
-                                _buildReviewCard(filteredReviews[index]),
-                          ),
+                        : filteredReviews.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No reviews with this rating',
+                                  style: GoogleFonts.dosis(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF6E4B3A)),
+                                ),
+                              )
+                            : ListView.builder(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: filteredReviews.length,
+                                itemBuilder: (context, index) =>
+                                    _buildReviewCard(filteredReviews[index]),
+                              ),
                   ),
                 ],
               ),

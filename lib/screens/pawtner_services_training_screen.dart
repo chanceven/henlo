@@ -20,6 +20,7 @@ class _PawtnerServicesTrainingScreenState
 
   List<Map<String, dynamic>> trainingServices = [];
   bool isLoading = true;
+  bool isActionInProgress = false;
 
   @override
   void initState() {
@@ -28,24 +29,38 @@ class _PawtnerServicesTrainingScreenState
   }
 
   Future<void> fetchTrainingServices() async {
+    if (!mounted) return;
     setState(() {
       isLoading = true;
     });
 
     final currentUser = supabase.auth.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      if (mounted) setState(() => isLoading = false);
+      return;
+    }
 
-    final response = await supabase
-        .from('services')
-        .select()
-        .eq('pawtner_id', currentUser.id)
-        .eq('service_type', 'Training')
-        .order('created_at', ascending: false);
+    try {
+      final response = await supabase
+          .from('services')
+          .select()
+          .eq('pawtner_id', currentUser.id)
+          .eq('service_type', 'Training')
+          .order('created_at', ascending: false);
 
-    setState(() {
-      trainingServices = List<Map<String, dynamic>>.from(response);
-      isLoading = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        trainingServices = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching training services: $e');
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load services. Try again.')),
+      );
+    }
   }
 
   Future<void> deleteService(String serviceId) async {
@@ -114,19 +129,33 @@ class _PawtnerServicesTrainingScreenState
     );
 
     if (confirmed == true) {
-      await supabase.from('services').delete().eq('id', serviceId);
-      await supabase
-          .from('service_availability')
-          .delete()
-          .eq('service_id', serviceId);
+      setState(() => isActionInProgress = true);
+      try {
+        await supabase
+            .from('service_availability')
+            .delete()
+            .eq('service_id', serviceId);
+        await supabase.from('services').delete().eq('id', serviceId);
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Service deleted successfully',
-            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-        backgroundColor: const Color(0xFFDDC7A9),
-      ));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Service deleted successfully',
+              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+          backgroundColor: const Color(0xFFDDC7A9),
+        ));
 
-      fetchTrainingServices();
+        await fetchTrainingServices();
+      } catch (e) {
+        debugPrint('Error deleting service: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to delete service. Please try again.',
+              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+          backgroundColor: const Color(0xFFDDC7A9),
+        ));
+      } finally {
+        if (mounted) setState(() => isActionInProgress = false);
+      }
     }
   }
 
@@ -149,7 +178,7 @@ class _PawtnerServicesTrainingScreenState
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
         title: Text(
-          'Training Service',
+          'Training Services',
           style: GoogleFonts.dosis(
               color: const Color(0xFF6E4B3A),
               fontSize: 24,
@@ -235,9 +264,12 @@ class _PawtnerServicesTrainingScreenState
                                           style: ElevatedButton.styleFrom(
                                               backgroundColor:
                                                   const Color(0xFF8B0000)),
-                                          onPressed: () {
-                                            deleteService(service['id']);
-                                          },
+                                          onPressed: isActionInProgress
+                                              ? null
+                                              : () async {
+                                                  await deleteService(
+                                                      service['id']);
+                                                },
                                           child: Text(
                                             'Delete Service',
                                             style: GoogleFonts.dosis(
@@ -251,23 +283,34 @@ class _PawtnerServicesTrainingScreenState
                                         child: ElevatedButton(
                                           style: ElevatedButton.styleFrom(
                                               backgroundColor:
-                                                  const Color(0xFFDDC7A9)),
-                                          onPressed: () async {
-                                            await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    PawtnerEditServiceScreen(
-                                                        serviceId:
-                                                            service['id']),
-                                              ),
-                                            );
-                                            fetchTrainingServices();
-                                          },
+                                                  const Color(0xFF6E4B3A)),
+                                          onPressed: isActionInProgress
+                                              ? null
+                                              : () async {
+                                                  setState(() =>
+                                                      isActionInProgress =
+                                                          true);
+                                                  await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          PawtnerEditServiceScreen(
+                                                              serviceId:
+                                                                  service[
+                                                                      'id']),
+                                                    ),
+                                                  );
+                                                  if (mounted) {
+                                                    setState(() =>
+                                                        isActionInProgress =
+                                                            false);
+                                                  }
+                                                  await fetchTrainingServices();
+                                                },
                                           child: Text(
                                             'Edit Service',
                                             style: GoogleFonts.dosis(
-                                                color: const Color(0xFF6E4B3A),
+                                                color: const Color(0xFFDDC7A9),
                                                 fontWeight: FontWeight.w600),
                                           ),
                                         ),
@@ -290,25 +333,29 @@ class _PawtnerServicesTrainingScreenState
             height: 50,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDDC7A9),
+                backgroundColor: const Color(0xFF6E4B3A),
               ),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PawtnerAddServiceScreen(
-                      preselectedServiceType: 'Training',
-                    ),
-                  ),
-                );
-                fetchTrainingServices();
-              },
+              onPressed: isActionInProgress
+                  ? null
+                  : () async {
+                      setState(() => isActionInProgress = true);
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PawtnerAddServiceScreen(
+                            preselectedServiceType: 'Training',
+                          ),
+                        ),
+                      );
+                      if (mounted) setState(() => isActionInProgress = false);
+                      await fetchTrainingServices();
+                    },
               child: Text(
                 'Add Service',
                 style: GoogleFonts.dosis(
-                  color: const Color(0xFF6E4B3A),
+                  color: const Color(0xFFDDC7A9),
                   fontWeight: FontWeight.w600,
-                  fontSize: 16,
+                  fontSize: 18,
                 ),
               ),
             ),

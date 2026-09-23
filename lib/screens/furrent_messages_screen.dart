@@ -29,7 +29,8 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
   int unreadChatsCount = 0;
   int unreadNotificationsCount = 0;
 
-  late RealtimeChannel _realtimeChannel;
+  RealtimeChannel? _realtimeChannel;
+  bool _isOpeningChat = false;
 
   @override
   void initState() {
@@ -40,7 +41,9 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
 
   @override
   void dispose() {
-    supabase.removeChannel(_realtimeChannel);
+    if (_realtimeChannel != null) {
+      supabase.removeChannel(_realtimeChannel!);
+    }
     super.dispose();
   }
 
@@ -52,6 +55,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
   Future<void> _loadData() async {
     final user = supabase.auth.currentUser;
     if (user == null) {
+      if (!mounted) return;
       setState(() {
         chats = [];
         notifications = [];
@@ -67,6 +71,8 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
               '*, pawtners(id, full_name, business_name, profile_picture_url)')
           .eq('furrent_id', user.id)
           .eq('hidden_for_furrent', false)
+          .not('last_message', 'is', null)
+          .neq('last_message', '')
           .order('last_message_at', ascending: false);
 
       final notificationData = await supabase
@@ -94,6 +100,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
         return notif['is_read'] == false;
       }).length;
 
+      if (!mounted) return;
       setState(() {
         chats = List<Map<String, dynamic>>.from(chatData);
         notifications = List<Map<String, dynamic>>.from(notificationData);
@@ -126,27 +133,35 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
             value: user.id,
           ),
           callback: (payload) async {
-            final convo = await supabase
-                .from('conversations')
-                .select(
-                    '*, pawtners(id, full_name, business_name, profile_picture_url)')
-                .eq('id', payload.newRecord['id'])
-                .single();
+            try {
+              final convo = await supabase
+                  .from('conversations')
+                  .select(
+                      '*, pawtners(id, full_name, business_name, profile_picture_url)')
+                  .eq('id', payload.newRecord['id'])
+                  .single();
 
-            if (convo['hidden_for_furrent'] == true) {
-              setState(() => chats.removeWhere((c) => c['id'] == convo['id']));
-              return;
-            }
+              if (!mounted) return;
 
-            final index = chats.indexWhere((c) => c['id'] == convo['id']);
-            if (index != -1) {
-              setState(() {
-                chats[index] = convo;
-              });
-            } else {
-              setState(() {
-                chats.insert(0, convo);
-              });
+              if (convo['hidden_for_furrent'] == true) {
+                setState(
+                    () => chats.removeWhere((c) => c['id'] == convo['id']));
+                return;
+              }
+
+              final index = chats.indexWhere((c) => c['id'] == convo['id']);
+              if (index != -1) {
+                setState(() {
+                  chats[index] = convo;
+                });
+              } else {
+                setState(() {
+                  chats.insert(0, convo);
+                });
+              }
+              _recalculateUnreadChats();
+            } catch (e) {
+              debugPrint('Error handling realtime conversation update: $e');
             }
           },
         )
@@ -160,31 +175,61 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
             value: user.id,
           ),
           callback: (payload) async {
-            final convo = await supabase
-                .from('conversations')
-                .select(
-                    '*, pawtners(id, full_name, business_name, profile_picture_url)')
-                .eq('id', payload.newRecord['id'])
-                .single();
+            try {
+              final convo = await supabase
+                  .from('conversations')
+                  .select(
+                      '*, pawtners(id, full_name, business_name, profile_picture_url)')
+                  .eq('id', payload.newRecord['id'])
+                  .single();
 
-            if (convo['hidden_for_furrent'] == true) {
-              setState(() => chats.removeWhere((c) => c['id'] == convo['id']));
-              return;
-            }
+              if (!mounted) return;
 
-            final index = chats.indexWhere((c) => c['id'] == convo['id']);
-            if (index != -1) {
-              setState(() {
-                chats[index] = convo;
-              });
-            } else {
-              setState(() {
-                chats.insert(0, convo);
-              });
+              if (convo['hidden_for_furrent'] == true) {
+                setState(
+                    () => chats.removeWhere((c) => c['id'] == convo['id']));
+                return;
+              }
+
+              final index = chats.indexWhere((c) => c['id'] == convo['id']);
+              if (index != -1) {
+                setState(() {
+                  chats[index] = convo;
+                });
+              } else {
+                setState(() {
+                  chats.insert(0, convo);
+                });
+              }
+              _recalculateUnreadChats();
+            } catch (e) {
+              debugPrint('Error handling realtime conversation update: $e');
             }
           },
         )
         .subscribe();
+  }
+
+  void _recalculateUnreadChats() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    int getCount(dynamic value) {
+      if (value == null) return 0;
+      return (value as num).toInt();
+    }
+
+    final total = chats.fold<int>(0, (sum, chat) {
+      final isFurrent = chat['furrent_id'] == user.id;
+      final count = isFurrent
+          ? chat['unread_count_furrent']
+          : chat['unread_count_pawtner'];
+      return sum + getCount(count);
+    });
+
+    if (!mounted) return;
+    setState(() => unreadChatsCount = total);
+    _updateAppBadge();
   }
 
   Widget customText(String text,
@@ -234,7 +279,8 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
         }).toList();
       } else {
         itemsToShow = itemsToShow
-            .where((notif) => (notif['title'] as String)
+            .where((notif) => (notif['title'] ?? '')
+                .toString()
                 .toLowerCase()
                 .contains(searchQuery.toLowerCase()))
             .toList();
@@ -354,6 +400,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                         child: SizedBox(
                           height: 44,
                           child: TextField(
+                            textCapitalization: TextCapitalization.sentences,
                             style: GoogleFonts.dosis(
                               color: const Color(0xFF6E4B3A),
                             ),
@@ -465,119 +512,203 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                       return await showDialog(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(14)),
-                                          title: customText(
-                                              'Delete this entire conversation?',
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF6E4B3A)),
-                                          content: customText(
-                                              'This action cannot be undone.',
-                                              fontSize: 16,
-                                              color: const Color(0xFF6E4B3A)),
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Are you sure you want to delete this conversation?',
+                                                textAlign: TextAlign.center,
+                                                style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'This action cannot be undone.',
+                                                textAlign: TextAlign.center,
+                                                style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 15,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          actionsAlignment:
+                                              MainAxisAlignment.center,
                                           actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, false),
-                                              child: customText('Cancel',
-                                                  fontSize: 16,
-                                                  color:
-                                                      const Color(0xFF6E4B3A)),
+                                            SizedBox(
+                                              width: 120,
+                                              height: 40,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, false),
+                                                child: Text(
+                                                  'Cancel',
+                                                  style: GoogleFonts.dosis(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 15,
+                                                    color:
+                                                        const Color(0xFFDDC7A9),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, true),
-                                              child: customText('Delete',
-                                                  fontSize: 16,
-                                                  color:
-                                                      const Color(0xFFFF3B30)),
+                                            const SizedBox(width: 12),
+                                            SizedBox(
+                                              width: 120,
+                                              height: 40,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFF8B0000),
+                                                ),
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, true),
+                                                child: Text(
+                                                  'Delete',
+                                                  style: GoogleFonts.dosis(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 15,
+                                                    color:
+                                                        const Color(0xFFF8F8F8),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
                                       );
                                     },
                                     onDismissed: (_) async {
-                                      await supabase.from('messages').update({
-                                        'deleted_for_furrent': true
-                                      }).eq('conversation_id', item['id']);
-                                      await supabase
-                                          .from('conversations')
-                                          .update({
-                                        'hidden_for_furrent': true,
-                                        'furrent_cleared_at':
-                                            DateTime.now().toIso8601String(),
-                                      }).eq('id', item['id']);
-                                      setState(() => chats.removeWhere(
-                                          (c) => c['id'] == item['id']));
+                                      try {
+                                        await supabase.from('messages').update({
+                                          'deleted_for_furrent': true
+                                        }).eq('conversation_id', item['id']);
+                                        await supabase
+                                            .from('conversations')
+                                            .update({
+                                          'hidden_for_furrent': true,
+                                          'furrent_cleared_at': DateTime.now()
+                                              .toUtc()
+                                              .toIso8601String(),
+                                        }).eq('id', item['id']);
 
-                                      if (mounted) {
+                                        if (!mounted) return;
+                                        setState(() => chats.removeWhere(
+                                            (c) => c['id'] == item['id']));
+
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
                                           SnackBar(
                                             content: customText(
                                               'Chat has been deleted',
-                                              color: const Color(0xFF6E4B3A),
+                                              color: const Color(0xFFDDC7A9),
                                             ),
                                             backgroundColor:
-                                                const Color(0xFFDDC7A9),
+                                                const Color(0xFF6E4B3A),
                                             duration:
                                                 const Duration(seconds: 2),
                                           ),
                                         );
+                                      } catch (e) {
+                                        debugPrint('Error deleting chat: $e');
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: customText(
+                                              'Failed to delete chat. Please try again.',
+                                              color: const Color(0xFFDDC7A9),
+                                            ),
+                                            backgroundColor:
+                                                const Color(0xFF6E4B3A),
+                                            duration:
+                                                const Duration(seconds: 2),
+                                          ),
+                                        );
+                                        _loadData();
                                       }
                                     },
                                     background: Container(
                                       margin: const EdgeInsets.only(bottom: 12),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFF3B30),
+                                        color: const Color(0xFF8B0000),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       alignment: Alignment.centerRight,
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 20),
-                                      child: const Icon(Icons.delete,
-                                          color: Colors.white, size: 30),
+                                      child: const Icon(
+                                        Icons.delete,
+                                        color: Color(0xFFFFFFFF),
+                                        size: 30,
+                                      ),
                                     ),
+                                    movementDuration:
+                                        const Duration(milliseconds: 200),
+                                    resizeDuration:
+                                        const Duration(milliseconds: 200),
                                     child: GestureDetector(
                                       onTap: () async {
-                                        final currentUserId =
-                                            supabase.auth.currentUser?.id;
-                                        final isFurrent =
-                                            item['furrent_id'] == currentUserId;
+                                        if (_isOpeningChat) return;
+                                        _isOpeningChat = true;
 
-                                        await supabase
-                                            .from('conversations')
-                                            .update({
-                                          if (isFurrent)
-                                            'unread_count_furrent': 0
-                                          else
-                                            'unread_count_pawtner': 0,
-                                        }).eq('id', item['id']);
+                                        try {
+                                          final currentUserId =
+                                              supabase.auth.currentUser?.id;
+                                          final isFurrent =
+                                              item['furrent_id'] ==
+                                                  currentUserId;
 
-                                        setState(() {
-                                          unreadChatsCount = (unreadChatsCount -
-                                                  unreadCount.toInt())
-                                              .clamp(0, 999)
-                                              .toInt();
-                                        });
-                                        _updateAppBadge();
+                                          await supabase
+                                              .from('conversations')
+                                              .update({
+                                            if (isFurrent)
+                                              'unread_count_furrent': 0
+                                            else
+                                              'unread_count_pawtner': 0,
+                                          }).eq('id', item['id']);
 
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ChatScreen(
-                                              conversationId: item['id'],
-                                              otherUserId: pawtner['id'] ?? '',
-                                              otherUserName: displayName,
-                                              otherUserAvatar: profilePic,
-                                              currentUserType: 'furrent',
-                                              isDeletedAccount:
-                                                  isDeletedAccount,
+                                          if (!mounted) return;
+                                          setState(() {
+                                            unreadChatsCount =
+                                                (unreadChatsCount -
+                                                        unreadCount.toInt())
+                                                    .clamp(0, 999)
+                                                    .toInt();
+                                          });
+                                          _updateAppBadge();
+
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => ChatScreen(
+                                                conversationId: item['id'],
+                                                otherUserId:
+                                                    pawtner['id'] ?? '',
+                                                otherUserName: displayName,
+                                                otherUserAvatar: profilePic,
+                                                currentUserType: 'furrent',
+                                                isDeletedAccount:
+                                                    isDeletedAccount,
+                                              ),
                                             ),
-                                          ),
-                                        ).then((_) => _loadData());
+                                          );
+                                          if (mounted) _loadData();
+                                        } catch (e) {
+                                          debugPrint('Error opening chat: $e');
+                                        } finally {
+                                          _isOpeningChat = false;
+                                        }
                                       },
                                       child: Container(
                                         margin:
@@ -759,44 +890,52 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
 
                                   return GestureDetector(
                                     onTap: () async {
-                                      if (!isReadNotif) {
-                                        await supabase
-                                            .from('notifications')
-                                            .update({'is_read': true}).eq(
-                                                'id', item['id']);
-                                        setState(() {
-                                          item['is_read'] = true;
-                                          unreadNotificationsCount =
-                                              (unreadNotificationsCount - 1)
-                                                  .clamp(0, 999);
-                                        });
-                                        _updateAppBadge();
-                                      }
+                                      try {
+                                        if (!isReadNotif) {
+                                          await supabase
+                                              .from('notifications')
+                                              .update({'is_read': true}).eq(
+                                                  'id', item['id']);
+                                          if (!mounted) return;
+                                          setState(() {
+                                            item['is_read'] = true;
+                                            unreadNotificationsCount =
+                                                (unreadNotificationsCount - 1)
+                                                    .clamp(0, 999);
+                                          });
+                                          _updateAppBadge();
+                                        }
 
-                                      final bookingId = item['booking_id'];
-                                      if (bookingId == null) return;
+                                        final bookingId = item['booking_id'];
+                                        if (bookingId == null) return;
 
-                                      final booking = await supabase
-                                          .from('bookings')
-                                          .select(
-                                              '*, pets(*), furrents(*), services(*), pawtners(*)')
-                                          .eq('id', bookingId)
-                                          .maybeSingle();
+                                        final booking = await supabase
+                                            .from('bookings')
+                                            .select(
+                                                '*, pets(*), furrents(*), services(*), pawtners(*)')
+                                            .eq('id', bookingId)
+                                            .maybeSingle();
 
-                                      if (booking == null || !context.mounted) {
-                                        return;
-                                      }
+                                        if (booking == null ||
+                                            !context.mounted) {
+                                          return;
+                                        }
 
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              FurrentBookingDetailsScreen(
-                                            booking: Map<String, dynamic>.from(
-                                                booking),
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                FurrentBookingDetailsScreen(
+                                              booking:
+                                                  Map<String, dynamic>.from(
+                                                      booking),
+                                            ),
                                           ),
-                                        ),
-                                      );
+                                        );
+                                      } catch (e) {
+                                        debugPrint(
+                                            'Error opening notification: $e');
+                                      }
                                     },
                                     child: Container(
                                       margin: const EdgeInsets.only(bottom: 12),

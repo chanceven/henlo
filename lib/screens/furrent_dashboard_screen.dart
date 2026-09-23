@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,6 +11,7 @@ import 'furrent_boarding_screen.dart';
 import 'furrent_training_screen.dart';
 import 'furrent_reschedule_screen.dart';
 import 'furrent_booking_detail_screen.dart';
+import 'furrent_search_screen.dart';
 
 class FurrentDashboardScreen extends StatefulWidget {
   const FurrentDashboardScreen({super.key});
@@ -37,7 +36,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
 
   int _unreadMessagesCount = 0;
   int _unreadNotificationsCount = 0;
-  late RealtimeChannel _bookingsChannel;
+  RealtimeChannel? _bookingsChannel;
   RealtimeChannel? _conversationsChannel;
   RealtimeChannel? _notificationsChannel;
 
@@ -54,7 +53,9 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    supabase.removeChannel(_bookingsChannel);
+    if (_bookingsChannel != null) {
+      supabase.removeChannel(_bookingsChannel!);
+    }
     _conversationsChannel?.unsubscribe();
     _notificationsChannel?.unsubscribe();
     super.dispose();
@@ -85,6 +86,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
           .map((b) => b as Map<String, dynamic>)
           .toList();
 
+      if (!mounted) return;
       setState(() {
         furrentData = furrent;
         bookingsUpcoming = bookingsList;
@@ -109,25 +111,30 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    final data = await supabase
-        .from('conversations')
-        .select('unread_count_furrent')
-        .eq('furrent_id', user.id);
+    try {
+      final data = await supabase
+          .from('conversations')
+          .select('unread_count_furrent')
+          .eq('furrent_id', user.id);
 
-    final count = (data as List).fold<int>(0, (sum, row) {
-      return sum + ((row['unread_count_furrent'] ?? 0) as num).toInt();
-    });
+      final count = (data as List).fold<int>(0, (sum, row) {
+        return sum + ((row['unread_count_furrent'] ?? 0) as num).toInt();
+      });
 
-    final notifData = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_read', false);
+      final notifData = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_read', false);
 
-    setState(() {
-      _unreadMessagesCount = count;
-      _unreadNotificationsCount = (notifData as List).length;
-    });
+      if (!mounted) return;
+      setState(() {
+        _unreadMessagesCount = count;
+        _unreadNotificationsCount = (notifData as List).length;
+      });
+    } catch (e) {
+      debugPrint('Error loading unread count: $e');
+    }
   }
 
   void _setupRealtimeBookings() {
@@ -308,7 +315,12 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              Navigator.pushNamed(context, '/search');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FurrentSearchScreen(),
+                                ),
+                              );
                             },
                             child: AbsorbPointer(
                               child: TextField(
@@ -598,6 +610,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                             );
 
                                             if (confirmed != true) return;
+                                            if (!context.mounted) return;
 
                                             final reasonController =
                                                 TextEditingController();
@@ -774,6 +787,11 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
 
                                             final bookingId = booking['id'];
                                             try {
+                                              final cancelledAtUtc =
+                                                  DateTime.now()
+                                                      .toUtc()
+                                                      .toIso8601String();
+
                                               await supabase
                                                   .from('bookings')
                                                   .update({
@@ -781,11 +799,14 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                 'cancelled_reason':
                                                     reasonController.text
                                                         .trim(),
-                                                'cancelled_at': DateTime.now()
-                                                    .toIso8601String(),
+                                                'cancelled_at': cancelledAtUtc,
                                                 'cancelled_by': 'Furrent',
                                               }).eq('id', bookingId);
 
+                                              if (!mounted ||
+                                                  !context.mounted) {
+                                                return;
+                                              }
                                               setState(() {
                                                 bookingsUpcoming.removeWhere(
                                                     (b) =>
@@ -795,8 +816,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                     reasonController.text
                                                         .trim();
                                                 booking['cancelled_at'] =
-                                                    DateTime.now()
-                                                        .toIso8601String();
+                                                    cancelledAtUtc;
                                               });
 
                                               ScaffoldMessenger.of(context)
@@ -814,6 +834,9 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                             0xFF6E4B3A)),
                                               );
                                             } catch (e) {
+                                              debugPrint(
+                                                  'Error cancelling booking: $e');
+                                              if (!context.mounted) return;
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
                                                 const SnackBar(

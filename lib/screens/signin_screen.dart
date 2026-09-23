@@ -59,7 +59,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         backgroundColor: const Color(0xFF6E4B3A),
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -89,64 +89,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     final userId = user.id;
 
-    final furrentResp = await Supabase.instance.client
-        .from('furrents')
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
-
-    if (furrentResp != null && furrentResp.isNotEmpty) {
-      await _saveFcmToken('furrents', userId);
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const FurrentDashboardScreen()),
-      );
-      return;
-    }
-
-    final pawtnerResp = await Supabase.instance.client
-        .from('pawtners')
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
-
-    if (pawtnerResp != null && pawtnerResp.isNotEmpty) {
-      await _saveFcmToken('pawtners', userId);
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const PawtnerDashboardScreen()),
-      );
-      return;
-    }
-  }
-
-  Future<void> _signIn() async {
-    final email = emailController.text.trim();
-    final password = passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      await _showMessage("Incorrect email or password");
-      return;
-    }
-
-    setState(() => isLoading = true);
-
     try {
-      final response = await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-
-      final user = response.user;
-      if (user == null) {
-        await _showMessage("Incorrect email or password");
-        return;
-      }
-
-      final userId = user.id;
-
       final furrentResp = await Supabase.instance.client
           .from('furrents')
           .select()
@@ -154,7 +97,11 @@ class _SignInScreenState extends State<SignInScreen> {
           .maybeSingle();
 
       if (furrentResp != null && furrentResp.isNotEmpty) {
-        await _saveFcmToken('furrents', userId);
+        try {
+          await _saveFcmToken('furrents', userId);
+        } catch (e) {
+          debugPrint('Error saving FCM token: $e');
+        }
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -170,7 +117,92 @@ class _SignInScreenState extends State<SignInScreen> {
           .maybeSingle();
 
       if (pawtnerResp != null && pawtnerResp.isNotEmpty) {
-        await _saveFcmToken('pawtners', userId);
+        try {
+          await _saveFcmToken('pawtners', userId);
+        } catch (e) {
+          debugPrint('Error saving FCM token: $e');
+        }
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PawtnerDashboardScreen()),
+        );
+        return;
+      }
+    } catch (e) {
+      debugPrint('Auto-login check failed: $e');
+      // Fall through quietly — the person just stays on the sign-in
+      // screen and can log in manually instead.
+    }
+  }
+
+  Future<void> _signIn() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty && password.isEmpty) {
+      await _showMessage("Please enter your email and password.");
+      return;
+    }
+    if (email.isEmpty) {
+      await _showMessage("Please enter your email address.");
+      return;
+    }
+    if (password.isEmpty) {
+      await _showMessage("Please enter your password.");
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = response.user;
+      if (user == null) {
+        await _showMessage("Incorrect email or password");
+        if (!mounted) return;
+        setState(() => isLoading = false);
+        return;
+      }
+
+      final userId = user.id;
+
+      final furrentResp = await Supabase.instance.client
+          .from('furrents')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (furrentResp != null && furrentResp.isNotEmpty) {
+        try {
+          await _saveFcmToken('furrents', userId);
+        } catch (e) {
+          debugPrint('Error saving FCM token: $e');
+        }
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const FurrentDashboardScreen()),
+        );
+        return;
+      }
+
+      final pawtnerResp = await Supabase.instance.client
+          .from('pawtners')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (pawtnerResp != null && pawtnerResp.isNotEmpty) {
+        try {
+          await _saveFcmToken('pawtners', userId);
+        } catch (e) {
+          debugPrint('Error saving FCM token: $e');
+        }
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -181,7 +213,15 @@ class _SignInScreenState extends State<SignInScreen> {
 
       await _showMessage("Oops! Something went wrong. Please try again.");
     } catch (e) {
-      await _showMessage("Oops! Something went wrong. Please try again.");
+      if (e is AuthException &&
+          e.message.toLowerCase().contains('invalid login credentials')) {
+        await _showMessage("Incorrect email or password");
+      } else if (e is AuthException &&
+          e.message.toLowerCase().contains('email not confirmed')) {
+        await _showMessage("Please verify your email before signing in.");
+      } else {
+        await _showMessage("Oops! Something went wrong. Please try again.");
+      }
     }
 
     if (!mounted) return;

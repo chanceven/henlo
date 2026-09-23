@@ -34,6 +34,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
         isLoading = false;
       });
     } catch (e) {
+      debugPrint('Error loading privacy policy: $e');
       if (!mounted) return;
 
       setState(() {

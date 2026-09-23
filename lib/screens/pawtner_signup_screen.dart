@@ -1,4 +1,5 @@
-import 'package:dio/dio.dart';
+import '../places_service.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,7 +19,6 @@ class PawtnerSignUpScreen extends StatefulWidget {
 class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final supabase = Supabase.instance.client;
-  final Dio dio = Dio();
 
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
@@ -252,7 +252,8 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
     final TextEditingController searchController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
-    const apiKey = 'AIzaSyBOKb6toq6ItcFdi94IekJNj5WX0p8tkt4';
+    Timer? debounce;
+    int searchSeq = 0;
 
     await showModalBottomSheet(
       context: context,
@@ -317,50 +318,38 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                     borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1),
                   ),
                 ),
-                onChanged: (value) async {
+                onChanged: (value) {
+                  debounce?.cancel();
                   if (value.trim().length < 3) {
-                    setModalState(() => searchResults = []);
-                    return;
-                  }
-                  setModalState(() => isSearching = true);
-                  try {
-                    final response = await dio.post(
-                      'https://places.googleapis.com/v1/places:autocomplete',
-                      options: Options(
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'X-Goog-Api-Key': apiKey,
-                        },
-                      ),
-                      data: {
-                        'input': value,
-                        'locationBias': {
-                          'circle': {
-                            'center': {
-                              'latitude': 12.8797,
-                              'longitude': 121.7740,
-                            },
-                            'radius': 50000.0,
-                          },
-                        },
-                        'includedRegionCodes': ['ph'],
-                      },
-                    );
-                    if (!mounted) return;
-                    final suggestions =
-                        response.data['suggestions'] as List? ?? [];
+                    searchSeq++;
                     setModalState(() {
-                      searchResults = suggestions
-                          .map((e) =>
-                              e['placePrediction'] as Map<String, dynamic>)
-                          .toList();
+                      searchResults = [];
                       isSearching = false;
                     });
-                  } catch (e) {
-                    if (!mounted) return;
-                    debugPrint('Autocomplete error: $e');
-                    setModalState(() => isSearching = false);
+                    return;
                   }
+                  debounce = Timer(const Duration(milliseconds: 400), () async {
+                    if (!context.mounted) return;
+                    final seq = ++searchSeq;
+                    setModalState(() => isSearching = true);
+                    try {
+                      final response = await PlacesService.autocomplete(value);
+                      if (!context.mounted || seq != searchSeq) return;
+                      final suggestions =
+                          response['suggestions'] as List? ?? [];
+                      setModalState(() {
+                        searchResults = suggestions
+                            .map((e) =>
+                                e['placePrediction'] as Map<String, dynamic>)
+                            .toList();
+                        isSearching = false;
+                      });
+                    } catch (e) {
+                      if (!context.mounted || seq != searchSeq) return;
+                      debugPrint('Autocomplete error: $e');
+                      setModalState(() => isSearching = false);
+                    }
+                  });
                 },
               ),
               const SizedBox(height: 8),
@@ -410,24 +399,16 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                         ),
                         onTap: () async {
                           try {
-                            final detailResponse = await dio.get(
-                              'https://places.googleapis.com/v1/places/$placeId',
-                              options: Options(
-                                headers: {
-                                  'X-Goog-Api-Key': apiKey,
-                                  'X-Goog-FieldMask':
-                                      'location,displayName,formattedAddress',
-                                },
-                              ),
-                            );
+                            final detailResponse =
+                                await PlacesService.details(placeId);
                             final formattedAddress =
-                                detailResponse.data['formattedAddress'] ??
-                                    mainText;
+                                detailResponse['formattedAddress'] ?? mainText;
                             final addressParts = formattedAddress.split(',');
                             final shortAddress = addressParts.length > 2
                                 ? addressParts.take(2).join(',').trim()
                                 : formattedAddress;
 
+                            if (!mounted) return;
                             setState(() {
                               locationController.text = shortAddress;
                             });
@@ -446,6 +427,8 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
         ),
       ),
     );
+    debounce?.cancel();
+    searchController.dispose();
   }
 
   void _goToBusinessStep() {
@@ -455,6 +438,61 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
   }
 
   void _goToReviewStep() {
+    if (businessNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter your business name."),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (selectedServices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select at least one service type."),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (selectedBusinessTypes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select at least one business type."),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (selectedBusinessTypes.contains("Home") && selectedAreas.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select at least one available area."),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (locationController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter your business location."),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _currentStep = 3;
     });
@@ -580,6 +618,13 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                           children: [
                             TextFormField(
                               controller: _nameCtrl,
+                              textCapitalization: TextCapitalization.words,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your full name';
+                                }
+                                return null;
+                              },
                               decoration: buildInputDecoration(
                                   'Full Name', Icons.person),
                               style: GoogleFonts.dosis(
@@ -651,6 +696,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                             TextFormField(
                               controller: _passwordCtrl,
                               obscureText: !_showPassword,
+                              textCapitalization: TextCapitalization.sentences,
                               maxLength: 32,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -703,12 +749,13 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                             TextFormField(
                               controller: _confirmCtrl,
                               obscureText: !_showConfirm,
+                              textCapitalization: TextCapitalization.sentences,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Please confirm your password';
                                 }
 
-                                if (value != _passwordCtrl.text) {
+                                if (value.trim() != _passwordCtrl.text.trim()) {
                                   return 'Passwords do not match';
                                 }
 
@@ -769,6 +816,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                     // Business Name
                     TextField(
                       controller: businessNameController,
+                      textCapitalization: TextCapitalization.words,
                       onTap: () {
                         setState(() {
                           dropdownOpenServiceType = false;
@@ -850,9 +898,14 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
                               options: businessTypeOptions,
                               selected: selectedBusinessTypes,
                               onToggle: (s) => setState(() {
-                                selectedBusinessTypes.contains(s)
-                                    ? selectedBusinessTypes.remove(s)
-                                    : selectedBusinessTypes.add(s);
+                                if (selectedBusinessTypes.contains(s)) {
+                                  selectedBusinessTypes.remove(s);
+                                  if (s == "Home") {
+                                    selectedAreas.clear();
+                                  }
+                                } else {
+                                  selectedBusinessTypes.add(s);
+                                }
                               }),
                               markOpen: () => setState(
                                   () => dropdownOpenBusinessType = true),
@@ -1049,10 +1102,12 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
     setState(() => isLoading = true);
 
+    final email = _emailCtrl.text.trim().toLowerCase();
+
     late final AuthResponse res;
     try {
       res = await Supabase.instance.client.auth.signUp(
-        email: _emailCtrl.text.trim(),
+        email: email,
         password: _passwordCtrl.text.trim(),
       );
     } catch (e) {
@@ -1071,16 +1126,21 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
     }
 
     final user = res.user;
+    final session = res.session;
 
     if (!mounted) return;
 
-    if (user == null) {
+    if (user == null ||
+        (session == null &&
+            (user.identities == null || user.identities!.isEmpty))) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Oops! Something went wrong. Please try again."),
-          duration: Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
+        SnackBar(
+          content: Text(
+            "This email is already registered. Please sign in instead.",
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
       return;
@@ -1093,7 +1153,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => OtpScreen(
-            email: _emailCtrl.text.trim(),
+            email: email,
             name: _nameCtrl.text.trim(),
             contact: _contactCtrl.text.trim(),
             businessName: businessNameController.text.trim(),

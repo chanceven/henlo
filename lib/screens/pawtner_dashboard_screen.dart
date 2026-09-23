@@ -24,9 +24,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
   List<Map<String, dynamic>> bookingsToday = [];
   List<Map<String, dynamic>> bookingsUpcoming = [];
   double? pawtnerRating;
-
   int _selectedNavIndex = 0;
-
   int _unreadMessagesCount = 0;
   int _unreadNotificationsCount = 0;
 
@@ -36,8 +34,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
     {'service_name': 'Training', 'service_type': 'training'},
   ];
 
-  late RealtimeChannel _bookingsChannel;
-
+  RealtimeChannel? _bookingsChannel;
   RealtimeChannel? _notificationsChannel;
   RealtimeChannel? _conversationsChannel;
 
@@ -54,7 +51,9 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
 
   @override
   void dispose() {
-    supabase.removeChannel(_bookingsChannel);
+    if (_bookingsChannel != null) {
+      supabase.removeChannel(_bookingsChannel!);
+    }
     _notificationsChannel?.unsubscribe();
     _conversationsChannel?.unsubscribe();
     super.dispose();
@@ -116,17 +115,48 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                   _uploadBoxModal(
                     fileName: businessPermitName,
                     onUpload: () async {
-                      final name = await _uploadDocumentFromModal('permit');
-                      if (name != null) {
-                        setModalState(() => businessPermitName = name);
+                      final name = await _uploadDocumentFromModal(
+                        'permit',
+                        oldUrl: pawtnerData['business_permit_url']?.toString(),
+                      );
+                      if (name != null && mounted) {
+                        final userId = supabase.auth.currentUser?.id;
+                        setModalState(() {
+                          businessPermitName = name;
+                          if (userId != null) {
+                            pawtnerData['business_permit_url'] = supabase
+                                .storage
+                                .from('business_permits')
+                                .getPublicUrl('$userId/business_permit.'
+                                    '${name.split('.').last.toLowerCase()}');
+                          }
+                        });
                       }
                     },
                     onDelete: () async {
                       final user = supabase.auth.currentUser;
                       if (user == null) return;
-                      await supabase.from('pawtners').update(
-                          {'business_permit_url': null}).eq('id', user.id);
-                      setModalState(() => businessPermitName = null);
+                      try {
+                        final oldUrl =
+                            pawtnerData['business_permit_url']?.toString();
+                        await supabase.from('pawtners').update(
+                            {'business_permit_url': null}).eq('id', user.id);
+                        if (oldUrl != null && oldUrl.isNotEmpty) {
+                          const marker = '/business_permits/';
+                          final markerIndex = oldUrl.indexOf(marker);
+                          if (markerIndex != -1) {
+                            final oldPath =
+                                oldUrl.substring(markerIndex + marker.length);
+                            await supabase.storage
+                                .from('business_permits')
+                                .remove([oldPath]);
+                          }
+                        }
+                        if (!mounted) return;
+                        setModalState(() => businessPermitName = null);
+                      } catch (e) {
+                        debugPrint('Error deleting business permit: $e');
+                      }
                     },
                   ),
                   const SizedBox(height: 12),
@@ -138,18 +168,47 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                   _uploadBoxModal(
                     fileName: governmentIdName,
                     onUpload: () async {
-                      final name = await _uploadDocumentFromModal('govt');
-                      if (name != null) {
-                        setModalState(() => governmentIdName = name);
+                      final name = await _uploadDocumentFromModal(
+                        'govt',
+                        oldUrl: pawtnerData['govt_id_url']?.toString(),
+                      );
+                      if (name != null && mounted) {
+                        final userId = supabase.auth.currentUser?.id;
+                        setModalState(() {
+                          governmentIdName = name;
+                          if (userId != null) {
+                            pawtnerData['govt_id_url'] = supabase.storage
+                                .from('govt_ids')
+                                .getPublicUrl('$userId/govt_id.'
+                                    '${name.split('.').last.toLowerCase()}');
+                          }
+                        });
                       }
                     },
                     onDelete: () async {
                       final user = supabase.auth.currentUser;
                       if (user == null) return;
-                      await supabase
-                          .from('pawtners')
-                          .update({'govt_id_url': null}).eq('id', user.id);
-                      setModalState(() => governmentIdName = null);
+                      try {
+                        final oldUrl = pawtnerData['govt_id_url']?.toString();
+                        await supabase
+                            .from('pawtners')
+                            .update({'govt_id_url': null}).eq('id', user.id);
+                        if (oldUrl != null && oldUrl.isNotEmpty) {
+                          const marker = '/govt_ids/';
+                          final markerIndex = oldUrl.indexOf(marker);
+                          if (markerIndex != -1) {
+                            final oldPath =
+                                oldUrl.substring(markerIndex + marker.length);
+                            await supabase.storage
+                                .from('govt_ids')
+                                .remove([oldPath]);
+                          }
+                        }
+                        if (!mounted) return;
+                        setModalState(() => governmentIdName = null);
+                      } catch (e) {
+                        debugPrint('Error deleting government ID: $e');
+                      }
                     },
                   ),
                   const SizedBox(height: 24),
@@ -238,7 +297,8 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
     );
   }
 
-  Future<String?> _uploadDocumentFromModal(String type) async {
+  Future<String?> _uploadDocumentFromModal(String type,
+      {String? oldUrl}) async {
     final result = await showModalBottomSheet<FilePickerResult?>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -266,12 +326,17 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF6E4B3A))),
               onTap: () async {
-                final picked = await FilePicker.platform.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-                  withData: true,
-                );
-                if (mounted) Navigator.pop(context, picked);
+                try {
+                  final picked = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+                    withData: true,
+                  );
+                  if (mounted) Navigator.pop(context, picked);
+                } catch (e) {
+                  debugPrint('Error picking file: $e');
+                  if (mounted) Navigator.pop(context, null);
+                }
               },
             ),
             ListTile(
@@ -282,23 +347,28 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF6E4B3A))),
               onTap: () async {
-                final picker = ImagePicker();
-                final XFile? image = await picker.pickImage(
-                  source: ImageSource.camera,
-                  maxWidth: 800,
-                  maxHeight: 800,
-                  imageQuality: 80,
-                );
-                if (image == null) {
+                try {
+                  final picker = ImagePicker();
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.camera,
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    imageQuality: 80,
+                  );
+                  if (image == null) {
+                    if (mounted) Navigator.pop(context, null);
+                    return;
+                  }
+                  final bytes = await image.readAsBytes();
+                  final result = FilePickerResult([
+                    PlatformFile(
+                        name: image.name, bytes: bytes, size: bytes.length),
+                  ]);
+                  if (mounted) Navigator.pop(context, result);
+                } catch (e) {
+                  debugPrint('Error taking photo: $e');
                   if (mounted) Navigator.pop(context, null);
-                  return;
                 }
-                final bytes = await image.readAsBytes();
-                final result = FilePickerResult([
-                  PlatformFile(
-                      name: image.name, bytes: bytes, size: bytes.length),
-                ]);
-                if (mounted) Navigator.pop(context, result);
               },
             ),
             ListTile(
@@ -338,16 +408,42 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return null;
 
-    final ext = name.split('.').last;
+    final ext = name.split('.').last.toLowerCase();
     final remoteFileName = type == 'permit'
         ? '${user.id}/business_permit.$ext'
         : '${user.id}/govt_id.$ext';
     final bucketName = type == 'permit' ? 'business_permits' : 'govt_ids';
+    final contentType = ext == 'pdf'
+        ? 'application/pdf'
+        : (ext == 'png' ? 'image/png' : 'image/jpeg');
+
+    // If an old file exists at a different path (different extension),
+    // delete it first so it doesn't get orphaned in storage.
+    if (oldUrl != null && oldUrl.isNotEmpty) {
+      final marker = '/$bucketName/';
+      final markerIndex = oldUrl.indexOf(marker);
+      if (markerIndex != -1) {
+        final oldPath = oldUrl.substring(markerIndex + marker.length);
+        if (oldPath != remoteFileName) {
+          try {
+            await supabase.storage.from(bucketName).remove([oldPath]);
+          } catch (e) {
+            debugPrint('Error deleting old $type file: $e');
+          }
+        }
+      }
+    }
 
     try {
-      await supabase.storage
-          .from(bucketName)
-          .uploadBinary(remoteFileName, bytes);
+      await supabase.storage.from(bucketName).uploadBinary(
+            remoteFileName,
+            bytes,
+            fileOptions: FileOptions(
+              cacheControl: '3600',
+              upsert: true,
+              contentType: contentType,
+            ),
+          );
       final publicUrl =
           supabase.storage.from(bucketName).getPublicUrl(remoteFileName);
 
@@ -369,6 +465,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     try {
       setState(() => isLoading = true);
 
@@ -412,6 +509,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
           .map((b) => b as Map<String, dynamic>)
           .toList();
 
+      if (!mounted) return;
       setState(() {
         pawtnerData = pawtner;
         bookingsToday = todayBookings;
@@ -515,29 +613,39 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    final data = await supabase
-        .from('conversations')
-        .select('unread_count_pawtner')
-        .eq('pawtner_id', user.id);
+    try {
+      final data = await supabase
+          .from('conversations')
+          .select('unread_count_pawtner')
+          .eq('pawtner_id', user.id);
 
-    final count = (data as List).fold<int>(0, (sum, row) {
-      return sum + ((row['unread_count_pawtner'] ?? 0) as num).toInt();
-    });
+      final count = (data as List).fold<int>(0, (sum, row) {
+        return sum + ((row['unread_count_pawtner'] ?? 0) as num).toInt();
+      });
 
-    setState(() => _unreadMessagesCount = count);
+      if (!mounted) return;
+      setState(() => _unreadMessagesCount = count);
+    } catch (e) {
+      debugPrint('Error loading unread count: $e');
+    }
   }
 
   Future<void> _loadUnreadNotificationsCount() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    final data = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_read', false);
+    try {
+      final data = await supabase
+          .from('notifications')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_read', false);
 
-    setState(() => _unreadNotificationsCount = (data as List).length);
+      if (!mounted) return;
+      setState(() => _unreadNotificationsCount = (data as List).length);
+    } catch (e) {
+      debugPrint('Error loading unread notifications count: $e');
+    }
   }
 
   void _onNavTapped(int index) {
@@ -694,7 +802,9 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                                         ),
                                         const SizedBox(height: 5),
                                         customText(
-                                          '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
+                                          booking['furrent_id'] == null
+                                              ? '${booking['guest_pet_type'] ?? ''} • ${booking['guest_pet_name'] ?? ''}'
+                                              : '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           color: const Color(0xFF6E4B3A),
@@ -838,7 +948,9 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                                         ),
                                         const SizedBox(height: 5),
                                         customText(
-                                          '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
+                                          booking['furrent_id'] == null
+                                              ? '${booking['guest_pet_type'] ?? ''} • ${booking['guest_pet_name'] ?? ''}'
+                                              : '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           color: const Color(0xFF6E4B3A),

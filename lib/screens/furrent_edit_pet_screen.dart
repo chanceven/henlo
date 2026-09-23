@@ -50,6 +50,7 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
   int? _selectedDay;
   int? _selectedYear;
   Uint8List? _petImageBytes;
+  String _petImageExtension = 'jpg';
   bool isSaving = false;
   bool _removeExistingPhoto = false;
 
@@ -186,6 +187,7 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
       if (choice == 'remove') {
         setState(() {
           _petImageBytes = null;
+          _petImageExtension = 'jpg';
           _removeExistingPhoto = true;
         });
         return;
@@ -197,6 +199,7 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
           source: source, maxWidth: 800, maxHeight: 800, imageQuality: 80);
       if (image != null) {
         final bytes = await image.readAsBytes();
+        _petImageExtension = image.path.split('.').last.toLowerCase();
 
         if (bytes.length > 3 * 1024 * 1024) {
           if (mounted) {
@@ -209,6 +212,22 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
       }
     } catch (e) {
       debugPrint('Error picking pet image: $e');
+    }
+  }
+
+  Future<void> _deleteOldPhoto() async {
+    final oldUrl = widget.petData['profile_picture_url'] as String?;
+    if (oldUrl == null || oldUrl.isEmpty) return;
+
+    try {
+      const marker = '/profile_pictures/';
+      final markerIndex = oldUrl.indexOf(marker);
+      if (markerIndex == -1) return;
+
+      final oldPath = oldUrl.substring(markerIndex + marker.length);
+      await supabase.storage.from('profile_pictures').remove([oldPath]);
+    } catch (e) {
+      debugPrint('Error deleting old pet photo: $e');
     }
   }
 
@@ -241,24 +260,33 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
             _breedController.text.isNotEmpty ? _breedController.text : null,
         'birth_date': birthDateStr,
         'gender': _gender,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
       if (_removeExistingPhoto && _petImageBytes == null) {
         petData['profile_picture_url'] = null;
+        await _deleteOldPhoto();
       }
 
       if (_petImageBytes != null) {
+        final sanitizedName = _nameController.text
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9]+'), '_');
         final fileName =
-            '${user.id}/pet_${_nameController.text.trim().toLowerCase().replaceAll(' ', '_')}.png';
+            '${user.id}/pet_${sanitizedName}_${DateTime.now().millisecondsSinceEpoch}.$_petImageExtension';
+        final contentType =
+            _petImageExtension == 'png' ? 'image/png' : 'image/jpeg';
         await supabase.storage.from('profile_pictures').uploadBinary(
               fileName,
               _petImageBytes!,
-              fileOptions: const FileOptions(upsert: true),
+              fileOptions: FileOptions(upsert: true, contentType: contentType),
             );
         final publicUrl =
             supabase.storage.from('profile_pictures').getPublicUrl(fileName);
         petData['profile_picture_url'] = publicUrl;
+
+        await _deleteOldPhoto();
       }
 
       await supabase

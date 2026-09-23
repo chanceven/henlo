@@ -1,9 +1,7 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'signin_screen.dart'; // import your SignInScreen
+import 'password_reset_code_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -29,7 +27,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           content: Text(
             'Please enter your email.',
             style: GoogleFonts.dosis(
@@ -48,7 +46,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           content: Text(
             'Please enter a valid email.',
             style: GoogleFonts.dosis(
@@ -64,40 +62,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => isLoading = true);
 
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(
-        email,
-        redirectTo: 'https://henloapp.com/auth/callback',
-      );
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
 
-      // Success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
-          content: Text(
-            'If your email is registered, you\'ll receive a password reset link shortly.',
-            style: GoogleFonts.dosis(
-              color: const Color(0xFFDDC7A9),
-            ),
-          ),
-          backgroundColor: const Color(0xFF6E4B3A),
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PasswordResetCodeScreen(email: email),
         ),
       );
-
-      // Redirect to SignInScreen after 2 seconds
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const SignInScreen()),
-          );
-        }
-      });
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           content: Text(
             'Unable to send the reset link. Please try again.',
             style: GoogleFonts.dosis(
@@ -162,7 +143,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         body: SafeArea(
           child: Stack(
             children: [
-              // Screen Content
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(

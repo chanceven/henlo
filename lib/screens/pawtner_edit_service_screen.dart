@@ -27,6 +27,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
   final _durationHoursController = TextEditingController();
   final _durationMinutesController = TextEditingController();
   final _priceController = TextEditingController();
+  final _maxBookingsController = TextEditingController(text: '1');
 
   String? serviceType;
   List<String> serviceSubType = [];
@@ -53,6 +54,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
   bool businessTypeDropdownOpen = false;
   bool loading = true;
   bool serviceTypeLocked = true;
+  bool _isSaving = false;
 
   final LayerLink _serviceTypeLink = LayerLink();
   final LayerLink _businessTypeLink = LayerLink();
@@ -151,6 +153,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
     _durationHoursController.dispose();
     _durationMinutesController.dispose();
     _priceController.dispose();
+    _maxBookingsController.dispose();
     super.dispose();
   }
 
@@ -171,71 +174,170 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
   }
 
   Future<void> _loadService() async {
-    final service = await supabase
-        .from('services')
-        .select()
-        .eq('id', widget.serviceId)
-        .single();
+    try {
+      final service = await supabase
+          .from('services')
+          .select()
+          .eq('id', widget.serviceId)
+          .single();
 
-    final availabilityRows = await supabase
-        .from('service_availability')
-        .select()
-        .eq('service_id', widget.serviceId);
+      final availabilityRows = await supabase
+          .from('service_availability')
+          .select()
+          .eq('service_id', widget.serviceId);
 
-    setState(() {
-      serviceType = service['service_type'];
-      serviceSubType = service['service_subtype'].toString().split(', ');
-      _serviceNameController.text = service['service_name'] ?? '';
-      _descriptionController.text = service['description'] ?? '';
-      final totalMinutes = service['duration_minutes'] ?? 0;
+      if (!mounted) return;
+      setState(() {
+        serviceType = service['service_type'];
+        serviceSubType = service['service_subtype'].toString().split(', ');
+        _serviceNameController.text = service['service_name'] ?? '';
+        _descriptionController.text = service['description'] ?? '';
+        final totalMinutes = service['duration_minutes'] ?? 0;
 
-      _durationHoursController.text = (totalMinutes ~/ 60).toString();
+        _durationHoursController.text = (totalMinutes ~/ 60).toString();
 
-      _durationMinutesController.text = (totalMinutes % 60).toString();
+        _durationMinutesController.text = (totalMinutes % 60).toString();
 
-      _priceController.text = service['price'].toString();
+        _priceController.text = service['price'].toString();
 
-      for (final row in availabilityRows) {
-        final day = row['day_of_week'];
-        availability[day]!['start'] = row['start_time'];
-        availability[day]!['end'] = row['end_time'];
-        availability[day]!['enabled'] = true;
-      }
+        _maxBookingsController.text =
+            (service['max_bookings_per_slot'] ?? 1).toString();
 
-      loading = false;
-    });
+        for (final row in availabilityRows) {
+          final day = row['day_of_week'];
+          availability[day]!['start'] = row['start_time'];
+          availability[day]!['end'] = row['end_time'];
+          availability[day]!['enabled'] = true;
+        }
+
+        loading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading service: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Failed to load service. Please try again.')),
+      );
+      Navigator.pop(context);
+    }
   }
 
-  // ---------------- UPDATE SERVICE ----------------
-  Future<void> _updateService() async {
-    await supabase.from('services').update({
-      'service_type': serviceType,
-      'service_subtype': serviceSubType.join(', '),
-      'service_name': _serviceNameController.text,
-      'description': _descriptionController.text,
-      'duration_minutes':
-          ((int.tryParse(_durationHoursController.text) ?? 0) * 60) +
-              (int.tryParse(_durationMinutesController.text) ?? 0),
-      'price': double.tryParse(_priceController.text) ?? 0,
-    }).eq('id', widget.serviceId);
-
-    await supabase
-        .from('service_availability')
-        .delete()
-        .eq('service_id', widget.serviceId);
-
-    for (var day in availability.entries) {
-      if (!day.value['enabled']) continue;
-      await supabase.from('service_availability').insert({
-        'service_id': widget.serviceId,
-        'day_of_week': day.key,
-        'start_time': day.value['start'],
-        'end_time': day.value['end'],
-      });
+  String? _validate() {
+    if (serviceType == null) {
+      return 'Please select a service type.';
     }
 
-    _showToast('Service updated successfully.');
-    Navigator.pop(context);
+    if (serviceSubType.isEmpty) {
+      return 'Please select at least one business type.';
+    }
+
+    if (_serviceNameController.text.trim().isEmpty) {
+      return 'Please enter a service name.';
+    }
+
+    final hours = int.tryParse(_durationHoursController.text) ?? 0;
+    final minutes = int.tryParse(_durationMinutesController.text) ?? 0;
+    final duration = (hours * 60) + minutes;
+
+    if (duration <= 0) {
+      return 'Please enter a valid duration (hours and/or minutes).';
+    }
+
+    final price = double.tryParse(_priceController.text);
+
+    if (price == null || price <= 0) {
+      return 'Please enter a valid price.';
+    }
+
+    final maxBookings = int.tryParse(_maxBookingsController.text);
+
+    if (maxBookings == null || maxBookings < 1) {
+      return 'Max bookings per time slot must be at least 1.';
+    }
+
+    final hasEnabledDay =
+        availability.values.any((day) => day['enabled'] == true);
+
+    if (!hasEnabledDay) {
+      return 'Please enable availability for at least one day.';
+    }
+
+    return null;
+  }
+
+  Future<void> _updateService() async {
+    if (_isSaving) return;
+
+    final validationError = _validate();
+
+    if (validationError != null) {
+      _showToast(validationError);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      // Back up existing availability rows before touching anything,
+      // so we can restore them if the new insert fails.
+      final backupRows = await supabase
+          .from('service_availability')
+          .select()
+          .eq('service_id', widget.serviceId);
+
+      await supabase.from('services').update({
+        'service_type': serviceType,
+        'service_subtype': serviceSubType.join(', '),
+        'service_name': _serviceNameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'duration_minutes':
+            ((int.tryParse(_durationHoursController.text) ?? 0) * 60) +
+                (int.tryParse(_durationMinutesController.text) ?? 0),
+        'price': double.tryParse(_priceController.text) ?? 0,
+        'max_bookings_per_slot': int.tryParse(_maxBookingsController.text) ?? 1,
+      }).eq('id', widget.serviceId);
+
+      await supabase
+          .from('service_availability')
+          .delete()
+          .eq('service_id', widget.serviceId);
+
+      final availabilityRows = availability.entries
+          .where((day) => day.value['enabled'] == true)
+          .map((day) => {
+                'service_id': widget.serviceId,
+                'day_of_week': day.key,
+                'start_time': day.value['start'],
+                'end_time': day.value['end'],
+              })
+          .toList();
+
+      if (availabilityRows.isNotEmpty) {
+        try {
+          await supabase.from('service_availability').insert(availabilityRows);
+        } catch (e) {
+          // Restore the previous availability so the service isn't left blank.
+          if ((backupRows as List).isNotEmpty) {
+            await supabase.from('service_availability').insert(backupRows);
+          }
+          rethrow;
+        }
+      }
+
+      if (!mounted) return;
+
+      _showToast('Service updated successfully.');
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      _showToast('Failed to update service. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   Widget _buildDropdown({
@@ -337,6 +439,8 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
     } else if (label.contains('Price')) {
       inputFormatters
           .add(FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')));
+    } else if (label.contains('Max Bookings')) {
+      inputFormatters.add(FilteringTextInputFormatter.digitsOnly);
     }
 
     return Column(
@@ -625,6 +729,12 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
                   keyboardType: TextInputType.number,
                   prefixText: '₱ '),
               const SizedBox(height: 16),
+              _buildTextField(
+                  label: 'Max Bookings Per Time Slot',
+                  controller: _maxBookingsController,
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 4),
+              const SizedBox(height: 16),
               const Divider(color: Colors.grey),
               const SizedBox(height: 16),
               Text(
@@ -715,13 +825,13 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6E4B3A),
+                      backgroundColor: const Color(0xFF8B0000),
                     ),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     child: Text(
                       'Cancel',
                       style: GoogleFonts.dosis(
-                        color: const Color(0xFFDDC7A9),
+                        color: const Color(0xFFF8F8F8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -731,16 +841,25 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDDC7A9),
+                      backgroundColor: const Color(0xFF6E4B3A),
                     ),
-                    onPressed: _updateService,
-                    child: Text(
-                      'Save Changes',
-                      style: GoogleFonts.dosis(
-                        color: const Color(0xFF6E4B3A),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    onPressed: _isSaving ? null : _updateService,
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF6E4B3A),
+                            ),
+                          )
+                        : Text(
+                            'Save Changes',
+                            style: GoogleFonts.dosis(
+                              color: const Color(0xFFDDC7A9),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ],

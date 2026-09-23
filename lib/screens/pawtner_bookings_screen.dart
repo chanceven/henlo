@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pawtner_booking_detail_screen.dart';
+import 'pawtner_add_booking_screen.dart';
 
 class PawtnerBookingsScreen extends StatefulWidget {
   const PawtnerBookingsScreen({super.key});
@@ -27,6 +28,7 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
   final TextEditingController searchController = TextEditingController();
 
   String searchQuery = '';
+  int _loadSeq = 0;
 
   @override
   void initState() {
@@ -69,6 +71,7 @@ class _PawtnerBookingsScreenState extends State<PawtnerBookingsScreen> {
   }
 
   Future<void> _loadBookings() async {
+    final seq = ++_loadSeq;
     try {
       final user = supabase.auth.currentUser;
       if (user == null) throw 'User not logged in';
@@ -140,6 +143,7 @@ furrents(full_name)
         return dateB.compareTo(dateA);
       });
 
+      if (!mounted || seq != _loadSeq) return;
       setState(() {
         upcomingBookings = upcoming;
         completedBookings = completed;
@@ -149,16 +153,46 @@ furrents(full_name)
       });
     } catch (e) {
       debugPrint('Error loading bookings: $e');
-      if (mounted) {
-        setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Oops! Something went wrong. Please try again."),
-            duration: Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
+      if (!mounted || seq != _loadSeq) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Oops! Something went wrong. Please try again.',
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
           ),
-        );
-      }
+          backgroundColor: const Color(0xFF6E4B3A),
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ),
+      );
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Completed':
+        return const Color(0xFF2E7D32);
+      case 'Cancelled':
+        return const Color(0xFF8B0000);
+      case 'Missed':
+        return const Color(0xFFFFB300);
+      default:
+        return const Color(0xFF5C5C5C);
+    }
+  }
+
+  String _statusLabel(dynamic raw) {
+    switch ((raw ?? '').toString().toLowerCase()) {
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'missed':
+        return 'Missed';
+      default:
+        return 'Upcoming';
     }
   }
 
@@ -198,7 +232,8 @@ furrents(full_name)
       }
     }
 
-    if (searchQuery.isNotEmpty) {
+    final query = searchQuery.trim().toLowerCase();
+    if (query.isNotEmpty) {
       final allBookings = [
         ...upcomingBookings,
         ...completedBookings,
@@ -220,10 +255,16 @@ furrents(full_name)
 
         final furrentName =
             (furrent?['full_name'] ?? '').toString().toLowerCase();
+        final guestName =
+            (booking['guest_name'] ?? '').toString().toLowerCase();
+        final guestPetName =
+            (booking['guest_pet_name'] ?? '').toString().toLowerCase();
 
-        return petName.contains(searchQuery.toLowerCase()) ||
-            serviceName.contains(searchQuery.toLowerCase()) ||
-            furrentName.contains(searchQuery.toLowerCase());
+        return petName.contains(query) ||
+            serviceName.contains(query) ||
+            furrentName.contains(query) ||
+            guestName.contains(query) ||
+            guestPetName.contains(query);
       }).toList();
     }
 
@@ -256,6 +297,81 @@ furrents(full_name)
               },
               child: Column(
                 children: [
+                  Row(
+                    children: List.generate(tabs.length, (index) {
+                      final isSelected = selectedTabIndex == index;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => selectedTabIndex = index),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF6E4B3A)
+                                  : const Color(0xFFF2F2F2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Center(
+                              child: Text(
+                                tabs[index],
+                                style: GoogleFonts.dosis(
+                                  fontSize: 18,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: isSelected
+                                      ? const Color(0xFFDDC7A9)
+                                      : const Color(0xFF6E4B3A),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  if (selectedTabIndex == 1) ...[
+                    Row(
+                      children: List.generate(3, (index) {
+                        final pastTabs = ['Completed', 'Cancelled', 'Missed'];
+                        final isSelected = selectedPastFilter == index;
+
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => selectedPastFilter = index),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF6E4B3A)
+                                    : const Color(0xFFF2F2F2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  pastTabs[index],
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 16,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: isSelected
+                                        ? const Color(0xFFDDC7A9)
+                                        : const Color(0xFF6E4B3A),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
@@ -271,6 +387,7 @@ furrents(full_name)
                       ),
                       child: TextField(
                         controller: searchController,
+                        textCapitalization: TextCapitalization.sentences,
                         onChanged: (value) {
                           setState(() {
                             searchQuery = value;
@@ -303,78 +420,7 @@ furrents(full_name)
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: List.generate(tabs.length, (index) {
-                      final isSelected = selectedTabIndex == index;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => selectedTabIndex = index),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFFDDC7A9)
-                                  : const Color(0xFFF2F2F2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Center(
-                              child: Text(
-                                tabs[index],
-                                style: GoogleFonts.dosis(
-                                  fontSize: 18,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 16),
-                  if (selectedTabIndex == 1) ...[
-                    Row(
-                      children: List.generate(3, (index) {
-                        final pastTabs = ['Completed', 'Cancelled', 'Missed'];
-                        final isSelected = selectedPastFilter == index;
-
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => selectedPastFilter = index),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 8),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFDDC7A9)
-                                    : const Color(0xFFF2F2F2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  pastTabs[index],
-                                  style: GoogleFonts.dosis(
-                                    fontSize: 16,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    color: const Color(0xFF6E4B3A),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  const SizedBox(height: 8),
                   Expanded(
                     child: bookingsToShow.isEmpty
                         ? Center(
@@ -382,7 +428,7 @@ furrents(full_name)
                                 fontSize: 16, color: const Color(0xFF6E4B3A)),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             itemCount: bookingsToShow.length,
                             itemBuilder: (context, index) {
                               final booking = bookingsToShow[index];
@@ -398,6 +444,11 @@ furrents(full_name)
                                   ? DateFormat('MMM d, h:mm a')
                                       .format(scheduledStart)
                                   : '';
+
+                              final petPhotoUrl =
+                                  pet?['profile_picture_url']?.toString() ?? '';
+                              final statusLabel =
+                                  _statusLabel(booking['status']);
 
                               return Container(
                                 margin: const EdgeInsets.symmetric(vertical: 4),
@@ -422,16 +473,15 @@ furrents(full_name)
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(12),
                                         color: const Color(0xFFDDC7A9),
-                                        image:
-                                            pet?['profile_picture_url'] != null
-                                                ? DecorationImage(
-                                                    image: NetworkImage(pet![
-                                                        'profile_picture_url']),
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                : null,
+                                        image: petPhotoUrl.isNotEmpty
+                                            ? DecorationImage(
+                                                image:
+                                                    NetworkImage(petPhotoUrl),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
                                       ),
-                                      child: pet?['profile_picture_url'] == null
+                                      child: petPhotoUrl.isEmpty
                                           ? const Icon(Icons.pets,
                                               color: Color(0xFF6E4B3A),
                                               size: 40)
@@ -443,11 +493,43 @@ furrents(full_name)
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          customText(
-                                            service?['service_type'] ?? '',
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF6E4B3A),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: customText(
+                                                  service?['service_type'] ??
+                                                      '',
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                  textAlign: TextAlign.left,
+                                                ),
+                                              ),
+                                              if (query.isNotEmpty)
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: _statusColor(
+                                                        statusLabel),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: Text(
+                                                    statusLabel,
+                                                    style: GoogleFonts.dosis(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                           const SizedBox(height: 5),
                                           customText(
@@ -458,7 +540,9 @@ furrents(full_name)
                                           ),
                                           const SizedBox(height: 5),
                                           customText(
-                                            '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
+                                            booking['furrent_id'] == null
+                                                ? '${booking['guest_pet_type'] ?? ''} • ${booking['guest_pet_name'] ?? ''}'
+                                                : '${pet?['type'] ?? ''} • ${pet?['name'] ?? ''}',
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                             color: const Color(0xFF6E4B3A),
@@ -521,6 +605,43 @@ furrents(full_name)
                 ],
               ),
             ),
+      bottomNavigationBar: selectedTabIndex == 0
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6E4B3A),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PawtnerAddBookingScreen(),
+                        ),
+                      );
+                      if (!mounted) return;
+                      _loadBookings();
+                    },
+                    child: Text(
+                      'Add Booking',
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFFDDC7A9),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

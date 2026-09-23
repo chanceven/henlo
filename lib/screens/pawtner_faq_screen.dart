@@ -18,7 +18,7 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
   Map<String, bool> expandedCategories = {};
   bool isLoading = true;
   String searchQuery = '';
-  final Map<dynamic, ExpansibleController> _faqControllers = {};
+  final Map<String, ExpansibleController> _faqControllers = {};
 
   @override
   void initState() {
@@ -26,7 +26,17 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
     _fetchFAQs();
   }
 
+  @override
+  void dispose() {
+    for (final controller in _faqControllers.values) {
+      controller.dispose();
+    }
+    _faqControllers.clear();
+    super.dispose();
+  }
+
   Future<void> _fetchFAQs() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
@@ -46,12 +56,14 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
         grouped[category]!.add(faq);
       }
 
+      if (!mounted) return;
       setState(() {
         faqsByCategory = grouped;
         expandedCategories = {for (var k in grouped.keys) k: true};
       });
     } catch (e) {
       debugPrint('Error fetching FAQs: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -61,10 +73,12 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
             ),
           ),
           backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -113,17 +127,18 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: SizedBox(
                         height: 40,
                         child: TextField(
+                          textCapitalization: TextCapitalization.sentences,
                           onTapOutside: (_) {
                             FocusScope.of(context).unfocus();
                           },
@@ -138,6 +153,7 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
                             hintStyle: GoogleFonts.dosis(
                               color: const Color(0xFFBDBDBD),
                               fontSize: 16,
+                              fontWeight: FontWeight.w400,
                             ),
                             fillColor: const Color(0xFFFFFFFF),
                             filled: true,
@@ -222,7 +238,7 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
   }
 
   Widget _buildFAQTile(Map<String, dynamic> faq) {
-    final faqKey = faq['id'] ?? faq;
+    final faqKey = faq['id']?.toString() ?? faq['question']?.toString() ?? '';
     final controller = _faqControllers.putIfAbsent(
       faqKey,
       () => ExpansibleController(),
@@ -243,12 +259,7 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
           iconColor: const Color(0xFF6E4B3A),
           collapsedIconColor: const Color(0xFF6E4B3A),
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          title: MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: const TextScaler.linear(1.0),
-            ),
-            child: _highlightText(faq['question'] ?? 'No question'),
-          ),
+          title: _highlightText(faq['question'] ?? 'No question'),
           onExpansionChanged: (expanded) {
             if (expanded) {
               for (final entry in _faqControllers.entries) {
@@ -275,7 +286,10 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
     if (searchQuery.isEmpty) {
       return Text(
         text,
-        style: GoogleFonts.dosis(fontSize: 16, color: const Color(0xFF6E4B3A)),
+        style: GoogleFonts.dosis(
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF6E4B3A)),
       );
     }
 
@@ -290,19 +304,24 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
         spans.add(TextSpan(
             text: text.substring(start),
             style: GoogleFonts.dosis(
-                fontSize: 16, color: const Color(0xFF6E4B3A))));
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6E4B3A))));
         break;
       }
       if (index > start) {
         spans.add(TextSpan(
             text: text.substring(start, index),
             style: GoogleFonts.dosis(
-                fontSize: 16, color: const Color(0xFF6E4B3A))));
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6E4B3A))));
       }
       spans.add(TextSpan(
           text: text.substring(index, index + query.length),
           style: GoogleFonts.dosis(
-              fontSize: 16,
+              fontSize: 17,
+              fontWeight: FontWeight.w500,
               color: const Color(0xFF6E4B3A),
               backgroundColor: const Color(0xFFFFF59D))));
       start = index + query.length;
@@ -311,7 +330,8 @@ class _PawtnerFAQScreenState extends State<PawtnerFAQScreen> {
     return Text.rich(
       TextSpan(children: spans),
       style: GoogleFonts.dosis(
-        fontSize: 16,
+        fontSize: 17,
+        fontWeight: FontWeight.w500,
         color: const Color(0xFF6E4B3A),
       ),
     );

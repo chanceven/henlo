@@ -17,6 +17,7 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
 
   Timer? _debounce;
   bool isLoading = false;
+  int _searchRequestId = 0;
 
   List<Map<String, dynamic>> results = [];
 
@@ -29,12 +30,16 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
   }
 
   Future<void> _search(String query) async {
+    final requestId = ++_searchRequestId;
+
     if (query.trim().isEmpty) {
-      setState(() => results = []);
+      if (mounted) setState(() => results = []);
       return;
     }
 
     setState(() => isLoading = true);
+
+    final escapedQuery = query.replaceAll('%', r'\%').replaceAll('_', r'\_');
 
     try {
       // Search services
@@ -42,14 +47,14 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
           .from('services')
           .select(
               'id, service_name, service_type, pawtner_id, pawtners!inner(business_name)')
-          .ilike('service_name', '%$query%')
+          .ilike('service_name', '%$escapedQuery%')
           .limit(10);
 
       // Search pawtners
       final pawtners = await supabase
           .from('pawtners')
           .select('id, full_name, business_name')
-          .or('full_name.ilike.%$query%,business_name.ilike.%$query%')
+          .or('full_name.ilike.%$escapedQuery%,business_name.ilike.%$escapedQuery%')
           .limit(10);
 
       // Merge results
@@ -72,12 +77,24 @@ class _FurrentSearchScreenState extends State<FurrentSearchScreen> {
             }),
       ];
 
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() {
         results = merged.cast<Map<String, dynamic>>();
         isLoading = false;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Error searching: $e');
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Search failed. Please try again.',
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
+      );
     }
   }
 

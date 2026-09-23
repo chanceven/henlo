@@ -32,6 +32,7 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
   int? _selectedDay;
   int? _selectedYear;
   Uint8List? _petImageBytes;
+  String _petImageExtension = 'jpg';
   bool isSaving = false;
 
   DropdownType _activeDropdown = DropdownType.none;
@@ -166,7 +167,10 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
 
       if (choice == null) return;
       if (choice == 'remove') {
-        setState(() => _petImageBytes = null);
+        setState(() {
+          _petImageBytes = null;
+          _petImageExtension = 'jpg';
+        });
         return;
       }
 
@@ -177,6 +181,7 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
+        _petImageExtension = image.path.split('.').last.toLowerCase();
 
         if (bytes.length > 3 * 1024 * 1024) {
           if (mounted) {
@@ -222,18 +227,24 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
             _breedController.text.isNotEmpty ? _breedController.text : null,
         'birth_date': birthDateStr,
         'gender': _gender,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
       if (_petImageBytes != null) {
+        final sanitizedName = _nameController.text
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9]+'), '_');
         final fileName =
-            '${user.id}/pet_${_nameController.text.trim().toLowerCase().replaceAll(' ', '_')}.png';
+            '${user.id}/pet_${sanitizedName}_${DateTime.now().millisecondsSinceEpoch}.$_petImageExtension';
+        final contentType =
+            _petImageExtension == 'png' ? 'image/png' : 'image/jpeg';
         await supabase.storage.from('profile_pictures').uploadBinary(
               fileName,
               _petImageBytes!,
-              fileOptions:
-                  const FileOptions(cacheControl: '3600', upsert: true),
+              fileOptions: FileOptions(
+                  cacheControl: '3600', upsert: true, contentType: contentType),
             );
 
         final publicUrl =

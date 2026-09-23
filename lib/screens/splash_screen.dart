@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -38,7 +36,8 @@ class _SplashScreenState extends State<SplashScreen> {
           .from('furrents')
           .select()
           .eq('id', userId)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 10));
 
       if (furrent != null) {
         if (mounted) {
@@ -52,7 +51,8 @@ class _SplashScreenState extends State<SplashScreen> {
           .from('pawtners')
           .select()
           .eq('id', userId)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 10));
 
       if (pawtner != null) {
         if (mounted) {
@@ -65,7 +65,11 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) Navigator.pushReplacementNamed(context, '/sign_in');
     } catch (e) {
       debugPrint('Splash startup error: $e');
-      await supabase.auth.signOut().catchError((_) {});
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutError) {
+        debugPrint('Error signing out during splash recovery: $signOutError');
+      }
       if (mounted) Navigator.pushReplacementNamed(context, '/sign_in');
     }
   }

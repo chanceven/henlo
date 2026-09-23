@@ -1,9 +1,8 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
-
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../places_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 
 class FurrentRescheduleScreen extends StatefulWidget {
@@ -50,10 +49,16 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   String furrentAddress = '';
   String pawtnerAddress = '';
   String notes = '';
+  String originalSubtype = '';
+  final TextEditingController notesController = TextEditingController();
 
-  final dio = Dio();
   bool isLoading = true;
+  bool isSaving = false;
   List<String> _cachedSubtypeList = [];
+
+  int maxBookingsPerSlot = 1;
+  int _timesSeq = 0;
+  bool isLoadingTimes = false;
 
   @override
   void initState() {
@@ -61,38 +66,79 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
     _initData();
   }
 
-  Future<void> _loadBookingDates() async {
+  @override
+  void dispose() {
+    notesController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _loadBookingDates() async {
     final booking = await supabase
         .from('bookings')
-        .select('scheduled_start, scheduled_end')
+        .select(
+            'scheduled_start, scheduled_end, notes, furrent_address, chosen_service_subtype')
         .eq('id', widget.bookingId)
         .maybeSingle();
 
-    if (booking != null) {
-      final start = DateTime.parse(booking['scheduled_start']).toLocal();
-      selectedDate = start;
-      originalDate = start;
-      viewedMonth = DateTime(start.year, start.month);
-      originalTime = TimeOfDay(hour: start.hour, minute: start.minute);
-      selectedTime = originalTime;
-      if (booking['scheduled_end'] != null) {
-        selectedEndDate = DateTime.parse(booking['scheduled_end']).toLocal();
-        originalEndDate = selectedEndDate;
-      }
+    if (booking == null) return false;
+
+    final start = DateTime.parse(booking['scheduled_start']).toLocal();
+    selectedDate = start;
+    originalDate = start;
+    viewedMonth = DateTime(start.year, start.month);
+    originalTime = TimeOfDay(hour: start.hour, minute: start.minute);
+    selectedTime = originalTime;
+    if (booking['scheduled_end'] != null) {
+      selectedEndDate = DateTime.parse(booking['scheduled_end']).toLocal();
+      originalEndDate = selectedEndDate;
     }
+    notes = booking['notes'] as String? ?? '';
+    notesController.text = notes;
+    furrentAddress = booking['furrent_address'] as String? ?? '';
+    originalSubtype = booking['chosen_service_subtype'] as String? ?? '';
+    return true;
   }
 
   Future<void> _initData() async {
     try {
-      await _loadBookingDates();
+      final found = await _loadBookingDates();
+      if (!found) {
+        if (!mounted) return;
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Booking not found.',
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ));
+        Navigator.pop(context);
+        return;
+      }
       await _loadServiceSubtypes();
       await _loadPawtnerAddress();
       await _loadPawtnerName();
       await _loadPetName();
       await _loadAvailableTimes(selectedDate);
+
+      if (isBoardingService && selectedEndDate != null) {
+        boardingDays = selectedEndDate!.difference(selectedDate).inDays;
+        totalPrice = servicePrice * boardingDays;
+      }
     } catch (e) {
       debugPrint('Error initializing reschedule screen: $e');
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to load booking details.',
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      ));
+      return;
     }
+    if (!mounted) return;
     setState(() => isLoading = false);
   }
 
@@ -101,7 +147,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
       final response = await supabase
           .from('services')
           .select(
-              'service_type, service_subtype, price, service_name, duration_minutes')
+              'service_type, service_subtype, price, service_name, duration_minutes, max_bookings_per_slot')
           .eq('id', widget.serviceId)
           .maybeSingle();
 
@@ -114,6 +160,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         servicePrice = (response['price'] ?? 0).toDouble();
         serviceName = response['service_name'] ?? '';
         serviceDurationMinutes = (response['duration_minutes'] ?? 60) as int;
+        maxBookingsPerSlot = (response['max_bookings_per_slot'] ?? 1) as int;
 
         if (serviceType.toLowerCase() == 'grooming') {
           subtypeTabs = ['Pet Shop', 'Home Service'];
@@ -129,9 +176,14 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
             subtype.split(',').map((s) => s.trim().toLowerCase()).toList();
         _cachedSubtypeList = subtypeList;
 
-        selectedSubtype = subtypeTabs.firstWhere(
-            (s) => subtypeList.contains(s.toLowerCase()),
-            orElse: () => subtypeTabs.first);
+        if (originalSubtype.isNotEmpty &&
+            subtypeTabs.contains(originalSubtype)) {
+          selectedSubtype = originalSubtype;
+        } else {
+          selectedSubtype = subtypeTabs.firstWhere(
+              (s) => subtypeList.contains(s.toLowerCase()),
+              orElse: () => subtypeTabs.first);
+        }
       }
     } catch (e) {
       debugPrint('Error loading subtypes: $e');
@@ -184,6 +236,8 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   }
 
   Future<void> _loadAvailableTimes(DateTime date) async {
+    final seq = ++_timesSeq;
+    if (mounted) setState(() => isLoadingTimes = true);
     try {
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       final dayOfWeek = dayNames[date.weekday % 7];
@@ -204,17 +258,28 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         final endParts = (row['end_time'] as String).split(':');
 
         TimeOfDay current = TimeOfDay(
-            hour: int.parse(startParts[0]), minute: int.parse(startParts[1]));
-        final end = TimeOfDay(
-            hour: int.parse(endParts[0]), minute: int.parse(endParts[1]));
+          hour: int.parse(startParts[0]),
+          minute: int.parse(startParts[1]),
+        );
 
+        final end = TimeOfDay(
+          hour: int.parse(endParts[0]),
+          minute: int.parse(endParts[1]),
+        );
+
+        final endMinutes = end.hour * 60 + end.minute;
         while (_timeToDouble(current) < _timeToDouble(end)) {
-          slots.add(current);
+          final currentMinutes = current.hour * 60 + current.minute;
+          if (isBoardingService ||
+              currentMinutes + serviceDurationMinutes <= endMinutes) {
+            slots.add(current);
+          }
           current = _addMinutes(current, 30);
         }
       }
 
       final now = DateTime.now();
+
       if (date.year == now.year &&
           date.month == now.month &&
           date.day == now.day) {
@@ -225,10 +290,79 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         }).toList();
       }
 
-      setState(() => availableTimes = slots);
+      final availableSlots = <TimeOfDay>[];
+
+      for (final time in slots) {
+        if (!mounted || seq != _timesSeq) return;
+        final slotStart = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+
+        final slotEnd = isBoardingService && selectedEndDate != null
+            ? DateTime(
+                selectedEndDate!.year,
+                selectedEndDate!.month,
+                selectedEndDate!.day,
+                time.hour,
+                time.minute,
+              )
+            : slotStart.add(Duration(minutes: serviceDurationMinutes));
+
+        final existing = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('pawtner_id', widget.pawtnerId)
+            .eq('service_id', widget.serviceId)
+            .neq('status', 'Cancelled')
+            .neq('id', widget.bookingId)
+            .lt(
+              'scheduled_start',
+              slotEnd.toUtc().toIso8601String(),
+            )
+            .gt(
+              'scheduled_end',
+              slotStart.toUtc().toIso8601String(),
+            );
+
+        if (existing.length < maxBookingsPerSlot) {
+          availableSlots.add(time);
+        }
+      }
+
+      if (!mounted || seq != _timesSeq) return;
+
+      setState(() {
+        availableTimes = availableSlots;
+        isLoadingTimes = false;
+
+        if (selectedTime != null &&
+            !availableSlots.any((t) =>
+                t.hour == selectedTime!.hour &&
+                t.minute == selectedTime!.minute)) {
+          selectedTime = null;
+        }
+      });
     } catch (e) {
       debugPrint('Error loading available times: $e');
-      setState(() => availableTimes = []);
+
+      if (!mounted || seq != _timesSeq) return;
+
+      setState(() {
+        availableTimes = [];
+        selectedTime = null;
+        isLoadingTimes = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to load available times.',
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+      ));
     }
   }
 
@@ -247,15 +381,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
 
     if (!isBoardingService) {
       setState(() => selectedDate = date);
-      debugPrint('Original: $originalDate | Selected: $selectedDate');
-      _loadAvailableTimes(date).then((_) {
-        if (selectedTime != null &&
-            !availableTimes.any((t) =>
-                t.hour == selectedTime!.hour &&
-                t.minute == selectedTime!.minute)) {
-          setState(() => selectedTime = null);
-        }
-      });
+      _loadAvailableTimes(date);
       return;
     }
 
@@ -277,14 +403,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
       });
     }
 
-    _loadAvailableTimes(date).then((_) {
-      if (selectedTime != null &&
-          !availableTimes.any((t) =>
-              t.hour == selectedTime!.hour &&
-              t.minute == selectedTime!.minute)) {
-        setState(() => selectedTime = null);
-      }
-    });
+    _loadAvailableTimes(selectedDate);
   }
 
   @override
@@ -326,8 +445,10 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                       (!isBoardingService || selectedEndDate != null) &&
                       (!(selectedSubtype == 'Home Service' ||
                               selectedSubtype == 'Home Training') ||
-                          furrentAddress.isNotEmpty)
+                          furrentAddress.isNotEmpty) &&
+                      !isSaving
                   ? () async {
+                      if (isSaving) return;
                       try {
                         final scheduledStart = DateTime(
                           selectedDate.year,
@@ -379,7 +500,52 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                           total: isBoardingService ? totalPrice : servicePrice,
                         );
 
-                        if (confirm != true) return;
+                        if (confirm != true || !mounted || !context.mounted) {
+                          return;
+                        }
+
+                        if (!scheduledStart.isAfter(DateTime.now())) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Selected time has already passed. Please choose a later time.',
+                                style: GoogleFonts.dosis(
+                                    color: const Color(0xFFDDC7A9))),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                          ));
+                          return;
+                        }
+
+                        setState(() => isSaving = true);
+
+                        final conflictCheck = await supabase
+                            .from('bookings')
+                            .select('id')
+                            .eq('pawtner_id', widget.pawtnerId)
+                            .eq('service_id', widget.serviceId)
+                            .neq('status', 'Cancelled')
+                            .neq('id', widget.bookingId)
+                            .lt('scheduled_start',
+                                scheduledEnd.toUtc().toIso8601String())
+                            .gt('scheduled_end',
+                                scheduledStart.toUtc().toIso8601String());
+
+                        if (!mounted || !context.mounted) return;
+                        if (conflictCheck.length >= maxBookingsPerSlot) {
+                          setState(() => isSaving = false);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Selected date/time is no longer available.',
+                                style: GoogleFonts.dosis(
+                                    color: const Color(0xFFDDC7A9))),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                          ));
+                          _loadAvailableTimes(selectedDate);
+                          return;
+                        }
 
                         await supabase.from('bookings').update({
                           'scheduled_start':
@@ -391,33 +557,53 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                                       selectedSubtype == 'Home Training')
                                   ? furrentAddress
                                   : null,
-                          'notes': notes,
+                          'notes': notes.trim().isEmpty ? null : notes.trim(),
                           'chosen_service_subtype': selectedSubtype,
                         }).eq('id', widget.bookingId);
+
+                        if (!mounted || !context.mounted) return;
 
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text('Booking rescheduled.',
                               style: GoogleFonts.dosis(
                                   color: const Color(0xFFDDC7A9))),
                           backgroundColor: const Color(0xFF6E4B3A),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                         ));
 
                         Navigator.pop(context);
                       } catch (e) {
+                        debugPrint('Error rescheduling booking: $e');
+                        if (!mounted) return;
+                        setState(() => isSaving = false);
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text('Reschedule failed: $e',
+                          content: Text(
+                              'Failed to reschedule. Please try again.',
                               style: GoogleFonts.dosis(
                                   color: const Color(0xFFDDC7A9))),
                           backgroundColor: const Color(0xFF6E4B3A),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                         ));
                       }
                     }
                   : null,
-              child: Text('Reschedule',
-                  style: GoogleFonts.dosis(
-                      color: const Color(0xFFDDC7A9),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18)),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFFDDC7A9)),
+                      ),
+                    )
+                  : Text('Reschedule',
+                      style: GoogleFonts.dosis(
+                          color: const Color(0xFFDDC7A9),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18)),
             ),
           ),
         ),
@@ -456,6 +642,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                 _buildTimeSlots(),
                 const SizedBox(height: 16),
                 TextField(
+                  controller: notesController,
                   style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
                   decoration: InputDecoration(
                     hintText: 'Notes to Pawtner',
@@ -492,13 +679,14 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
     );
   }
 
-  // --- WIDGETS COPIED FROM BOOK APPOINTMENT ---
-
   Future<void> _pickFurrentAddress() async {
     final TextEditingController searchController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
-    const apiKey = 'AIzaSyBOKb6toq6ItcFdi94IekJNj5WX0p8tkt4';
+    Timer? debounce;
+    int searchSeq = 0;
+    bool picking = false;
+    String? addressError;
 
     await showModalBottomSheet(
       context: context,
@@ -513,7 +701,9 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom +
+                MediaQuery.of(context).viewPadding.bottom +
+                24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -558,47 +748,38 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                       borderSide:
                           BorderSide(color: Color(0xFF6E4B3A), width: 1)),
                 ),
-                onChanged: (value) async {
+                onChanged: (value) {
+                  debounce?.cancel();
                   if (value.trim().length < 3) {
-                    setModalState(() => searchResults = []);
-                    return;
-                  }
-                  setModalState(() => isSearching = true);
-                  try {
-                    final response = await dio.post(
-                      'https://places.googleapis.com/v1/places:autocomplete',
-                      options: Options(headers: {
-                        'Content-Type': 'application/json',
-                        'X-Goog-Api-Key': apiKey
-                      }),
-                      data: {
-                        'input': value,
-                        'locationBias': {
-                          'circle': {
-                            'center': {
-                              'latitude': 12.8797,
-                              'longitude': 121.7740
-                            },
-                            'radius': 50000.0
-                          }
-                        },
-                        'includedRegionCodes': ['ph'],
-                      },
-                    );
-                    if (!mounted) return;
-                    final suggestions =
-                        response.data['suggestions'] as List? ?? [];
+                    searchSeq++;
                     setModalState(() {
-                      searchResults = suggestions
-                          .map((e) =>
-                              e['placePrediction'] as Map<String, dynamic>)
-                          .toList();
+                      searchResults = [];
                       isSearching = false;
                     });
-                  } catch (e) {
-                    if (!mounted) return;
-                    setModalState(() => isSearching = false);
+                    return;
                   }
+                  debounce = Timer(const Duration(milliseconds: 400), () async {
+                    if (!context.mounted) return;
+                    final seq = ++searchSeq;
+                    setModalState(() => isSearching = true);
+                    try {
+                      final response = await PlacesService.autocomplete(value);
+                      if (!context.mounted || seq != searchSeq) return;
+                      final suggestions =
+                          response['suggestions'] as List? ?? [];
+                      setModalState(() {
+                        searchResults = suggestions
+                            .map((e) =>
+                                e['placePrediction'] as Map<String, dynamic>)
+                            .toList();
+                        isSearching = false;
+                      });
+                    } catch (e) {
+                      debugPrint('Autocomplete error: $e');
+                      if (!context.mounted || seq != searchSeq) return;
+                      setModalState(() => isSearching = false);
+                    }
+                  });
                 },
               ),
               const SizedBox(height: 8),
@@ -639,30 +820,42 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         onTap: () async {
+                          if (picking) return;
+                          picking = true;
+                          setModalState(() => addressError = null);
                           try {
-                            final detailResponse = await dio.get(
-                              'https://places.googleapis.com/v1/places/$placeId',
-                              options: Options(headers: {
-                                'X-Goog-Api-Key': apiKey,
-                                'X-Goog-FieldMask':
-                                    'location,displayName,formattedAddress'
-                              }),
-                            );
+                            final detailResponse =
+                                await PlacesService.details(placeId);
                             final formattedAddress =
-                                detailResponse.data['formattedAddress'] ??
-                                    mainText;
+                                detailResponse['formattedAddress'] ?? mainText;
                             final addressParts = formattedAddress.split(',');
                             final shortAddress = addressParts.length > 2
                                 ? addressParts.take(2).join(',').trim()
                                 : formattedAddress;
+                            if (!mounted) return;
                             setState(() => furrentAddress = shortAddress);
-                            if (mounted) Navigator.pop(context);
+                            if (context.mounted) Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
+                            picking = false;
+                            if (!context.mounted) return;
+                            setModalState(() => addressError =
+                                'Failed to load address. Please try again.');
                           }
                         },
                       );
                     },
+                  ),
+                ),
+              if (addressError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    addressError!,
+                    style: GoogleFonts.dosis(
+                      fontSize: 14,
+                      color: const Color(0xFF8B0000),
+                    ),
                   ),
                 ),
             ],
@@ -685,7 +878,9 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
               child: GestureDetector(
                 onTap: isDisabled
                     ? null
-                    : () => setState(() => selectedSubtype = tab),
+                    : () {
+                        setState(() => selectedSubtype = tab);
+                      },
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -852,12 +1047,14 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                       )
                     : isInRange
                         ? BoxDecoration(
-                            color: const Color(0xFF6E4B3A).withOpacity(0.2),
+                            color:
+                                const Color(0xFF6E4B3A).withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           )
                         : isOriginalRange && hasChangedDate
                             ? BoxDecoration(
-                                color: const Color(0xFFD9D9D9).withOpacity(0.5),
+                                color: const Color(0xFFD9D9D9)
+                                    .withValues(alpha: 0.5),
                                 shape: BoxShape.circle,
                               )
                             : null,
@@ -935,6 +1132,24 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                GestureDetector(
+                  onTap: () {
+                    final now = DateTime.now();
+                    final currentMonth = DateTime(now.year, now.month, 1);
+                    final prevMonth =
+                        DateTime(viewedMonth.year, viewedMonth.month - 1, 1);
+                    if (prevMonth.isBefore(currentMonth)) return;
+                    setState(() => viewedMonth = prevMonth);
+                  },
+                  child: const Text(
+                    "<",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6E4B3A),
+                    ),
+                  ),
+                ),
                 Text(
                   "${_monthName(viewedMonth.month)} ${viewedMonth.year}",
                   style: GoogleFonts.dosis(
@@ -943,42 +1158,21 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          viewedMonth = DateTime(
-                              viewedMonth.year, viewedMonth.month - 1, 1);
-                        });
-                      },
-                      child: const Text(
-                        "<",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF6E4B3A),
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      viewedMonth =
+                          DateTime(viewedMonth.year, viewedMonth.month + 1, 1);
+                    });
+                  },
+                  child: const Text(
+                    ">",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6E4B3A),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          viewedMonth = DateTime(
-                              viewedMonth.year, viewedMonth.month + 1, 1);
-                        });
-                      },
-                      child: const Text(
-                        ">",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF6E4B3A),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -993,6 +1187,14 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
   }
 
   Widget _buildTimeSlots() {
+    if (isLoadingTimes) {
+      return const SizedBox(
+        height: 50,
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF6E4B3A)),
+        ),
+      );
+    }
     if (availableTimes.isEmpty) {
       return SizedBox(
         height: 50,

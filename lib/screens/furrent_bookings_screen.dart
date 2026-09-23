@@ -41,10 +41,13 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
 
   Future<void> _loadFurrentPets() async {
     try {
-      final currentUserId = supabase.auth.currentUser!.id;
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) return;
+      final currentUserId = currentUser.id;
       final response =
           await supabase.from('pets').select().eq('furrent_id', currentUserId);
 
+      if (!mounted) return;
       setState(() {
         furrentPets =
             (response as List).map((e) => e as Map<String, dynamic>).toList();
@@ -90,6 +93,7 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
         return bTime.compareTo(aTime); // descending
       });
 
+      if (!mounted) return;
       setState(() {
         upcomingBookings = upcoming;
         pastBookings = past;
@@ -397,16 +401,16 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                               final status = booking['status'];
 
                               return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
+                                onTap: () async {
+                                  await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           FurrentBookingDetailsScreen(
-                                        booking: booking,
-                                      ),
+                                              booking: booking),
                                     ),
                                   );
+                                  if (mounted) _loadBookings();
                                 },
                                 child: Container(
                                   margin:
@@ -689,6 +693,9 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                     if (confirmed != true) {
                                                       return;
                                                     }
+                                                    if (!context.mounted) {
+                                                      return;
+                                                    }
 
                                                     final reasonController =
                                                         TextEditingController();
@@ -876,27 +883,36 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
 
                                                     if (reasonSubmitted !=
                                                         true) {
+                                                      reasonController
+                                                          .dispose();
                                                       return;
                                                     }
 
                                                     final bookingId =
                                                         booking['id'];
+                                                    final reasonText =
+                                                        reasonController.text
+                                                            .trim();
+                                                    reasonController.dispose();
                                                     try {
+                                                      final cancelledAtUtc =
+                                                          DateTime.now()
+                                                              .toUtc()
+                                                              .toIso8601String();
+
                                                       await supabase
                                                           .from('bookings')
                                                           .update({
                                                         'status': 'Cancelled',
                                                         'cancelled_reason':
-                                                            reasonController
-                                                                .text
-                                                                .trim(),
-                                                        'cancelled_at': DateTime
-                                                                .now()
-                                                            .toIso8601String(),
+                                                            reasonText,
+                                                        'cancelled_at':
+                                                            cancelledAtUtc,
                                                         'cancelled_by':
                                                             'Furrent',
                                                       }).eq('id', bookingId);
 
+                                                      if (!mounted) return;
                                                       setState(() {
                                                         upcomingBookings
                                                             .removeWhere((b) =>
@@ -905,16 +921,31 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                         booking['status'] =
                                                             'Cancelled';
                                                         booking['cancelled_reason'] =
-                                                            reasonController
-                                                                .text
-                                                                .trim();
+                                                            reasonText;
                                                         booking['cancelled_at'] =
-                                                            DateTime.now()
-                                                                .toIso8601String();
+                                                            cancelledAtUtc;
                                                         pastBookings.insert(
                                                             0, booking);
+                                                        pastBookings
+                                                            .sort((a, b) {
+                                                          final aTime = DateTime
+                                                                  .tryParse(
+                                                                      a['scheduled_start'] ??
+                                                                          '') ??
+                                                              DateTime.now();
+                                                          final bTime = DateTime
+                                                                  .tryParse(
+                                                                      b['scheduled_start'] ??
+                                                                          '') ??
+                                                              DateTime.now();
+                                                          return bTime
+                                                              .compareTo(aTime);
+                                                        });
                                                       });
 
+                                                      if (!context.mounted) {
+                                                        return;
+                                                      }
                                                       ScaffoldMessenger.of(
                                                               context)
                                                           .showSnackBar(
@@ -923,6 +954,9 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                                 'Booking cancelled.')),
                                                       );
                                                     } catch (e) {
+                                                      if (!context.mounted) {
+                                                        return;
+                                                      }
                                                       ScaffoldMessenger.of(
                                                               context)
                                                           .showSnackBar(
@@ -964,8 +998,8 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                 ),
                                                 const SizedBox(height: 4),
                                                 ElevatedButton(
-                                                  onPressed: () {
-                                                    Navigator.push(
+                                                  onPressed: () async {
+                                                    await Navigator.push(
                                                       context,
                                                       MaterialPageRoute(
                                                         builder: (context) =>
@@ -981,6 +1015,9 @@ class _FurrentBookingsScreenState extends State<FurrentBookingsScreen> {
                                                         ),
                                                       ),
                                                     );
+                                                    if (mounted) {
+                                                      _loadBookings();
+                                                    }
                                                   },
                                                   style:
                                                       ElevatedButton.styleFrom(

@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import '../places_service.dart';
 import 'furrent_pawtner_detail_screen.dart';
 
 class FurrentGroomingScreen extends StatefulWidget {
@@ -24,6 +26,11 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
   double furrentLocationLat = 0.0;
   double furrentLocationLong = 0.0;
   String _locationLabel = 'Detecting location...';
+  int _loadSeq = 0;
+  final Map<String, Future<double>> _ratingFutures = {};
+
+  bool get _hasLocation =>
+      furrentLocationLat != 0.0 || furrentLocationLong != 0.0;
 
   final List<String> tabs = ['All', 'Pet Shop', 'Home Service'];
   final List<bool> _selectedTabFlags = [true, false, false];
@@ -47,6 +54,7 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
         permission = await Geolocator.requestPermission();
       }
 
+      if (!mounted) return;
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         setState(() => _locationLabel = 'Location permission denied');
@@ -57,6 +65,7 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
         ),
       );
 
@@ -98,7 +107,9 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
     final TextEditingController locationController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
-    const apiKey = 'AIzaSyBOKb6toq6ItcFdi94IekJNj5WX0p8tkt4';
+    Timer? debounce;
+    int searchSeq = 0;
+    bool picking = false;
 
     await showModalBottomSheet(
       context: context,
@@ -113,7 +124,9 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom +
+                MediaQuery.of(context).viewPadding.bottom +
+                24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -131,6 +144,7 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
               TextField(
                 controller: locationController,
                 autofocus: true,
+                textInputAction: TextInputAction.search,
                 style: GoogleFonts.dosis(
                   fontSize: 16,
                   color: const Color(0xFF6E4B3A),
@@ -162,54 +176,84 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
                     borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1),
                   ),
                 ),
-                onChanged: (value) async {
-                  if (value.trim().length < 3) {
-                    setModalState(() => searchResults = []);
-                    return;
-                  }
+                onSubmitted: (value) async {
+                  final query = value.trim();
+                  if (query.isEmpty) return;
 
                   setModalState(() => isSearching = true);
 
                   try {
-                    final response = await dio.post(
-                      'https://places.googleapis.com/v1/places:autocomplete',
-                      options: Options(
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'X-Goog-Api-Key': apiKey,
-                        },
-                      ),
-                      data: {
-                        'input': value,
-                        'locationBias': {
-                          'circle': {
-                            'center': {
-                              'latitude': 12.8797,
-                              'longitude': 121.7740,
-                            },
-                            'radius': 50000.0,
-                          },
-                        },
-                        'includedRegionCodes': ['ph'],
-                      },
-                    );
+                    final response = await PlacesService.search(query);
+                    final places = response['places'] as List? ?? [];
 
-                    if (!mounted) return;
-                    final suggestions =
-                        response.data['suggestions'] as List? ?? [];
+                    if (!context.mounted) return;
+                    if (places.isEmpty) {
+                      setModalState(() => isSearching = false);
+                      return;
+                    }
 
-                    setModalState(() {
-                      searchResults = suggestions
-                          .map((e) =>
-                              e['placePrediction'] as Map<String, dynamic>)
-                          .toList();
-                      isSearching = false;
+                    final place = places.first as Map<String, dynamic>;
+                    final lat =
+                        (place['location']['latitude'] as num).toDouble();
+                    final lng =
+                        (place['location']['longitude'] as num).toDouble();
+                    final formattedAddress = place['formattedAddress'] ?? query;
+                    final addressParts = formattedAddress.toString().split(',');
+                    final shortAddress = addressParts.length > 2
+                        ? addressParts.take(2).join(',').trim()
+                        : formattedAddress;
+
+                    setState(() {
+                      furrentLocationLat = lat;
+                      furrentLocationLong = lng;
+                      _locationLabel = shortAddress;
                     });
+
+                    _loadServices();
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
                   } catch (e) {
-                    if (!mounted) return;
-                    debugPrint('Autocomplete error: $e');
+                    debugPrint('Text search error: $e');
+                    if (!context.mounted) return;
                     setModalState(() => isSearching = false);
                   }
+                },
+                onChanged: (value) {
+                  debounce?.cancel();
+                  if (value.trim().length < 3) {
+                    searchSeq++;
+                    setModalState(() {
+                      searchResults = [];
+                      isSearching = false;
+                    });
+                    return;
+                  }
+
+                  debounce = Timer(const Duration(milliseconds: 400), () async {
+                    if (!context.mounted) return;
+                    final seq = ++searchSeq;
+                    setModalState(() => isSearching = true);
+
+                    try {
+                      final response = await PlacesService.autocomplete(value);
+
+                      if (!context.mounted || seq != searchSeq) return;
+                      final suggestions =
+                          response['suggestions'] as List? ?? [];
+
+                      setModalState(() {
+                        searchResults = suggestions
+                            .map((e) =>
+                                e['placePrediction'] as Map<String, dynamic>)
+                            .toList();
+                        isSearching = false;
+                      });
+                    } catch (e) {
+                      debugPrint('Autocomplete error: $e');
+                      if (!context.mounted || seq != searchSeq) return;
+                      setModalState(() => isSearching = false);
+                    }
+                  });
                 },
               ),
               const SizedBox(height: 8),
@@ -258,30 +302,26 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         onTap: () async {
+                          if (picking) return;
+                          picking = true;
                           try {
-                            final detailResponse = await dio.get(
-                              'https://places.googleapis.com/v1/places/$placeId',
-                              options: Options(
-                                headers: {
-                                  'X-Goog-Api-Key': apiKey,
-                                  'X-Goog-FieldMask':
-                                      'location,displayName,formattedAddress',
-                                },
-                              ),
-                            );
+                            final detailResponse =
+                                await PlacesService.details(placeId);
 
-                            final lat = detailResponse.data['location']
-                                ['latitude'] as double;
-                            final lng = detailResponse.data['location']
-                                ['longitude'] as double;
+                            final lat =
+                                (detailResponse['location']['latitude'] as num)
+                                    .toDouble();
+                            final lng =
+                                (detailResponse['location']['longitude'] as num)
+                                    .toDouble();
                             final formattedAddress =
-                                detailResponse.data['formattedAddress'] ??
-                                    mainText;
+                                detailResponse['formattedAddress'] ?? mainText;
                             final addressParts = formattedAddress.split(',');
                             final shortAddress = addressParts.length > 2
                                 ? addressParts.take(2).join(',').trim()
                                 : formattedAddress;
 
+                            if (!context.mounted) return;
                             setState(() {
                               furrentLocationLat = lat;
                               furrentLocationLong = lng;
@@ -289,10 +329,10 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
                             });
 
                             _loadServices();
-                            if (!context.mounted) return;
                             Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
+                            picking = false;
                           }
                         },
                       );
@@ -348,6 +388,8 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
   double _deg2rad(double deg) => deg * pi / 180;
 
   Future<void> _loadServices() async {
+    if (!mounted) return;
+    final seq = ++_loadSeq;
     setState(() => isLoading = true);
     try {
       var query = supabase
@@ -363,7 +405,8 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
         query = query.ilike('service_subtype', '%home service%');
       }
 
-      final search = _searchController.text.trim();
+      final search =
+          _searchController.text.trim().replaceAll(RegExp(r'[,()]'), '');
       if (search.isNotEmpty) {
         query = query.or(
           'service_name.ilike.%$search%,pawtners.full_name.ilike.%$search%,pawtners.business_name.ilike.%$search%',
@@ -371,8 +414,10 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
       }
 
       final response = await query;
-      var data =
-          (response as List).map((e) => e as Map<String, dynamic>).toList();
+      var data = (response as List)
+          .map((e) => e as Map<String, dynamic>)
+          .where((e) => e['pawtners'] != null)
+          .toList();
 
 // Sort by distance
       data.sort((a, b) {
@@ -387,7 +432,7 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
         return distA.compareTo(distB);
       });
 
-      if (!mounted) return;
+      if (!mounted || seq != _loadSeq) return;
 
       setState(() {
         services = data;
@@ -395,8 +440,19 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
       });
     } catch (e) {
       debugPrint('Error loading grooming services: $e');
-      if (!mounted) return;
+      if (!mounted || seq != _loadSeq) return;
       setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to load services',
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ),
+      );
     }
   }
 
@@ -540,11 +596,13 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
         subtypesList.first.toLowerCase() == 'home service') {
       locationText = 'See All Locations';
     } else if (hasPetShop) {
-      if (lat != 0 && long != 0) {
+      if (lat != 0 && long != 0 && _hasLocation) {
         distanceKm = calculateDistance(
             furrentLocationLat, furrentLocationLong, lat, long);
+        locationText = '$businessAddress • ${distanceKm.toInt()} km';
+      } else {
+        locationText = businessAddress;
       }
-      locationText = '$businessAddress • ${distanceKm.toInt()} km';
     }
 
     final search = _searchController.text.trim().toLowerCase();
@@ -617,7 +675,8 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
     }
 
     return FutureBuilder<double>(
-        future: _getAverageRating(pawtnerId),
+        future: _ratingFutures.putIfAbsent(
+            pawtnerId.toString(), () => _getAverageRating(pawtnerId)),
         builder: (context, snapshot) {
           final rating = snapshot.data ?? 0.0;
 
@@ -661,14 +720,14 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           color: const Color(0xFF6E4B3A),
-                          image: profileUrl != null
+                          image: (profileUrl?.toString() ?? '').isNotEmpty
                               ? DecorationImage(
-                                  image: NetworkImage(profileUrl),
+                                  image: NetworkImage(profileUrl.toString()),
                                   fit: BoxFit.cover,
                                 )
                               : null,
                         ),
-                        child: profileUrl == null
+                        child: (profileUrl?.toString() ?? '').isEmpty
                             ? const Icon(Icons.person,
                                 color: Color(0xFFDDC7A9), size: 32)
                             : null,
@@ -884,6 +943,7 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
                           Expanded(
                             child: TextField(
                               controller: _searchController,
+                              textCapitalization: TextCapitalization.sentences,
                               textAlignVertical: TextAlignVertical.center,
                               style: GoogleFonts.dosis(
                                   fontSize: 16, color: const Color(0xFF6E4B3A)),
@@ -914,26 +974,35 @@ class _FurrentGroomingScreenState extends State<FurrentGroomingScreen> {
               Expanded(
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: ListView.builder(
-                          itemCount: services
-                              .map((s) => s['pawtners']?['id'])
-                              .toSet()
-                              .length,
-                          itemBuilder: (context, index) {
-                            final uniquePawtnerIds = services
-                                .map((s) => s['pawtners']?['id'])
-                                .toSet()
-                                .toList();
-                            final pawtnerId = uniquePawtnerIds[index];
-                            final pawtnerServices = services
-                                .where((s) => s['pawtners']?['id'] == pawtnerId)
-                                .toList();
-                            return _buildServiceCard(pawtnerServices.first);
-                          },
-                        ),
-                      ),
+                    : services.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No pawtners found',
+                              style: GoogleFonts.dosis(
+                                  fontSize: 16, color: const Color(0xFF6E4B3A)),
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: ListView.builder(
+                              itemCount: services
+                                  .map((s) => s['pawtners']?['id'])
+                                  .toSet()
+                                  .length,
+                              itemBuilder: (context, index) {
+                                final uniquePawtnerIds = services
+                                    .map((s) => s['pawtners']?['id'])
+                                    .toSet()
+                                    .toList();
+                                final pawtnerId = uniquePawtnerIds[index];
+                                final pawtnerServices = services
+                                    .where((s) =>
+                                        s['pawtners']?['id'] == pawtnerId)
+                                    .toList();
+                                return _buildServiceCard(pawtnerServices.first);
+                              },
+                            ),
+                          ),
               ),
             ],
           ),

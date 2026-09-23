@@ -26,6 +26,7 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
   final TextEditingController reviewController = TextEditingController();
   Map<String, dynamic>? bookingData;
   bool isLoading = true;
+  bool isSaving = false;
 
   @override
   void initState() {
@@ -67,6 +68,7 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
           .single();
 
       bookingData = Map<String, dynamic>.from(response as Map);
+      if (!mounted) return;
       setState(() => isLoading = false);
     } catch (e) {
       debugPrint('Error loading booking data: $e');
@@ -89,19 +91,23 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
       return;
     }
 
+    setState(() => isSaving = true);
     try {
       await supabase.from('bookings').update({
         'rating': rating.toInt(),
         'review_comment': reviewController.text.trim(),
         'reviewed': true,
+        'reviewed_at': DateTime.now().toUtc().toIso8601String(),
       }).eq('id', widget.bookingId);
 
+      if (!mounted) return;
       _showToast('Review submitted successfully.');
-
       Navigator.pop(context, true);
     } catch (e) {
       debugPrint('Error submitting review: $e');
-      _showToast('Failed to submit review. Please try again.');
+      if (mounted) _showToast('Failed to submit review. Please try again.');
+    } finally {
+      if (mounted) setState(() => isSaving = false);
     }
   }
 
@@ -285,21 +291,23 @@ class _FurrentReviewScreenState extends State<FurrentReviewScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: submitReview,
+                onPressed: isSaving ? null : submitReview,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6E4B3A),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  'Submit Review',
-                  style: GoogleFonts.dosis(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFDDC7A9),
-                  ),
-                ),
+                child: isSaving
+                    ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
+                    : Text(
+                        'Submit Review',
+                        style: GoogleFonts.dosis(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFDDC7A9),
+                        ),
+                      ),
               ),
             ),
           ),

@@ -1,8 +1,8 @@
+import '../places_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // for input formatters
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -23,16 +23,14 @@ class PawtnerEditProfileScreen extends StatefulWidget {
 
 class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
   final supabase = Supabase.instance.client;
-  final dio = Dio();
 
   late Map<String, dynamic> pawtner;
   bool isLoading = true;
+  bool _isSaving = false;
 
-  String? _emailError;
   String? _contactNumberError;
 
   final TextEditingController fullNameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
   final TextEditingController contactNumberController = TextEditingController();
   final TextEditingController businessNameController = TextEditingController();
   final TextEditingController serviceTypeController = TextEditingController();
@@ -87,8 +85,9 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
 
   @override
   void dispose() {
+    _dropdownOverlay?.remove();
+    _dropdownOverlay = null;
     fullNameController.dispose();
-    emailController.dispose();
     contactNumberController.dispose();
     businessNameController.dispose();
     serviceTypeController.dispose();
@@ -385,7 +384,6 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
 
   void loadData() {
     fullNameController.text = pawtner['full_name']?.toString() ?? '';
-    emailController.text = pawtner['email']?.toString() ?? '';
     contactNumberController.text = pawtner['contact_number']?.toString() ?? '';
     businessNameController.text = pawtner['business_name']?.toString() ?? '';
     locationController.text = pawtner['business_address']?.toString() ?? '';
@@ -439,9 +437,18 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
     required String bucket,
     required String remotePath,
     required Uint8List bytes,
+    required String contentType,
   }) async {
     try {
-      await supabase.storage.from(bucket).uploadBinary(remotePath, bytes);
+      await supabase.storage.from(bucket).uploadBinary(
+            remotePath,
+            bytes,
+            fileOptions: FileOptions(
+              cacheControl: '3600',
+              upsert: true,
+              contentType: contentType,
+            ),
+          );
       final publicUrl = supabase.storage.from(bucket).getPublicUrl(remotePath);
       return publicUrl;
     } catch (e) {
@@ -549,16 +556,41 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    final ext = name.split('.').last;
+    final ext = name.split('.').last.toLowerCase();
     final remoteFileName = type == "permit"
         ? '${user.id}/business_permit.$ext'
         : '${user.id}/govt_id.$ext';
     final bucketName = type == "permit" ? 'business_permits' : 'govt_ids';
 
+    final contentType = ext == 'pdf'
+        ? 'application/pdf'
+        : (ext == 'png' ? 'image/png' : 'image/jpeg');
+
+    // If an old file exists at a different path (different extension),
+    // delete it first so it doesn't get orphaned in storage.
+    final oldUrl = type == "permit"
+        ? pawtner['business_permit_url']?.toString()
+        : pawtner['govt_id_url']?.toString();
+    if (oldUrl != null && oldUrl.isNotEmpty) {
+      final marker = '/$bucketName/';
+      final markerIndex = oldUrl.indexOf(marker);
+      if (markerIndex != -1) {
+        final oldPath = oldUrl.substring(markerIndex + marker.length);
+        if (oldPath != remoteFileName) {
+          try {
+            await supabase.storage.from(bucketName).remove([oldPath]);
+          } catch (e) {
+            debugPrint('Error deleting old $type file: $e');
+          }
+        }
+      }
+    }
+
     final publicUrl = await _uploadBytesToStorage(
       bucket: bucketName,
       remotePath: remoteFileName,
       bytes: bytes,
+      contentType: contentType,
     );
 
     if (publicUrl == null) {
@@ -577,12 +609,20 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
         await supabase
             .from('pawtners')
             .update({'business_permit_url': publicUrl}).eq('id', user.id);
-        setState(() => businessPermitName = name);
+        if (!mounted) return;
+        setState(() {
+          businessPermitName = name;
+          pawtner['business_permit_url'] = publicUrl;
+        });
       } else {
         await supabase
             .from('pawtners')
             .update({'govt_id_url': publicUrl}).eq('id', user.id);
-        setState(() => governmentIdName = name);
+        if (!mounted) return;
+        setState(() {
+          governmentIdName = name;
+          pawtner['govt_id_url'] = publicUrl;
+        });
       }
 
       if (mounted) {
@@ -607,26 +647,37 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
   Future<void> _deletePermitName() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
-    await supabase
-        .from('pawtners')
-        .update({'business_permit_url': null}).eq('id', user.id);
-    setState(() => businessPermitName = null);
+    try {
+      await supabase
+          .from('pawtners')
+          .update({'business_permit_url': null}).eq('id', user.id);
+      if (!mounted) return;
+      setState(() => businessPermitName = null);
+    } catch (e) {
+      debugPrint('Error deleting business permit: $e');
+      if (mounted) _showToast('Failed to remove file. Please try again.');
+    }
   }
 
   Future<void> _deleteGovtIdName() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
-    await supabase
-        .from('pawtners')
-        .update({'govt_id_url': null}).eq('id', user.id);
-    setState(() => governmentIdName = null);
+    try {
+      await supabase
+          .from('pawtners')
+          .update({'govt_id_url': null}).eq('id', user.id);
+      if (!mounted) return;
+      setState(() => governmentIdName = null);
+    } catch (e) {
+      debugPrint('Error deleting government ID: $e');
+      if (mounted) _showToast('Failed to remove file. Please try again.');
+    }
   }
 
   Future<void> _pickLocation() async {
     final TextEditingController searchController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
-    const apiKey = 'AIzaSyBOKb6toq6ItcFdi94IekJNj5WX0p8tkt4';
 
     await showModalBottomSheet(
       context: context,
@@ -698,32 +749,10 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                   setModalState(() => isSearching = true);
 
                   try {
-                    final response = await dio.post(
-                      'https://places.googleapis.com/v1/places:autocomplete',
-                      options: Options(
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'X-Goog-Api-Key': apiKey,
-                        },
-                      ),
-                      data: {
-                        'input': value,
-                        'locationBias': {
-                          'circle': {
-                            'center': {
-                              'latitude': 12.8797,
-                              'longitude': 121.7740,
-                            },
-                            'radius': 50000.0,
-                          },
-                        },
-                        'includedRegionCodes': ['ph'],
-                      },
-                    );
+                    final response = await PlacesService.autocomplete(value);
 
                     if (!mounted) return;
-                    final suggestions =
-                        response.data['suggestions'] as List? ?? [];
+                    final suggestions = response['suggestions'] as List? ?? [];
 
                     setModalState(() {
                       searchResults = suggestions
@@ -786,30 +815,20 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                         ),
                         onTap: () async {
                           try {
-                            final detailResponse = await dio.get(
-                              'https://places.googleapis.com/v1/places/$placeId',
-                              options: Options(
-                                headers: {
-                                  'X-Goog-Api-Key': apiKey,
-                                  'X-Goog-FieldMask':
-                                      'location,displayName,formattedAddress',
-                                },
-                              ),
-                            );
+                            final detailResponse =
+                                await PlacesService.details(placeId);
 
                             final formattedAddress =
-                                detailResponse.data['formattedAddress'] ??
-                                    mainText;
+                                detailResponse['formattedAddress'] ?? mainText;
                             final addressParts = formattedAddress.split(',');
                             final shortAddress = addressParts.length > 2
                                 ? addressParts.take(2).join(',').trim()
                                 : formattedAddress;
 
+                            if (!context.mounted) return;
                             setState(() {
                               locationController.text = shortAddress;
                             });
-
-                            if (!context.mounted) return;
                             Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
@@ -965,12 +984,12 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6E4B3A)),
+                        backgroundColor: const Color(0xFF8B0000)),
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       'Cancel',
                       style: GoogleFonts.dosis(
-                          color: const Color(0xFFDDC7A9),
+                          color: const Color(0xFFF8F8F8),
                           fontWeight: FontWeight.w600,
                           fontSize: 16),
                     ),
@@ -983,84 +1002,89 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDDC7A9)),
-                    onPressed: () async {
-                      setState(() {
-                        _emailError = null;
-                        _contactNumberError = null;
-                      });
-                      final user = supabase.auth.currentUser;
-                      if (user == null) return;
+                        backgroundColor: const Color(0xFF6E4B3A)),
+                    onPressed: _isSaving
+                        ? null
+                        : () async {
+                            setState(() {
+                              _contactNumberError = null;
+                            });
+                            final user = supabase.auth.currentUser;
+                            if (user == null) return;
 
-                      bool hasError = false;
+                            bool hasError = false;
 
-                      if (!_isValidContactNumber(
-                          contactNumberController.text)) {
-                        _contactNumberError =
-                            'Please enter a valid contact number';
-                        hasError = true;
-                      }
+                            if (!_isValidContactNumber(
+                                contactNumberController.text)) {
+                              _contactNumberError =
+                                  'Please enter a valid contact number';
+                              hasError = true;
+                            }
 
-                      final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+                            if (hasError) {
+                              setState(() {});
+                              return;
+                            }
 
-                      if (!emailRegex.hasMatch(emailController.text.trim())) {
-                        _emailError = 'Please enter a valid email';
-                        hasError = true;
-                      }
+                            setState(() => _isSaving = true);
 
-                      if (hasError) {
-                        setState(() {});
-                        return;
-                      }
+                            try {
+                              await supabase.from('pawtners').update({
+                                'full_name': fullNameController.text,
+                                'contact_number': contactNumberController.text,
+                                'business_name': businessNameController.text,
+                                'service_type': serviceTypeController.text,
+                                'business_type': businessTypeController.text,
+                                'business_address': locationController.text,
+                                'available_areas':
+                                    availableAreasController.text,
+                              }).eq('id', user.id);
+                            } catch (e) {
+                              debugPrint('Profile update error: $e');
+                              if (mounted) {
+                                _showToast(
+                                    'Could not save changes. Please try again.');
+                                setState(() => _isSaving = false);
+                              }
+                              return;
+                            }
 
-                      try {
-                        await supabase.from('pawtners').update({
-                          'full_name': fullNameController.text,
-                          'email': emailController.text,
-                          'contact_number': contactNumberController.text,
-                          'business_name': businessNameController.text,
-                          'service_type': serviceTypeController.text,
-                          'business_type': businessTypeController.text,
-                          'business_address': locationController.text,
-                          'available_areas': availableAreasController.text,
-                        }).eq('id', user.id);
-                      } catch (e) {
-                        debugPrint('Profile update error: $e');
-                        if (mounted) {
-                          _showToast(
-                              'Could not save changes. Please try again.');
-                        }
-                        return;
-                      }
+                            final updatedData = {
+                              ...pawtner,
+                              'full_name': fullNameController.text,
+                              'contact_number': contactNumberController.text,
+                              'business_name': businessNameController.text,
+                              'service_type': serviceTypeController.text,
+                              'business_type': businessTypeController.text,
+                              'business_address': locationController.text,
+                              'available_areas': availableAreasController.text,
+                            };
 
-                      final updatedData = {
-                        ...pawtner,
-                        'full_name': fullNameController.text,
-                        'email': emailController.text,
-                        'contact_number': contactNumberController.text,
-                        'business_name': businessNameController.text,
-                        'service_type': serviceTypeController.text,
-                        'business_type': businessTypeController.text,
-                        'business_address': locationController.text,
-                        'available_areas': availableAreasController.text,
-                      };
+                            widget.onProfileUpdated(updatedData);
 
-                      widget.onProfileUpdated(updatedData);
+                            if (!context.mounted) return;
 
-                      if (!context.mounted) return;
+                            _showToast('Profile updated successfully.',
+                                isError: false);
 
-                      _showToast('Profile updated successfully.',
-                          isError: false);
-
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Save Changes',
-                      style: GoogleFonts.dosis(
-                          color: const Color(0xFF6E4B3A),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16),
-                    ),
+                            Navigator.pop(context);
+                          },
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFFDDC7A9),
+                            ),
+                          )
+                        : Text(
+                            'Save Changes',
+                            style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16),
+                          ),
                   ),
                 ),
               ),
@@ -1095,12 +1119,6 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
               sectionTitle("Personal Details"),
               const SizedBox(height: 8),
               infoLine("Full Name", fullNameController),
-              infoLine(
-                "Email",
-                emailController,
-                keyboardType: TextInputType.emailAddress,
-                errorText: _emailError,
-              ),
               infoLine(
                 "Contact Number",
                 contactNumberController,

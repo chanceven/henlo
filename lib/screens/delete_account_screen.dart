@@ -507,6 +507,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         false;
 
     if (!confirmed) return;
+    if (!mounted) return;
 
     setState(() {
       _isDeleting = true;
@@ -538,12 +539,14 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       if (!mounted) return;
 
       Navigator.of(context).pushNamedAndRemoveUntil(
-        '/login',
+        '/sign_in',
         (route) => false,
       );
     } on AuthException catch (e) {
+      if (!mounted) return;
       _showToast(e.message);
     } catch (e) {
+      if (!mounted) return;
       _showToast(e.toString());
     } finally {
       if (mounted) {

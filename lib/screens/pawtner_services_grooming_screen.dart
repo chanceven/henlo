@@ -20,6 +20,7 @@ class _PawtnerServicesGroomingScreenState
 
   List<Map<String, dynamic>> groomingServices = [];
   bool isLoading = true;
+  bool isActionInProgress = false;
 
   @override
   void initState() {
@@ -28,24 +29,38 @@ class _PawtnerServicesGroomingScreenState
   }
 
   Future<void> fetchGroomingServices() async {
+    if (!mounted) return;
     setState(() {
       isLoading = true;
     });
 
     final currentUser = supabase.auth.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      if (mounted) setState(() => isLoading = false);
+      return;
+    }
 
-    final response = await supabase
-        .from('services')
-        .select()
-        .eq('pawtner_id', currentUser.id)
-        .eq('service_type', 'Grooming')
-        .order('created_at', ascending: false);
+    try {
+      final response = await supabase
+          .from('services')
+          .select()
+          .eq('pawtner_id', currentUser.id)
+          .eq('service_type', 'Grooming')
+          .order('created_at', ascending: false);
 
-    setState(() {
-      groomingServices = List<Map<String, dynamic>>.from(response);
-      isLoading = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        groomingServices = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching grooming services: $e');
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load services. Try again.')),
+      );
+    }
   }
 
   Future<void> deleteService(String serviceId) async {
@@ -114,19 +129,33 @@ class _PawtnerServicesGroomingScreenState
     );
 
     if (confirmed == true) {
-      await supabase.from('services').delete().eq('id', serviceId);
-      await supabase
-          .from('service_availability')
-          .delete()
-          .eq('service_id', serviceId);
+      setState(() => isActionInProgress = true);
+      try {
+        await supabase
+            .from('service_availability')
+            .delete()
+            .eq('service_id', serviceId);
+        await supabase.from('services').delete().eq('id', serviceId);
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Service deleted successfully',
-            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-        backgroundColor: const Color(0xFFDDC7A9),
-      ));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Service deleted successfully',
+              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ));
 
-      fetchGroomingServices();
+        await fetchGroomingServices();
+      } catch (e) {
+        debugPrint('Error deleting service: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to delete service. Please try again.',
+              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ));
+      } finally {
+        if (mounted) setState(() => isActionInProgress = false);
+      }
     }
   }
 
@@ -149,7 +178,7 @@ class _PawtnerServicesGroomingScreenState
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
         title: Text(
-          'Grooming Service',
+          'Grooming Services',
           style: GoogleFonts.dosis(
               color: const Color(0xFF6E4B3A),
               fontSize: 24,
@@ -236,9 +265,12 @@ class _PawtnerServicesGroomingScreenState
                                           style: ElevatedButton.styleFrom(
                                               backgroundColor:
                                                   const Color(0xFF8B0000)),
-                                          onPressed: () {
-                                            deleteService(service['id']);
-                                          },
+                                          onPressed: isActionInProgress
+                                              ? null
+                                              : () async {
+                                                  await deleteService(
+                                                      service['id']);
+                                                },
                                           child: Text(
                                             'Delete Service',
                                             style: GoogleFonts.dosis(
@@ -252,23 +284,34 @@ class _PawtnerServicesGroomingScreenState
                                         child: ElevatedButton(
                                           style: ElevatedButton.styleFrom(
                                               backgroundColor:
-                                                  const Color(0xFFDDC7A9)),
-                                          onPressed: () async {
-                                            await Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    PawtnerEditServiceScreen(
-                                                        serviceId:
-                                                            service['id']),
-                                              ),
-                                            );
-                                            fetchGroomingServices();
-                                          },
+                                                  const Color(0xFF6E4B3A)),
+                                          onPressed: isActionInProgress
+                                              ? null
+                                              : () async {
+                                                  setState(() =>
+                                                      isActionInProgress =
+                                                          true);
+                                                  await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          PawtnerEditServiceScreen(
+                                                              serviceId:
+                                                                  service[
+                                                                      'id']),
+                                                    ),
+                                                  );
+                                                  if (mounted) {
+                                                    setState(() =>
+                                                        isActionInProgress =
+                                                            false);
+                                                  }
+                                                  await fetchGroomingServices();
+                                                },
                                           child: Text(
                                             'Edit Service',
                                             style: GoogleFonts.dosis(
-                                                color: const Color(0xFF6E4B3A),
+                                                color: const Color(0xFFDDC7A9),
                                                 fontWeight: FontWeight.w600),
                                           ),
                                         ),
@@ -291,25 +334,29 @@ class _PawtnerServicesGroomingScreenState
             height: 50,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDDC7A9),
+                backgroundColor: const Color(0xFF6E4B3A),
               ),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const PawtnerAddServiceScreen(
-                      preselectedServiceType: 'Grooming',
-                    ),
-                  ),
-                );
-                fetchGroomingServices();
-              },
+              onPressed: isActionInProgress
+                  ? null
+                  : () async {
+                      setState(() => isActionInProgress = true);
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PawtnerAddServiceScreen(
+                            preselectedServiceType: 'Grooming',
+                          ),
+                        ),
+                      );
+                      if (mounted) setState(() => isActionInProgress = false);
+                      await fetchGroomingServices();
+                    },
               child: Text(
                 'Add Service',
                 style: GoogleFonts.dosis(
-                  color: const Color(0xFF6E4B3A),
+                  color: const Color(0xFFDDC7A9),
                   fontWeight: FontWeight.w600,
-                  fontSize: 16,
+                  fontSize: 18,
                 ),
               ),
             ),

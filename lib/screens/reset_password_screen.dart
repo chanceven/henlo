@@ -14,35 +14,45 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
 
+  @override
+  void dispose() {
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+        ),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+      ),
+    );
+  }
+
   Future<void> _updatePassword() async {
     final password = passwordController.text.trim();
     if (password.isEmpty || password.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 8 characters')),
-      );
+      _showToast('Password must be at least 8 characters');
       return;
     }
 
     if (password.length > 32) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must not exceed 32 characters')),
-      );
+      _showToast('Password must not exceed 32 characters');
       return;
     }
 
     if (!password.contains(RegExp(r'[0-9]'))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Password must contain at least one number')),
-      );
+      _showToast('Password must contain at least one number');
       return;
     }
 
     if (!password.contains(RegExp(r'[a-zA-Z]'))) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Password must contain at least one letter')),
-      );
+      _showToast('Password must contain at least one letter');
       return;
     }
 
@@ -53,24 +63,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         UserAttributes(password: password),
       );
 
+      await Supabase.instance.client.auth.signOut();
+
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated successfully!')),
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const SignInScreen()),
+        (route) => false,
       );
-
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const SignInScreen()),
-          );
-        }
-      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Something went wrong: $e')),
-      );
+      if (!mounted) return;
+      _showToast('Something went wrong: $e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -81,86 +85,105 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          'Reset Password',
-          style: GoogleFonts.dosis(
-            textStyle: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF6E4B3A),
-            ),
-          ),
-        ),
+        title: const SizedBox.shrink(),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'Enter your new password',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dosis(
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF6E4B3A),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 24),
+              Text(
+                'Enter your new password',
+                textAlign: TextAlign.left,
+                style: GoogleFonts.dosis(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF6E4B3A),
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.lock, color: Color(0xFF6E4B3A)),
-                hintText: 'New Password',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
-                enabledBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
-                ),
-                focusedBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1.0),
-                ),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              style: const TextStyle(
-                color: Color(0xFF6E4B3A),
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 80),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : _updatePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6E4B3A),
-                  foregroundColor: const Color(0xFFDDC7A9),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              const SizedBox(height: 40),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF6E4B3A)),
+                  hintText: 'New Password',
+                  hintStyle: GoogleFonts.dosis(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFFBDBDBD),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFFFFFFF),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(
+                      color: const Color(0xFF6E4B3A).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF6E4B3A),
+                      width: 1.5,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 12,
                   ),
                 ),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Color(0xFFDDC7A9))
-                    : Text(
-                        'Update Password',
-                        style: GoogleFonts.dosis(
-                          textStyle: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                style: GoogleFonts.dosis(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6E4B3A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: isLoading ? null : _updatePassword,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6E4B3A),
+                foregroundColor: const Color(0xFFDDC7A9),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Color(0xFFDDC7A9),
+                      ),
+                    )
+                  : Text(
+                      'Update Password',
+                      style: GoogleFonts.dosis(
+                        textStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-              ),
+                    ),
             ),
-          ],
+          ),
         ),
       ),
     );

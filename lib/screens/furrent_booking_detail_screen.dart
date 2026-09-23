@@ -19,7 +19,7 @@ class FurrentBookingDetailsScreen extends StatefulWidget {
 class _FurrentBookingDetailsScreenState
     extends State<FurrentBookingDetailsScreen> {
   final supabase = Supabase.instance.client;
-  late RealtimeChannel _bookingsChannel;
+  RealtimeChannel? _bookingsChannel;
 
   @override
   void initState() {
@@ -30,7 +30,9 @@ class _FurrentBookingDetailsScreenState
 
   @override
   void dispose() {
-    supabase.removeChannel(_bookingsChannel);
+    if (_bookingsChannel != null) {
+      supabase.removeChannel(_bookingsChannel!);
+    }
     super.dispose();
   }
 
@@ -59,18 +61,23 @@ class _FurrentBookingDetailsScreenState
   }
 
   Future<void> _fetchBookingDetails() async {
-    final bookingId = widget.booking['id'];
-    final response = await supabase
-        .from('bookings')
-        .select('*, pets(*), furrents(*), services(*), pawtners(*)')
-        .eq('id', bookingId)
-        .maybeSingle();
+    try {
+      final bookingId = widget.booking['id'];
+      final response = await supabase
+          .from('bookings')
+          .select('*, pets(*), furrents(*), services(*), pawtners(*)')
+          .eq('id', bookingId)
+          .maybeSingle();
 
-    if (response != null) {
-      setState(() {
-        widget.booking.clear();
-        widget.booking.addAll(response);
-      });
+      if (!mounted) return;
+      if (response != null) {
+        setState(() {
+          widget.booking.clear();
+          widget.booking.addAll(response);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching booking details: $e');
     }
   }
 
@@ -80,6 +87,17 @@ class _FurrentBookingDetailsScreenState
     final pet = booking['pets'] as Map<String, dynamic>?;
     final service = booking['services'] as Map<String, dynamic>?;
     final pawtner = booking['pawtners'] as Map<String, dynamic>?;
+
+    final displayServiceName =
+        (booking['service_name'] ?? service?['service_name'] ?? '') +
+            (booking['service_id'] == null ? ' (Deleted Service)' : '');
+    final displayPetName = (booking['pet_name'] ?? pet?['name'] ?? '') +
+        (booking['pet_id'] == null ? ' (Deleted Pet)' : '');
+    final displayPawtnerName = (booking['pawtner_name'] ??
+            pawtner?['business_name'] ??
+            pawtner?['full_name'] ??
+            '') +
+        (booking['pawtner_id'] == null ? ' (Deleted User)' : '');
     final subtype = (booking['chosen_service_subtype'] ?? '').toString();
     final location =
         (subtype.contains('Home Service') || subtype.contains('Home Training'))
@@ -131,7 +149,8 @@ class _FurrentBookingDetailsScreenState
     final formattedMissedAt =
         missedAt != null ? DateFormat('MMM d, h:mm a').format(missedAt) : '-';
 
-    final double price = (service?['price'] ?? 0).toDouble();
+    final double price =
+        (booking['price'] ?? service?['price'] ?? 0).toDouble();
 
     double total = price;
 
@@ -234,36 +253,45 @@ class _FurrentBookingDetailsScreenState
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () async {
-                      final currentUserId = supabase.auth.currentUser!.id;
+                      final currentUser = supabase.auth.currentUser;
+                      if (currentUser == null) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Your session expired. Please log in again.')),
+                        );
+                        return;
+                      }
+                      final currentUserId = currentUser.id;
                       final pawtner =
                           booking['pawtners'] as Map<String, dynamic>?;
                       if (pawtner == null) return;
                       final pawtnerId = pawtner['id'];
                       if (pawtnerId == null) return;
 
-                      final existing = await supabase
-                          .from('conversations')
-                          .select()
-                          .eq('pawtner_id', pawtnerId)
-                          .eq('furrent_id', currentUserId)
-                          .maybeSingle();
+                      String? conversationId;
 
-                      String conversationId;
-                      if (existing != null) {
-                        conversationId = existing['id'];
-                      } else {
-                        final inserted = await supabase
+                      try {
+                        final existing = await supabase
                             .from('conversations')
-                            .insert({
-                              'pawtner_id': pawtnerId,
-                              'furrent_id': currentUserId,
-                              'last_message': '',
-                              'last_message_at':
-                                  DateTime.now().toIso8601String(),
-                            })
                             .select()
-                            .single();
-                        conversationId = inserted['id'];
+                            .eq('pawtner_id', pawtnerId)
+                            .eq('furrent_id', currentUserId)
+                            .maybeSingle();
+
+                        if (existing != null) {
+                          conversationId = existing['id'];
+                        }
+                      } catch (e) {
+                        debugPrint('Error checking existing conversation: $e');
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Failed to open chat. Please try again.')),
+                        );
+                        return;
                       }
 
                       if (!context.mounted) return;
@@ -415,22 +443,30 @@ class _FurrentBookingDetailsScreenState
                         ),
                       );
 
-                      if (reasonSubmitted != true) return;
+                      if (reasonSubmitted != true) {
+                        reasonController.dispose();
+                        return;
+                      }
+
+                      final reasonText = reasonController.text.trim();
+                      reasonController.dispose();
 
                       try {
+                        final cancelledAtUtc =
+                            DateTime.now().toUtc().toIso8601String();
+
                         await supabase.from('bookings').update({
                           'status': 'Cancelled',
-                          'cancelled_reason': reasonController.text.trim(),
-                          'cancelled_at': DateTime.now().toIso8601String(),
+                          'cancelled_reason': reasonText,
+                          'cancelled_at': cancelledAtUtc,
                           'cancelled_by': 'Furrent',
                         }).eq('id', booking['id']);
 
+                        if (!mounted) return;
                         setState(() {
                           booking['status'] = 'Cancelled';
-                          booking['cancelled_reason'] =
-                              reasonController.text.trim();
-                          booking['cancelled_at'] =
-                              DateTime.now().toIso8601String();
+                          booking['cancelled_reason'] = reasonText;
+                          booking['cancelled_at'] = cancelledAtUtc;
                         });
 
                         if (!context.mounted) return;
@@ -466,6 +502,16 @@ class _FurrentBookingDetailsScreenState
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () {
+                      if (booking['pawtner_id'] == null ||
+                          booking['service_id'] == null ||
+                          booking['pet_id'] == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'This booking can no longer be rescheduled.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -516,7 +562,7 @@ class _FurrentBookingDetailsScreenState
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(service?['service_name'] ?? '',
+                      Text(displayServiceName,
                           style: GoogleFonts.dosis(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
@@ -542,7 +588,7 @@ class _FurrentBookingDetailsScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    pawtner?['business_name'] ?? pawtner?['full_name'] ?? '',
+                    displayPawtnerName,
                     style: GoogleFonts.dosis(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -580,7 +626,7 @@ class _FurrentBookingDetailsScreenState
                         color: const Color(0xFF6E4B3A),
                       )),
                   const SizedBox(height: 4),
-                  Text('Pet: ${pet?['name'] ?? ''}',
+                  Text('Pet: $displayPetName',
                       style: GoogleFonts.dosis(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,

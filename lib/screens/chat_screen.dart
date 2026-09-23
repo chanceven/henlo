@@ -8,7 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String conversationId;
+  final String? conversationId;
   final String otherUserId;
   final String otherUserName;
   final String otherUserAvatar;
@@ -18,7 +18,7 @@ class ChatScreen extends StatefulWidget {
 
   const ChatScreen({
     super.key,
-    required this.conversationId,
+    this.conversationId,
     required this.otherUserId,
     required this.otherUserName,
     required this.otherUserAvatar,
@@ -30,13 +30,57 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
+class _FullScreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+
+  const _FullScreenImageViewer({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4,
+                child: Image.network(
+                  imageUrl,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.broken_image,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final supabase = Supabase.instance.client;
 
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  late RealtimeChannel _channel;
+  RealtimeChannel? _channel;
+  String? _conversationId;
 
   List<Map<String, dynamic>> messages = [];
   bool _showAttachmentOptions = false;
@@ -46,15 +90,35 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Your session expired. Please log in again.')),
+        );
+        Navigator.pop(context);
+      });
+      return;
+    }
+
+    _conversationId = widget.conversationId;
+
     WidgetsBinding.instance.addObserver(this);
-    _loadMessages();
-    _setupRealtime();
+    if (_conversationId != null) {
+      _loadMessages();
+      _setupRealtime();
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    supabase.removeChannel(_channel);
+    if (_channel != null) {
+      supabase.removeChannel(_channel!);
+    }
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -66,39 +130,50 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadMessages() async {
-    final convo = await supabase
-        .from('conversations')
-        .select()
-        .eq('id', widget.conversationId)
-        .single();
+    if (_conversationId == null) return;
 
-    final clearedAt = convo['pawtner_cleared_at'];
+    try {
+      final convo = await supabase
+          .from('conversations')
+          .select()
+          .eq('id', _conversationId!)
+          .single();
 
-    var query = supabase
-        .from('messages')
-        .select()
-        .eq('conversation_id', widget.conversationId);
+      final clearedAt = widget.currentUserType == 'furrent'
+          ? convo['furrent_cleared_at']
+          : convo['pawtner_cleared_at'];
 
-    if (clearedAt != null) {
-      query = query.gt('created_at', clearedAt);
+      var query = supabase
+          .from('messages')
+          .select()
+          .eq('conversation_id', _conversationId!);
+
+      if (clearedAt != null) {
+        query = query.gt('created_at', clearedAt);
+      }
+
+      final res = await query.order('created_at', ascending: true);
+
+      if (!mounted) return;
+      setState(() {
+        messages = List<Map<String, dynamic>>.from(res);
+      });
+
+      await supabase
+          .from('messages')
+          .update({'is_read': true})
+          .eq('conversation_id', _conversationId!)
+          .neq('sender_id', userId);
+    } catch (e) {
+      debugPrint('Error loading messages: $e');
     }
-
-    final res = await query.order('created_at', ascending: true);
-
-    setState(() {
-      messages = List<Map<String, dynamic>>.from(res);
-    });
-
-    await supabase
-        .from('messages')
-        .update({'is_read': true})
-        .eq('conversation_id', widget.conversationId)
-        .neq('sender_id', userId);
   }
 
   void _setupRealtime() {
+    if (_conversationId == null) return;
+
     _channel = supabase
-        .channel('messages-${widget.conversationId}')
+        .channel('messages-$_conversationId')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
@@ -106,7 +181,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'conversation_id',
-            value: widget.conversationId,
+            value: _conversationId,
           ),
           callback: (payload) {
             final newMessage = payload.newRecord;
@@ -122,7 +197,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'conversation_id',
-            value: widget.conversationId,
+            value: _conversationId,
           ),
           callback: (payload) {
             final updated = payload.newRecord;
@@ -137,56 +212,114 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         .subscribe();
   }
 
-  Future<void> _sendMessage({String? text, String? fileUrl}) async {
+  Future<String?> _ensureConversationExists() async {
+    if (_conversationId != null) return _conversationId;
+
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) return null;
+
+    final isFurrent = widget.currentUserType == 'furrent';
+    final furrentId = isFurrent ? currentUser.id : widget.otherUserId;
+    final pawtnerId = isFurrent ? widget.otherUserId : currentUser.id;
+
+    final existing = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('furrent_id', furrentId)
+        .eq('pawtner_id', pawtnerId)
+        .maybeSingle();
+
+    String newId;
+    if (existing != null) {
+      newId = existing['id'];
+    } else {
+      final inserted = await supabase
+          .from('conversations')
+          .insert({
+            'furrent_id': furrentId,
+            'pawtner_id': pawtnerId,
+            'last_message': '',
+            'last_message_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .select('id')
+          .single();
+      newId = inserted['id'];
+    }
+
+    _conversationId = newId;
+    _setupRealtime();
+    return newId;
+  }
+
+  Future<void> _sendMessage(
+      {String? text, String? fileUrl, bool isImageFile = false}) async {
     if (widget.isDeletedAccount) return;
 
     if ((text == null || text.trim().isEmpty) && fileUrl == null) return;
 
-    debugPrint('currentUserType: ${widget.currentUserType}');
-
     final now = DateTime.now().toUtc().toIso8601String();
 
-    final convo = await supabase
-        .from('conversations')
-        .select()
-        .eq('id', widget.conversationId)
-        .single();
+    try {
+      final convoId = await _ensureConversationExists();
+      if (convoId == null) return;
 
-    final isFurrent = convo['furrent_id'] == userId;
+      final convo = await supabase
+          .from('conversations')
+          .select()
+          .eq('id', convoId)
+          .single();
 
-    await supabase.from('messages').insert({
-      'conversation_id': widget.conversationId,
-      'sender_id': userId,
-      'sender_type': widget.currentUserType,
-      'receiver_id': widget.otherUserId,
-      'receiver_type':
-          widget.currentUserType == 'pawtner' ? 'furrent' : 'pawtner',
-      'message': (text == null || text.trim().isEmpty) ? null : text.trim(),
-      'is_read': false,
-      'last_message_at': now,
-      'created_at': now,
-      'file_url': fileUrl,
-      'deleted_for_pawtner': isFurrent && convo['pawtner_cleared_at'] != null
-          ? DateTime.parse(now)
-              .isBefore(DateTime.parse(convo['pawtner_cleared_at']))
-          : false,
-    });
+      final isFurrent = convo['furrent_id'] == userId;
 
-    await supabase.from('conversations').update({
-      'last_message': text ?? (fileUrl != null ? 'Attachment' : ''),
-      'last_message_sender_id': userId,
-      'last_message_at': now,
-      'hidden_for_pawtner': false,
-      'hidden_for_furrent': false,
-      if (isFurrent)
-        'unread_count_pawtner':
-            ((convo['unread_count_pawtner'] ?? 0) as num).toInt() + 1
-      else
-        'unread_count_furrent':
-            ((convo['unread_count_furrent'] ?? 0) as num).toInt() + 1,
-    }).eq('id', widget.conversationId);
+      await supabase.from('messages').insert({
+        'conversation_id': convoId,
+        'sender_id': userId,
+        'sender_type': widget.currentUserType,
+        'receiver_id': widget.otherUserId,
+        'receiver_type':
+            widget.currentUserType == 'pawtner' ? 'furrent' : 'pawtner',
+        'message': (text == null || text.trim().isEmpty) ? null : text.trim(),
+        'is_read': false,
+        'last_message_at': now,
+        'created_at': now,
+        'file_url': fileUrl,
+        'deleted_for_pawtner': isFurrent && convo['pawtner_cleared_at'] != null
+            ? DateTime.parse(now)
+                .isBefore(DateTime.parse(convo['pawtner_cleared_at']))
+            : false,
+      });
 
-    _messageController.clear();
+      await supabase.from('conversations').update({
+        'last_message': text ??
+            (fileUrl != null
+                ? (isImageFile ? 'Sent a photo' : 'Sent a file')
+                : ''),
+        'last_message_sender_id': userId,
+        'last_message_at': now,
+        'hidden_for_pawtner': false,
+        'hidden_for_furrent': false,
+      }).eq('id', convoId);
+
+      await supabase.rpc('increment_unread_count', params: {
+        'convo_id': convoId,
+        'is_furrent': isFurrent,
+      });
+
+      if (mounted) _messageController.clear();
+    } catch (e) {
+      debugPrint('Error sending message: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to send message. Please try again.',
+              style: GoogleFonts.dosis(color: const Color(0xFFF8F8F8)),
+            ),
+            backgroundColor: const Color(0xFF6E4B3A),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _uploadFile(File file) async {
@@ -224,7 +357,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           .from('chat_files')
           .createSignedUrl(fileName, 60 * 60 * 24 * 365);
 
-      await _sendMessage(fileUrl: signedUrl);
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      final isImage = imageExtensions.contains(ext.toLowerCase());
+
+      await _sendMessage(fileUrl: signedUrl, isImageFile: isImage);
     } on StorageException catch (e) {
       debugPrint("Storage error: ${e.message}");
       if (mounted) {
@@ -506,11 +642,29 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       if (msg['file_url'] != null)
                                         GestureDetector(
                                           onTap: () async {
-                                            final uri =
-                                                Uri.parse(msg['file_url']);
-                                            await launchUrl(uri,
-                                                mode: LaunchMode
-                                                    .externalApplication);
+                                            final url =
+                                                msg['file_url'] as String;
+                                            final isImage = RegExp(
+                                                    r'\.(jpg|jpeg|png|gif|webp)',
+                                                    caseSensitive: false)
+                                                .hasMatch(url);
+
+                                            if (isImage) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      _FullScreenImageViewer(
+                                                          imageUrl: url),
+                                                  fullscreenDialog: true,
+                                                ),
+                                              );
+                                            } else {
+                                              final uri = Uri.parse(url);
+                                              await launchUrl(uri,
+                                                  mode: LaunchMode
+                                                      .externalApplication);
+                                            }
                                           },
                                           child: Image.network(
                                             msg['file_url'],
@@ -518,7 +672,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                             errorBuilder: (_, __, ___) => Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.attach_file,
+                                                Icon(Icons.broken_image,
                                                     size: 16,
                                                     color: isMe
                                                         ? const Color(
@@ -527,7 +681,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             0xFF6E4B3A)),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  'Attachment',
+                                                  'Photo unavailable',
                                                   style: GoogleFonts.dosis(
                                                     fontSize: 15,
                                                     color: isMe
@@ -648,6 +802,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     )
                                   : TextField(
                                       controller: _messageController,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
                                       minLines: 1,
                                       maxLines: 5,
                                       onTap: () {

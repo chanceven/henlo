@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,7 +25,11 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
   bool isLoading = true;
   Map<String, dynamic>? pawtner;
   Map<String, List<Map<String, dynamic>>> servicesByType = {};
-  late TabController _tabController;
+  late final TabController _tabController =
+      TabController(length: serviceTypes.length, vsync: this);
+  int _lastTabIndex = 0;
+  bool _openingChat = false;
+  late final Future<double> _ratingFuture = _getAverageRating(widget.pawtnerId);
   List<String> serviceTypes = ['Grooming', 'Boarding', 'Training'];
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _serviceKeys = {};
@@ -41,8 +43,43 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
   @override
   void initState() {
     super.initState();
+    _tabController.addListener(() {
+      if (_tabController.index != _lastTabIndex && mounted) {
+        setState(() => _lastTabIndex = _tabController.index);
+      }
+    });
     _loadPawtnerDetails();
     _loadFurrentPets();
+  }
+
+  String get _pawtnerDisplayName {
+    final business = (pawtner?['business_name'] ?? '').toString().trim();
+    if (business.isNotEmpty) return business;
+    return (pawtner?['full_name'] ?? 'Pawtner').toString();
+  }
+
+  String _normalizeType(dynamic raw) {
+    final t = (raw ?? '').toString().trim();
+    if (t.isEmpty) return 'Other';
+    return t[0].toUpperCase() + t.substring(1).toLowerCase();
+  }
+
+  bool _petPickerOpen = false;
+
+  void _showToast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+        ),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.fromLTRB(
+            16, 0, 16, 80 + MediaQuery.of(context).padding.bottom),
+      ),
+    );
   }
 
   void _startAvailableAreasMarquee() {
@@ -78,13 +115,15 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
           .eq('id', widget.pawtnerId)
           .single();
 
-      pawtner = pawtnerResponse as Map<String, dynamic>?;
-
       final servicesResponse = await supabase
           .from('services')
           .select()
           .eq('pawtner_id', widget.pawtnerId)
           .eq('is_public', true);
+
+      if (!mounted) return;
+
+      pawtner = pawtnerResponse as Map<String, dynamic>?;
 
       final services = (servicesResponse as List)
           .map((e) => e as Map<String, dynamic>)
@@ -92,14 +131,12 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
 
       servicesByType.clear();
       for (var s in services) {
-        final type = s['service_type'] ?? 'Other';
+        final type = _normalizeType(s['service_type']);
         if (!servicesByType.containsKey(type)) {
           servicesByType[type] = [];
         }
         servicesByType[type]!.add(s);
       }
-
-      _tabController = TabController(length: serviceTypes.length, vsync: this);
 
       for (var list in servicesByType.values) {
         for (var service in list) {
@@ -127,6 +164,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Future.delayed(const Duration(milliseconds: 200), () {
+            if (!mounted) return;
             final key = _serviceKeys[_serviceIdToScroll!];
             if (key != null && key.currentContext != null) {
               Scrollable.ensureVisible(
@@ -139,6 +177,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
               if (controller != null) {
                 controller.repeat(reverse: true);
                 Future.delayed(const Duration(seconds: 1), () {
+                  if (!mounted) return;
                   controller.stop();
                   controller.value = 0;
                 });
@@ -148,20 +187,26 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
         });
       }
 
+      if (!mounted) return;
       setState(() => isLoading = false);
       _startAvailableAreasMarquee();
     } catch (e) {
       debugPrint('Error loading pawtner details: $e');
+      if (!mounted) return;
       setState(() => isLoading = false);
+      _showToast('Failed to load pawtner details.');
     }
   }
 
   Future<void> _loadFurrentPets() async {
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
     try {
-      final currentUserId = supabase.auth.currentUser!.id;
       final response =
           await supabase.from('pets').select().eq('furrent_id', currentUserId);
 
+      if (!mounted) return;
       setState(() {
         furrentPets =
             (response as List).map((e) => e as Map<String, dynamic>).toList();
@@ -193,7 +238,10 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
   }
 
   void _showSelectPetModal(String serviceId) {
+    if (_petPickerOpen) return;
+    _petPickerOpen = true;
     int selectedIndex = furrentPets.length > 1 ? 1 : 0;
+    bool navigating = false;
     final wheelController = FixedExtentScrollController(
       initialItem: furrentPets.length > 1 ? 1 : 0,
     );
@@ -222,161 +270,161 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                 ),
                 const SizedBox(height: 12),
                 Expanded(
-                  child: furrentPets.isEmpty
-                      ? const Center(child: Text('No pets found'))
-                      : StatefulBuilder(
-                          builder: (context, setStateSB) {
-                            return ListWheelScrollView.useDelegate(
-                              controller: wheelController,
-                              itemExtent: 50,
-                              diameterRatio: 100,
-                              perspective: 0.001,
-                              physics: const FixedExtentScrollPhysics(),
-                              onSelectedItemChanged: (index) {
-                                setStateSB(() {
-                                  selectedIndex = index;
-                                });
-                              },
-                              childDelegate: ListWheelChildBuilderDelegate(
-                                builder: (context, index) {
-                                  final isAddPet = index == furrentPets.length;
-                                  final isSelected = index == selectedIndex;
+                  child: StatefulBuilder(
+                    builder: (context, setStateSB) {
+                      return ListWheelScrollView.useDelegate(
+                        controller: wheelController,
+                        itemExtent: 50,
+                        diameterRatio: 100,
+                        perspective: 0.001,
+                        physics: const FixedExtentScrollPhysics(),
+                        onSelectedItemChanged: (index) {
+                          setStateSB(() {
+                            selectedIndex = index;
+                          });
+                        },
+                        childDelegate: ListWheelChildBuilderDelegate(
+                          builder: (context, index) {
+                            final isAddPet = index == furrentPets.length;
+                            final isSelected = index == selectedIndex;
 
-                                  if (isAddPet) {
-                                    return Center(
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          final newPetId = await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const FurrentAddPetScreen(
-                                                isBookingFlow: true,
-                                              ),
-                                            ),
-                                          );
-
-                                          if (newPetId == null) return;
-                                          if (!mounted) return;
-
-                                          Navigator.pop(context);
-
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  FurrentBookAppointmentScreen(
-                                                pawtnerId: pawtner!['id'],
-                                                serviceId: serviceId,
-                                                petId: newPetId,
-                                                pawtnerName:
-                                                    pawtner!['business_name'] ??
-                                                        pawtner!['full_name'],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 64, vertical: 6),
-                                          decoration: isSelected
-                                              ? BoxDecoration(
-                                                  color:
-                                                      const Color(0xFF6E4B3A),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                )
-                                              : null,
-                                          child: Text(
-                                            '+ Add Pet',
-                                            style: GoogleFonts.dosis(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: isSelected
-                                                  ? const Color(0xFFDDC7A9)
-                                                  : Colors.grey,
-                                            ),
-                                          ),
+                            if (isAddPet) {
+                              return Center(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    if (navigating) return;
+                                    navigating = true;
+                                    final newPetId = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const FurrentAddPetScreen(
+                                          isBookingFlow: true,
                                         ),
                                       ),
                                     );
-                                  }
 
-                                  final pet = furrentPets[index];
+                                    navigating = false;
+                                    if (newPetId == null) return;
+                                    _loadFurrentPets();
+                                    if (!context.mounted) return;
+                                    navigating = true;
 
-                                  return Center(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                FurrentBookAppointmentScreen(
-                                              pawtnerId: pawtner!['id'],
-                                              serviceId: serviceId,
-                                              petId: pet['id'],
-                                              pawtnerName:
-                                                  pawtner!['business_name'] ??
-                                                      pawtner!['full_name'],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 64, vertical: 6),
-                                        decoration: isSelected
-                                            ? BoxDecoration(
-                                                color: const Color(0xFF6E4B3A),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              )
-                                            : null,
-                                        child: Text(
-                                          (pet['breed'] != null &&
-                                                  pet['breed']
-                                                      .toString()
-                                                      .trim()
-                                                      .isNotEmpty)
-                                              ? '${pet['name']} (${pet['type']})'
-                                              : '${pet['name']}',
-                                          style: GoogleFonts.dosis(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: isSelected
-                                                ? const Color(0xFFDDC7A9)
-                                                : Colors.grey,
-                                          ),
+                                    Navigator.pop(context);
+
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            FurrentBookAppointmentScreen(
+                                          pawtnerId: pawtner!['id'],
+                                          serviceId: serviceId,
+                                          petId: newPetId,
+                                          pawtnerName: _pawtnerDisplayName,
                                         ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 64, vertical: 6),
+                                    decoration: isSelected
+                                        ? BoxDecoration(
+                                            color: const Color(0xFF6E4B3A),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          )
+                                        : null,
+                                    child: Text(
+                                      '+ Add Pet',
+                                      style: GoogleFonts.dosis(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? const Color(0xFFDDC7A9)
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final pet = furrentPets[index];
+
+                            return Center(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (navigating) return;
+                                  navigating = true;
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          FurrentBookAppointmentScreen(
+                                        pawtnerId: pawtner!['id'],
+                                        serviceId: serviceId,
+                                        petId: pet['id'],
+                                        pawtnerName: _pawtnerDisplayName,
                                       ),
                                     ),
                                   );
                                 },
-                                childCount: furrentPets.length + 1,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 64, vertical: 6),
+                                  decoration: isSelected
+                                      ? BoxDecoration(
+                                          color: const Color(0xFF6E4B3A),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        )
+                                      : null,
+                                  child: Text(
+                                    (pet['breed'] != null &&
+                                            pet['breed']
+                                                .toString()
+                                                .trim()
+                                                .isNotEmpty)
+                                        ? '${pet['name']} (${pet['type']})'
+                                        : '${pet['name']}',
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? const Color(0xFFDDC7A9)
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                ),
                               ),
                             );
                           },
+                          childCount: furrentPets.length + 1,
                         ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
           ),
         );
       },
-    );
+    ).whenComplete(() => _petPickerOpen = false);
   }
 
   Widget _buildServiceCard(Map<String, dynamic> service) {
     final serviceId = service['id'].toString();
-    _serviceKeys[serviceId] = GlobalKey();
+    _serviceKeys.putIfAbsent(serviceId, () => GlobalKey());
     final wiggle = _wiggleControllers[serviceId];
 
     final serviceName = service['service_name'] ?? 'Service';
     final description = service['description'] ?? '';
     final price = service['price']?.toStringAsFixed(0) ?? '0';
     final durationMinutes = service['duration_minutes'] ?? 0;
-    final serviceType = service['service_type'] ?? 'Grooming';
+    final serviceType = _normalizeType(service['service_type']);
 
     String durationText;
     if (durationMinutes < 60) {
@@ -520,7 +568,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
     final displayName =
         businessName.isNotEmpty ? businessName : pawtnerFullName;
 
-    final ratingFuture = _getAverageRating(widget.pawtnerId);
+    final ratingFuture = _ratingFuture;
     final businessAddress = pawtner?['business_address'] ?? '';
     final availableAreas = pawtner?['available_areas'] ?? '';
 
@@ -703,20 +751,24 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                           width: double.infinity,
                           height: 200,
                           decoration: BoxDecoration(
-                            image: pawtner?['profile_picture_url'] != null
-                                ? DecorationImage(
-                                    image: NetworkImage(
-                                        pawtner!['profile_picture_url']),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
+                            image:
+                                (pawtner?['profile_picture_url']?.toString() ??
+                                            '')
+                                        .isNotEmpty
+                                    ? DecorationImage(
+                                        image: NetworkImage(
+                                            pawtner!['profile_picture_url']
+                                                .toString()),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                             color: const Color(0xFFDDC7A9),
                           ),
                         ),
                         Container(
                           width: double.infinity,
                           height: 200,
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                         ),
                         Positioned(
                           top: 0,
@@ -735,43 +787,50 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                       ],
                     ),
                     const SizedBox(height: 80),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Column(
-                        children: [
-                          _buildPillTabs(),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 500,
-                            child: TabBarView(
-                              controller: _tabController,
-                              children: serviceTypes.map((type) {
-                                final services = servicesByType[type] ?? [];
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                  child: services.isEmpty
-                                      ? Center(
-                                          child: Text(
-                                            'No services available',
-                                            style: GoogleFonts.dosis(
-                                                fontSize: 16,
-                                                color: const Color(0xFF6E4B3A)),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Column(
+                          children: [
+                            _buildPillTabs(),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: serviceTypes.map((type) {
+                                  final services = servicesByType[type] ?? [];
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                    child: services.isEmpty
+                                        ? Center(
+                                            child: Text(
+                                              'No services available',
+                                              style: GoogleFonts.dosis(
+                                                  fontSize: 16,
+                                                  color:
+                                                      const Color(0xFF6E4B3A)),
+                                            ),
+                                          )
+                                        : ListView.builder(
+                                            controller: _scrollController,
+                                            itemCount: services.length,
+                                            padding: EdgeInsets.only(
+                                              bottom: 82 +
+                                                  MediaQuery.of(context)
+                                                      .padding
+                                                      .bottom,
+                                            ),
+                                            itemBuilder: (context, index) =>
+                                                _buildServiceCard(
+                                                    services[index]),
                                           ),
-                                        )
-                                      : ListView.builder(
-                                          controller: _scrollController,
-                                          itemCount: services.length,
-                                          padding: EdgeInsets.zero,
-                                          itemBuilder: (context, index) =>
-                                              _buildServiceCard(
-                                                  services[index]),
-                                        ),
-                                );
-                              }).toList(),
+                                  );
+                                }).toList(),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -797,37 +856,39 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                     right: 16,
                     child: GestureDetector(
                       onTap: () async {
-                        final currentUserId = supabase.auth.currentUser!.id;
+                        if (_openingChat) return;
+                        final currentUserId = supabase.auth.currentUser?.id;
+                        if (currentUserId == null) {
+                          _showToast(
+                              'Your session expired. Please log in again.');
+                          return;
+                        }
                         final pawtnerId = pawtner!['id'];
 
-                        final existing = await supabase
-                            .from('conversations')
-                            .select()
-                            .eq('furrent_id', currentUserId)
-                            .eq('pawtner_id', pawtnerId)
-                            .maybeSingle();
+                        String? conversationId;
+                        _openingChat = true;
 
-                        String conversationId;
-
-                        if (existing != null) {
-                          conversationId = existing['id'];
-                        } else {
-                          final inserted = await supabase
+                        try {
+                          final existing = await supabase
                               .from('conversations')
-                              .insert({
-                                'furrent_id': currentUserId,
-                                'pawtner_id': pawtnerId,
-                                'last_message': '',
-                                'last_message_at':
-                                    DateTime.now().toIso8601String(),
-                              })
                               .select()
-                              .single();
+                              .eq('furrent_id', currentUserId)
+                              .eq('pawtner_id', pawtnerId)
+                              .maybeSingle();
 
-                          conversationId = inserted['id'];
+                          if (existing != null) {
+                            conversationId = existing['id'];
+                          }
+                        } catch (e) {
+                          debugPrint(
+                              'Error checking existing conversation: $e');
+                          _showToast('Failed to open chat. Please try again.');
+                          return;
+                        } finally {
+                          _openingChat = false;
                         }
 
-                        if (!mounted) return;
+                        if (!context.mounted) return;
 
                         final displayName =
                             (pawtner!['business_name'] ?? '').isNotEmpty

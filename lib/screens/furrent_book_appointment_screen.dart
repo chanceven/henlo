@@ -1,9 +1,8 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
-
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../places_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 
 class FurrentBookAppointmentScreen extends StatefulWidget {
@@ -28,10 +27,10 @@ class FurrentBookAppointmentScreen extends StatefulWidget {
 class _FurrentBookAppointmentScreenState
     extends State<FurrentBookAppointmentScreen> {
   final supabase = Supabase.instance.client;
-  final dio = Dio();
 
-  DateTime selectedDate = DateTime.now();
+  DateTime selectedDate = DateUtils.dateOnly(DateTime.now());
   DateTime calendarMonth = DateTime.now();
+  bool _boardingStartPicked = false;
   DateTime? selectedEndDate;
   bool isBoardingService = false;
   double servicePrice = 0;
@@ -50,7 +49,14 @@ class _FurrentBookAppointmentScreenState
 
   final TextEditingController notesController = TextEditingController();
 
+  int maxBookingsPerSlot = 1;
+  bool isSaving = false;
+  int _timesSeq = 0;
+  bool isLoadingTimes = false;
+  bool pawtnerAddressLoaded = false;
+
   void _showToast(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -77,10 +83,12 @@ class _FurrentBookAppointmentScreenState
   @override
   void initState() {
     super.initState();
-    _loadServiceSubtypes();
-    _loadAvailableTimes(selectedDate);
     _loadPawtnerAddress();
     _loadPetName();
+    // Load the service first: slot capacity depends on its duration and max bookings.
+    _loadServiceSubtypes().then((_) {
+      if (mounted) _loadAvailableTimes(selectedDate);
+    });
   }
 
   Future<void> _loadServiceSubtypes() async {
@@ -88,7 +96,7 @@ class _FurrentBookAppointmentScreenState
       final response = await supabase
           .from('services')
           .select(
-              'service_type, service_subtype, price, service_name, duration_minutes')
+              'service_type, service_subtype, price, service_name, duration_minutes, max_bookings_per_slot')
           .eq('id', widget.serviceId)
           .maybeSingle();
 
@@ -101,6 +109,8 @@ class _FurrentBookAppointmentScreenState
         servicePrice = (response['price'] ?? 0).toDouble();
         serviceName = response['service_name'] ?? '';
         serviceDurationMinutes = (response['duration_minutes'] ?? 60) as int;
+
+        maxBookingsPerSlot = (response['max_bookings_per_slot'] ?? 1) as int;
 
         final subtypeList =
             subtype.split(',').map((s) => s.trim().toLowerCase()).toList();
@@ -120,10 +130,14 @@ class _FurrentBookAppointmentScreenState
             (s) => subtypeList.contains(s.toLowerCase()),
             orElse: () => subtypeTabs.first);
 
+        if (!mounted) return;
         setState(() {});
+      } else {
+        _showToast('Service is no longer available.');
       }
     } catch (e) {
       debugPrint('Error loading subtypes: $e');
+      _showToast('Failed to load service details.');
     }
   }
 
@@ -134,12 +148,14 @@ class _FurrentBookAppointmentScreenState
           .select('business_address, city')
           .eq('id', widget.pawtnerId)
           .maybeSingle();
-      if (response != null) {
-        pawtnerAddress = response['business_address'] as String? ?? '';
-        setState(() {});
-      }
+      if (!mounted) return;
+      setState(() {
+        pawtnerAddress = response?['business_address'] as String? ?? '';
+        pawtnerAddressLoaded = true;
+      });
     } catch (e) {
       debugPrint('Error loading pawtner address: $e');
+      if (mounted) setState(() => pawtnerAddressLoaded = true);
     }
   }
 
@@ -151,9 +167,9 @@ class _FurrentBookAppointmentScreenState
           .eq('id', widget.petId)
           .maybeSingle();
 
+      if (!mounted) return;
       if (response != null) {
-        petName = response['name'] ?? '';
-        setState(() {});
+        setState(() => petName = response['name'] ?? '');
       }
     } catch (e) {
       debugPrint('Error loading pet name: $e');
@@ -161,6 +177,8 @@ class _FurrentBookAppointmentScreenState
   }
 
   Future<void> _loadAvailableTimes(DateTime date) async {
+    final seq = ++_timesSeq;
+    if (mounted) setState(() => isLoadingTimes = true);
     try {
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       final dayOfWeek = dayNames[date.weekday % 7];
@@ -169,7 +187,8 @@ class _FurrentBookAppointmentScreenState
           .from('service_availability')
           .select('start_time, end_time')
           .eq('service_id', widget.serviceId)
-          .eq('day_of_week', dayOfWeek);
+          .eq('day_of_week', dayOfWeek)
+          .order('start_time');
 
       final availList =
           (response as List).map((e) => e as Map<String, dynamic>).toList();
@@ -181,31 +200,107 @@ class _FurrentBookAppointmentScreenState
         final endParts = (row['end_time'] as String).split(':');
 
         TimeOfDay current = TimeOfDay(
-            hour: int.parse(startParts[0]), minute: int.parse(startParts[1]));
-        final end = TimeOfDay(
-            hour: int.parse(endParts[0]), minute: int.parse(endParts[1]));
+          hour: int.parse(startParts[0]),
+          minute: int.parse(startParts[1]),
+        );
 
+        final end = TimeOfDay(
+          hour: int.parse(endParts[0]),
+          minute: int.parse(endParts[1]),
+        );
+
+        final endMinutes = end.hour * 60 + end.minute;
         while (_timeToDouble(current) < _timeToDouble(end)) {
-          slots.add(current);
+          final currentMinutes = current.hour * 60 + current.minute;
+          if (isBoardingService ||
+              currentMinutes + serviceDurationMinutes <= endMinutes) {
+            slots.add(current);
+          }
           current = _addMinutes(current, 30);
         }
       }
 
       final now = DateTime.now();
+
       if (date.year == now.year &&
           date.month == now.month &&
           date.day == now.day) {
         slots = slots.where((t) {
-          final slotDt =
-              DateTime(date.year, date.month, date.day, t.hour, t.minute);
+          final slotDt = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            t.hour,
+            t.minute,
+          );
           return slotDt.isAfter(now);
         }).toList();
       }
 
-      setState(() => availableTimes = slots);
+      // Check booking capacity for each time slot.
+      final availableSlots = <TimeOfDay>[];
+
+      for (final time in slots) {
+        if (!mounted || seq != _timesSeq) return;
+        final slotStart = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+
+        final slotEnd = isBoardingService && selectedEndDate != null
+            ? DateTime(
+                selectedEndDate!.year,
+                selectedEndDate!.month,
+                selectedEndDate!.day,
+                time.hour,
+                time.minute,
+              )
+            : slotStart.add(Duration(minutes: serviceDurationMinutes));
+
+        final existing = await supabase
+            .from('bookings')
+            .select('id')
+            .eq('pawtner_id', widget.pawtnerId)
+            .eq('service_id', widget.serviceId)
+            .neq('status', 'Cancelled')
+            .lt(
+              'scheduled_start',
+              slotEnd.toUtc().toIso8601String(),
+            )
+            .gt(
+              'scheduled_end',
+              slotStart.toUtc().toIso8601String(),
+            );
+
+        if (existing.length < maxBookingsPerSlot) {
+          availableSlots.add(time);
+        }
+      }
+
+      if (!mounted || seq != _timesSeq) return;
+
+      setState(() {
+        availableTimes = availableSlots;
+        isLoadingTimes = false;
+
+        if (selectedTime != null && !availableSlots.contains(selectedTime)) {
+          selectedTime = null;
+        }
+      });
     } catch (e) {
       debugPrint('Error loading available times: $e');
-      setState(() => availableTimes = []);
+
+      if (!mounted || seq != _timesSeq) return;
+
+      setState(() {
+        availableTimes = [];
+        selectedTime = null;
+        isLoadingTimes = false;
+      });
+      _showToast('Failed to load available times.');
     }
   }
 
@@ -228,13 +323,16 @@ class _FurrentBookAppointmentScreenState
       return;
     }
 
-    if (selectedEndDate == null && date.isAfter(selectedDate)) {
+    if (_boardingStartPicked &&
+        selectedEndDate == null &&
+        date.isAfter(selectedDate)) {
       setState(() {
         selectedEndDate = date;
         boardingDays = selectedEndDate!.difference(selectedDate).inDays;
         totalPrice = servicePrice * boardingDays;
       });
     } else {
+      _boardingStartPicked = true;
       setState(() {
         selectedDate = date;
         selectedEndDate = null;
@@ -243,14 +341,17 @@ class _FurrentBookAppointmentScreenState
       });
     }
 
-    _loadAvailableTimes(date);
+    _loadAvailableTimes(selectedDate);
   }
 
   Future<void> _pickFurrentAddress() async {
     final TextEditingController searchController = TextEditingController();
     List<Map<String, dynamic>> searchResults = [];
     bool isSearching = false;
-    const apiKey = 'AIzaSyBOKb6toq6ItcFdi94IekJNj5WX0p8tkt4';
+    Timer? debounce;
+    int searchSeq = 0;
+    bool picking = false;
+    String? addressError;
 
     await showModalBottomSheet(
       context: context,
@@ -265,7 +366,9 @@ class _FurrentBookAppointmentScreenState
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom +
+                MediaQuery.of(context).viewPadding.bottom +
+                24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -314,50 +417,38 @@ class _FurrentBookAppointmentScreenState
                     borderSide: BorderSide(color: Color(0xFF6E4B3A), width: 1),
                   ),
                 ),
-                onChanged: (value) async {
+                onChanged: (value) {
+                  debounce?.cancel();
                   if (value.trim().length < 3) {
-                    setModalState(() => searchResults = []);
-                    return;
-                  }
-                  setModalState(() => isSearching = true);
-                  try {
-                    final response = await dio.post(
-                      'https://places.googleapis.com/v1/places:autocomplete',
-                      options: Options(
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'X-Goog-Api-Key': apiKey,
-                        },
-                      ),
-                      data: {
-                        'input': value,
-                        'locationBias': {
-                          'circle': {
-                            'center': {
-                              'latitude': 12.8797,
-                              'longitude': 121.7740,
-                            },
-                            'radius': 50000.0,
-                          },
-                        },
-                        'includedRegionCodes': ['ph'],
-                      },
-                    );
-                    if (!mounted) return;
-                    final suggestions =
-                        response.data['suggestions'] as List? ?? [];
+                    searchSeq++;
                     setModalState(() {
-                      searchResults = suggestions
-                          .map((e) =>
-                              e['placePrediction'] as Map<String, dynamic>)
-                          .toList();
+                      searchResults = [];
                       isSearching = false;
                     });
-                  } catch (e) {
-                    if (!mounted) return;
-                    debugPrint('Autocomplete error: $e');
-                    setModalState(() => isSearching = false);
+                    return;
                   }
+                  debounce = Timer(const Duration(milliseconds: 400), () async {
+                    if (!context.mounted) return;
+                    final seq = ++searchSeq;
+                    setModalState(() => isSearching = true);
+                    try {
+                      final response = await PlacesService.autocomplete(value);
+                      if (!context.mounted || seq != searchSeq) return;
+                      final suggestions =
+                          response['suggestions'] as List? ?? [];
+                      setModalState(() {
+                        searchResults = suggestions
+                            .map((e) =>
+                                e['placePrediction'] as Map<String, dynamic>)
+                            .toList();
+                        isSearching = false;
+                      });
+                    } catch (e) {
+                      debugPrint('Autocomplete error: $e');
+                      if (!context.mounted || seq != searchSeq) return;
+                      setModalState(() => isSearching = false);
+                    }
+                  });
                 },
               ),
               const SizedBox(height: 8),
@@ -406,36 +497,46 @@ class _FurrentBookAppointmentScreenState
                           overflow: TextOverflow.ellipsis,
                         ),
                         onTap: () async {
+                          if (picking) return;
+                          picking = true;
+                          setModalState(() => addressError = null);
                           try {
-                            final detailResponse = await dio.get(
-                              'https://places.googleapis.com/v1/places/$placeId',
-                              options: Options(
-                                headers: {
-                                  'X-Goog-Api-Key': apiKey,
-                                  'X-Goog-FieldMask':
-                                      'location,displayName,formattedAddress',
-                                },
-                              ),
-                            );
+                            final detailResponse =
+                                await PlacesService.details(placeId);
                             final formattedAddress =
-                                detailResponse.data['formattedAddress'] ??
-                                    mainText;
+                                detailResponse['formattedAddress'] ?? mainText;
                             final addressParts = formattedAddress.split(',');
                             final shortAddress = addressParts.length > 2
                                 ? addressParts.take(2).join(',').trim()
                                 : formattedAddress;
 
+                            if (!context.mounted || !mounted) return;
                             setState(() {
                               furrentAddress = shortAddress;
                             });
 
-                            if (mounted) Navigator.pop(context);
+                            Navigator.pop(context);
                           } catch (e) {
                             debugPrint('Place detail error: $e');
+                            picking = false;
+                            if (!context.mounted) return;
+                            setModalState(() => addressError =
+                                'Failed to load address. Please try again.');
                           }
                         },
                       );
                     },
+                  ),
+                ),
+              if (addressError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    addressError!,
+                    style: GoogleFonts.dosis(
+                      fontSize: 14,
+                      color: const Color(0xFF8B0000),
+                    ),
                   ),
                 ),
             ],
@@ -513,7 +614,9 @@ class _FurrentBookAppointmentScreenState
             child: Text(
               pawtnerAddress.isNotEmpty
                   ? 'Location: $pawtnerAddress'
-                  : 'Loading address...',
+                  : (pawtnerAddressLoaded
+                      ? 'Location not provided'
+                      : 'Loading address...'),
               style: GoogleFonts.dosis(
                 color: const Color(0xFF6E4B3A),
                 fontSize: 16,
@@ -605,7 +708,7 @@ class _FurrentBookAppointmentScreenState
                   )
                 : isInRange
                     ? BoxDecoration(
-                        color: const Color(0xFF6E4B3A).withOpacity(0.2),
+                        color: const Color(0xFF6E4B3A).withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       )
                     : null,
@@ -672,59 +775,53 @@ class _FurrentBookAppointmentScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "${_monthName(calendarMonth.month)} ${calendarMonth.year}",
-                  style: GoogleFonts.dosis(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF6E4B3A),
+                GestureDetector(
+                  onTap: () {
+                    final now = DateTime.now();
+                    final currentMonth = DateTime(now.year, now.month, 1);
+                    final prevMonth = DateTime(
+                        calendarMonth.year, calendarMonth.month - 1, 1);
+                    if (prevMonth.isBefore(currentMonth)) return;
+                    setState(() => calendarMonth = prevMonth);
+                  },
+                  child: const Text(
+                    "<",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6E4B3A),
+                    ),
                   ),
                 ),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        final now = DateTime.now();
-                        final prevMonth = DateTime(
-                            selectedDate.year, selectedDate.month - 1, 1);
-
-                        setState(() {
-                          if (prevMonth.year == now.year &&
-                              prevMonth.month == now.month) {
-                            selectedDate =
-                                DateTime(now.year, now.month, now.day);
-                          } else {
-                            calendarMonth = prevMonth;
-                          }
-                        });
-
-                        _loadAvailableTimes(selectedDate);
-                      },
-                      child: const Text("<",
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6E4B3A))),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      "${_monthName(calendarMonth.month)} ${calendarMonth.year}",
+                      style: GoogleFonts.dosis(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6E4B3A),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          calendarMonth = DateTime(
-                              calendarMonth.year, calendarMonth.month + 1, 1);
-                        });
-                        _loadAvailableTimes(selectedDate);
-                      },
-                      child: const Text(">",
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6E4B3A))),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      calendarMonth = DateTime(
+                          calendarMonth.year, calendarMonth.month + 1, 1);
+                    });
+                  },
+                  child: const Text(
+                    ">",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6E4B3A),
                     ),
-                  ],
-                )
+                  ),
+                ),
               ],
             ),
           ),
@@ -757,6 +854,14 @@ class _FurrentBookAppointmentScreenState
   }
 
   Widget _buildTimeSlots() {
+    if (isLoadingTimes) {
+      return const SizedBox(
+        height: 50,
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF6E4B3A)),
+        ),
+      );
+    }
     if (availableTimes.isEmpty) {
       return SizedBox(
         height: 50,
@@ -1018,13 +1123,33 @@ class _FurrentBookAppointmentScreenState
                 ),
               ),
               onPressed: selectedTime != null &&
+                      !isLoadingTimes &&
+                      selectedSubtype.isNotEmpty &&
                       (!isBoardingService || selectedEndDate != null) &&
                       (!(selectedSubtype == 'Home Service' ||
                               selectedSubtype == 'Home Training') ||
-                          furrentAddress.isNotEmpty)
+                          furrentAddress.isNotEmpty) &&
+                      !isSaving
                   ? () async {
+                      if (isSaving) return;
+                      setState(() => isSaving = true);
+                      bool booked = false;
                       try {
-                        final furrentId = supabase.auth.currentUser!.id;
+                        final currentUser = supabase.auth.currentUser;
+                        if (currentUser == null) {
+                          _showToast(
+                              'Your session expired. Please log in again.');
+                          return;
+                        }
+                        final furrentId = currentUser.id;
+
+                        final furrentResponse = await supabase
+                            .from('furrents')
+                            .select('full_name')
+                            .eq('id', furrentId)
+                            .maybeSingle();
+                        final furrentName =
+                            furrentResponse?['full_name'] as String? ?? '';
 
                         final scheduledStart = DateTime(
                           selectedDate.year,
@@ -1045,6 +1170,8 @@ class _FurrentBookAppointmentScreenState
                           location = furrentAddress;
                         }
 
+                        if (!context.mounted) return;
+
                         final confirm = await _showConfirmBookingModal(
                           serviceName: serviceName,
                           pawtnerName: widget.pawtnerName,
@@ -1059,7 +1186,13 @@ class _FurrentBookAppointmentScreenState
                           total: isBoardingService ? totalPrice : servicePrice,
                         );
 
-                        if (confirm != true) return;
+                        if (confirm != true || !mounted) return;
+
+                        if (!scheduledStart.isAfter(DateTime.now())) {
+                          _showToast(
+                              'Selected time has already passed. Please choose a later time.');
+                          return;
+                        }
 
                         DateTime? scheduledEnd;
 
@@ -1077,20 +1210,23 @@ class _FurrentBookAppointmentScreenState
                           );
                         }
 
-                        if (isBoardingService) {
-                          final existing = await supabase
-                              .from('bookings')
-                              .select('id')
-                              .eq('pawtner_id', widget.pawtnerId)
-                              .lt('scheduled_start',
-                                  scheduledEnd.toUtc().toIso8601String())
-                              .gt('scheduled_end',
-                                  scheduledStart.toUtc().toIso8601String());
+                        final conflictCheck = await supabase
+                            .from('bookings')
+                            .select('id')
+                            .eq('pawtner_id', widget.pawtnerId)
+                            .eq('service_id', widget.serviceId)
+                            .neq('status', 'Cancelled')
+                            .lt('scheduled_start',
+                                scheduledEnd.toUtc().toIso8601String())
+                            .gt('scheduled_end',
+                                scheduledStart.toUtc().toIso8601String());
 
-                          if (existing.isNotEmpty) {
-                            _showToast('Selected dates are not available.');
-                            return;
-                          }
+                        if (!mounted) return;
+                        if (conflictCheck.length >= maxBookingsPerSlot) {
+                          _showToast(
+                              'Selected date/time is no longer available.');
+                          _loadAvailableTimes(selectedDate);
+                          return;
                         }
 
                         await supabase.from('bookings').insert({
@@ -1098,6 +1234,11 @@ class _FurrentBookAppointmentScreenState
                           'pawtner_id': widget.pawtnerId,
                           'service_id': widget.serviceId,
                           'pet_id': widget.petId,
+                          'furrent_name': furrentName,
+                          'pawtner_name': widget.pawtnerName,
+                          'service_name': serviceName,
+                          'pet_name': petName,
+                          'price': servicePrice,
                           'scheduled_start':
                               scheduledStart.toUtc().toIso8601String(),
                           'scheduled_end':
@@ -1108,26 +1249,46 @@ class _FurrentBookAppointmentScreenState
                                   ? furrentAddress
                                   : null,
                           'status': 'Upcoming',
-                          'notes': notesController.text,
+                          'booking_source': 'App',
+                          'notes': notesController.text.trim().isEmpty
+                              ? null
+                              : notesController.text.trim(),
                           'chosen_service_subtype': selectedSubtype,
                         });
 
+                        booked = true;
                         _showToast('Booking successful.');
 
-                        Navigator.pop(context);
+                        if (context.mounted) Navigator.pop(context);
                       } catch (e) {
-                        _showToast('Booking failed: $e');
+                        debugPrint('Error creating booking: $e');
+                        _showToast(
+                            'Failed to create booking. Please try again.');
+                      } finally {
+                        if (mounted && !booked) {
+                          setState(() => isSaving = false);
+                        }
                       }
                     }
                   : null,
-              child: Text(
-                'Book Now',
-                style: GoogleFonts.dosis(
-                  color: const Color(0xFFDDC7A9),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
-              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFFDDC7A9)),
+                      ),
+                    )
+                  : Text(
+                      'Book Now',
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFFDDC7A9),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
             ),
           ),
         ),

@@ -23,6 +23,8 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
   final supabase = Supabase.instance.client;
 
   Uint8List? _profileImageBytes; // ← was File? _profileImage
+  String _profileImageExtension = 'jpg';
+  bool _profileImageRemoved = false;
 
   late TextEditingController _fullNameController;
   late TextEditingController _emailController;
@@ -143,11 +145,13 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
       );
 
       if (choice == null) return;
+      if (!mounted) return;
 
       if (choice == 'remove') {
         setState(() {
           _profileImageBytes = null;
-          widget.furrentData?['profile_picture_url'] = null;
+          _profileImageExtension = 'jpg';
+          _profileImageRemoved = true;
         });
         return;
       }
@@ -164,6 +168,7 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
 
       if (image != null) {
         final bytes = await image.readAsBytes();
+        _profileImageExtension = image.path.split('.').last.toLowerCase();
 
         if (bytes.length > 3 * 1024 * 1024) {
           if (mounted) {
@@ -172,10 +177,29 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
           return;
         }
 
-        setState(() => _profileImageBytes = bytes);
+        if (!mounted) return;
+        setState(() {
+          _profileImageBytes = bytes;
+          _profileImageRemoved = false;
+        });
       }
     } catch (e) {
       debugPrint('Error picking profile image: $e');
+    }
+  }
+
+  Future<void> _deleteOldProfilePhoto(String? oldUrl) async {
+    if (oldUrl == null || oldUrl.isEmpty) return;
+
+    try {
+      const marker = '/profile_pictures/';
+      final markerIndex = oldUrl.indexOf(marker);
+      if (markerIndex == -1) return;
+
+      final oldPath = oldUrl.substring(markerIndex + marker.length);
+      await supabase.storage.from('profile_pictures').remove([oldPath]);
+    } catch (e) {
+      debugPrint('Error deleting old profile photo: $e');
     }
   }
 
@@ -233,26 +257,29 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
         'full_name': _fullNameController.text,
         'email': _emailController.text,
         'contact_number': _contactNumberController.text,
-        if (widget.furrentData?['profile_picture_url'] == null &&
-            _profileImageBytes == null)
+        if (_profileImageRemoved && _profileImageBytes == null)
           'profile_picture_url': null,
       };
 
       if (_profileImageBytes != null) {
-        const fileExt = 'png';
-        final fileName = '${user.id}/profile.$fileExt';
+        final fileName = '${user.id}/profile.$_profileImageExtension';
+        final contentType =
+            _profileImageExtension == 'png' ? 'image/png' : 'image/jpeg';
 
         await supabase.storage.from('profile_pictures').uploadBinary(
               fileName,
               _profileImageBytes!,
-              fileOptions:
-                  const FileOptions(cacheControl: '3600', upsert: true),
+              fileOptions: FileOptions(
+                  cacheControl: '3600', upsert: true, contentType: contentType),
             );
 
         final publicUrl =
             supabase.storage.from('profile_pictures').getPublicUrl(fileName);
 
         updatedData['profile_picture_url'] = publicUrl;
+
+        await _deleteOldProfilePhoto(
+            widget.furrentData?['profile_picture_url']);
       }
 
       await supabase.from('furrents').update(updatedData).eq('id', user.id);
@@ -332,7 +359,9 @@ class _FurrentEditProfileScreenState extends State<FurrentEditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentPicUrl = widget.furrentData?['profile_picture_url'];
+    final currentPicUrl = _profileImageRemoved
+        ? null
+        : widget.furrentData?['profile_picture_url'];
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,

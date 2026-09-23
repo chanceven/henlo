@@ -21,8 +21,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
   List<Map<String, dynamic>> users = [];
   bool isSearching = false;
   bool noResults = false;
+  int _searchRequestId = 0;
+  bool _isStartingChat = false;
 
   Future<void> _searchUsers(String query) async {
+    final requestId = ++_searchRequestId;
+
     setState(() {
       isSearching = true;
       noResults = false;
@@ -44,26 +48,21 @@ class _NewChatScreenState extends State<NewChatScreen> {
             .limit(20));
       } else {
         // Furrent searching pawtners by business_name (start-of-word), fallback to full_name
-        final data = await supabase
+        results = List<Map<String, dynamic>>.from(await supabase
             .from(tableName)
             .select('id, full_name, business_name, profile_picture_url')
-            .limit(20);
-
-        results = List<Map<String, dynamic>>.from(data).where((user) {
-          final nameToSearch = (user['business_name'] != null &&
-                  user['business_name'].toString().trim().isNotEmpty)
-              ? user['business_name']
-              : (user['full_name'] ?? '');
-          return nameToSearch.toLowerCase().startsWith(query.toLowerCase());
-        }).toList();
+            .or('business_name.ilike.$query%,full_name.ilike.$query%')
+            .limit(20));
       }
 
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() {
         users = results;
         noResults = results.isEmpty;
       });
     } catch (e) {
       debugPrint('Error searching users: $e');
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() {
         users = [];
         noResults = true;
@@ -72,8 +71,14 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Future<void> _startChat(Map<String, dynamic> otherUser) async {
+    if (_isStartingChat) return;
+    _isStartingChat = true;
+
     final currentUser = supabase.auth.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      _isStartingChat = false;
+      return;
+    }
 
     final String furrentId =
         widget.currentUserType == "furrent" ? currentUser.id : otherUser['id'];
@@ -81,30 +86,25 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final String pawtnerId =
         widget.currentUserType == "pawtner" ? currentUser.id : otherUser['id'];
 
-    final existingConversation = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('furrent_id', furrentId)
-        .eq('pawtner_id', pawtnerId)
-        .maybeSingle();
+    Map<String, dynamic>? existingConversation;
 
-    Map<String, dynamic> conversation;
-
-    if (existingConversation != null) {
-      conversation = existingConversation;
-    } else {
-      final newConversation = await supabase
+    try {
+      existingConversation = await supabase
           .from('conversations')
-          .insert({
-            'furrent_id': furrentId,
-            'pawtner_id': pawtnerId,
-            'last_message': '',
-            'last_message_at': DateTime.now().toIso8601String(),
-          })
-          .select()
-          .single();
-
-      conversation = newConversation;
+          .select('*')
+          .eq('furrent_id', furrentId)
+          .eq('pawtner_id', pawtnerId)
+          .maybeSingle();
+    } catch (e) {
+      debugPrint('Error checking existing conversation: $e');
+      _isStartingChat = false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Failed to open chat. Please try again.')),
+        );
+      }
+      return;
     }
 
     final displayName = (widget.currentUserType == "furrent" &&
@@ -113,11 +113,16 @@ class _NewChatScreenState extends State<NewChatScreen> {
         ? otherUser['business_name']
         : (otherUser['full_name'] ?? 'Unknown User');
 
+    if (!mounted) {
+      _isStartingChat = false;
+      return;
+    }
+
     final convoReturned = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ChatScreen(
-          conversationId: conversation['id'],
+          conversationId: existingConversation?['id'],
           otherUserId: otherUser['id'],
           otherUserName: displayName,
           otherUserAvatar: otherUser['profile_picture_url'] ?? '',
@@ -127,7 +132,9 @@ class _NewChatScreenState extends State<NewChatScreen> {
       ),
     );
 
-    if (convoReturned != null) {
+    _isStartingChat = false;
+
+    if (convoReturned != null && mounted) {
       Navigator.pop(context, convoReturned);
     }
   }

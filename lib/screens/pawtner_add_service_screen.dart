@@ -23,10 +23,13 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
   final _durationHoursController = TextEditingController();
   final _durationMinutesController = TextEditingController();
   final _priceController = TextEditingController();
+  final _maxBookingsController = TextEditingController(text: '1');
 
   String? serviceType;
   List<String> serviceSubType = [];
   bool serviceTypeLocked = false;
+
+  bool _isSaving = false;
 
   Map<String, Map<String, dynamic>> availability = {
     'Mon': {'start': '9:00 AM', 'end': '7:00 PM', 'enabled': true},
@@ -159,56 +162,134 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
     _durationHoursController.dispose();
     _durationMinutesController.dispose();
     _priceController.dispose();
+    _maxBookingsController.dispose();
     super.dispose();
   }
 
-  Future<void> _saveService() async {
-    final currentUser = supabase.auth.currentUser;
-    if (currentUser == null) return;
-
-    final hours = int.tryParse(_durationHoursController.text) ?? 0;
-
-    final minutes = int.tryParse(_durationMinutesController.text) ?? 0;
-
-    final duration = (hours * 60) + minutes;
-
-    final price = double.tryParse(_priceController.text) ?? 0;
-
-    final serviceResponse = await supabase
-        .from('services')
-        .insert({
-          'pawtner_id': currentUser.id,
-          'service_type': serviceType,
-          'service_subtype': serviceSubType.join(', '),
-          'service_name': _serviceNameController.text,
-          'description': _descriptionController.text,
-          'duration_minutes': duration,
-          'price': price,
-          'created_at': DateTime.now().toIso8601String(),
-        })
-        .select()
-        .single();
-
-    final serviceId = serviceResponse['id'];
-
-    for (var day in availability.entries) {
-      final dayData = day.value;
-      if (!dayData['enabled']) continue;
-      await supabase.from('service_availability').insert({
-        'service_id': serviceId,
-        'day_of_week': day.key,
-        'start_time': dayData['start'],
-        'end_time': dayData['end'],
-        'created_at': DateTime.now().toIso8601String(),
-      });
+  String? _validate() {
+    if (serviceType == null) {
+      return 'Please select a service type.';
+    }
+    if (serviceSubType.isEmpty) {
+      return 'Please select at least one business type.';
+    }
+    if (_serviceNameController.text.trim().isEmpty) {
+      return 'Please enter a service name.';
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Service added successfully.',
-          style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-      backgroundColor: const Color(0xFFDDC7A9),
-    ));
-    Navigator.pop(context);
+    final hours = int.tryParse(_durationHoursController.text) ?? 0;
+    final minutes = int.tryParse(_durationMinutesController.text) ?? 0;
+    final duration = (hours * 60) + minutes;
+    if (duration <= 0) {
+      return 'Please enter a valid duration (hours and/or minutes).';
+    }
+
+    final price = double.tryParse(_priceController.text);
+    if (price == null || price <= 0) {
+      return 'Please enter a valid price.';
+    }
+
+    final maxBookings = int.tryParse(_maxBookingsController.text);
+    if (maxBookings == null || maxBookings < 1) {
+      return 'Max bookings per time slot must be at least 1.';
+    }
+
+    final hasEnabledDay =
+        availability.values.any((day) => day['enabled'] == true);
+    if (!hasEnabledDay) {
+      return 'Please enable availability for at least one day.';
+    }
+
+    return null;
+  }
+
+  Future<void> _saveService() async {
+    if (_isSaving) return;
+
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('You must be logged in to add a service.',
+            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+        backgroundColor: const Color(0xFFDDC7A9),
+      ));
+      return;
+    }
+
+    final validationError = _validate();
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(validationError,
+            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+        backgroundColor: const Color(0xFFDDC7A9),
+      ));
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final hours = int.tryParse(_durationHoursController.text) ?? 0;
+    final minutes = int.tryParse(_durationMinutesController.text) ?? 0;
+    final duration = (hours * 60) + minutes;
+    final price = double.tryParse(_priceController.text) ?? 0;
+    final maxBookingsPerSlot = int.tryParse(_maxBookingsController.text) ?? 1;
+
+    try {
+      final serviceResponse = await supabase
+          .from('services')
+          .insert({
+            'pawtner_id': currentUser.id,
+            'service_type': serviceType,
+            'service_subtype': serviceSubType.join(', '),
+            'service_name': _serviceNameController.text.trim(),
+            'description': _descriptionController.text.trim(),
+            'duration_minutes': duration,
+            'price': price,
+            'max_bookings_per_slot': maxBookingsPerSlot,
+            'created_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .select()
+          .single();
+
+      final serviceId = serviceResponse['id'];
+
+      final availabilityRows = availability.entries
+          .where((day) => day.value['enabled'] == true)
+          .map((day) => {
+                'service_id': serviceId,
+                'day_of_week': day.key,
+                'start_time': day.value['start'],
+                'end_time': day.value['end'],
+                'created_at': DateTime.now().toUtc().toIso8601String(),
+              })
+          .toList();
+
+      if (availabilityRows.isNotEmpty) {
+        try {
+          await supabase.from('service_availability').insert(availabilityRows);
+        } catch (e) {
+          await supabase.from('services').delete().eq('id', serviceId);
+          rethrow;
+        }
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Service added successfully.',
+            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+        backgroundColor: const Color(0xFFDDC7A9),
+      ));
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to save service. Please try again.',
+            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
+        backgroundColor: const Color(0xFFDDC7A9),
+      ));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   Widget _buildDropdown({
@@ -310,12 +391,13 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
     } else if (label.contains('Price')) {
       inputFormatters
           .add(FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')));
+    } else if (label.contains('Max Bookings')) {
+      inputFormatters.add(FilteringTextInputFormatter.digitsOnly);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ---- Only change is below ----
         label.contains('Duration')
             ? RichText(
                 text: TextSpan(
@@ -574,6 +656,12 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                   keyboardType: TextInputType.number,
                   prefixText: '₱ '),
               const SizedBox(height: 16),
+              _buildTextField(
+                  label: 'Max Bookings Per Time Slot',
+                  controller: _maxBookingsController,
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 4),
+              const SizedBox(height: 16),
               const Divider(color: Colors.grey),
               const SizedBox(height: 16),
               Text(
@@ -659,7 +747,7 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6E4B3A),
                     ),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     child: Text(
                       'Cancel',
                       style: GoogleFonts.dosis(
@@ -675,14 +763,23 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFDDC7A9),
                     ),
-                    onPressed: _saveService,
-                    child: Text(
-                      'Save Changes',
-                      style: GoogleFonts.dosis(
-                        color: const Color(0xFF6E4B3A),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    onPressed: _isSaving ? null : _saveService,
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF6E4B3A),
+                            ),
+                          )
+                        : Text(
+                            'Save Changes',
+                            style: GoogleFonts.dosis(
+                              color: const Color(0xFF6E4B3A),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -828,7 +925,6 @@ class _TimeSegmentInputState extends State<_TimeSegmentInput> {
         _hourCtrl.text = '12';
       }
       if (val.length == 1 && n == 0) {
-        // "0" alone isn't a valid hour; let them keep typing.
         return;
       }
       _minuteFocus.requestFocus();

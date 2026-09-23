@@ -19,8 +19,9 @@ class PawtnerBookingDetailsScreen extends StatefulWidget {
 class _PawtnerBookingDetailsScreenState
     extends State<PawtnerBookingDetailsScreen> {
   final supabase = Supabase.instance.client;
-  late RealtimeChannel _bookingsChannel;
+  RealtimeChannel? _bookingsChannel;
   String? _selectedAction;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -31,11 +32,13 @@ class _PawtnerBookingDetailsScreenState
 
   @override
   void dispose() {
-    supabase.removeChannel(_bookingsChannel);
+    final channel = _bookingsChannel;
+    if (channel != null) supabase.removeChannel(channel);
     super.dispose();
   }
 
   void _showToast(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -67,7 +70,8 @@ class _PawtnerBookingDetailsScreenState
           callback: (payload) async {
             debugPrint('Realtime booking change detected');
             await Future.delayed(const Duration(milliseconds: 300));
-            if (mounted) setState(() {});
+            if (!mounted) return;
+            await _fetchBookingDetails();
           },
         )
         .subscribe();
@@ -76,17 +80,22 @@ class _PawtnerBookingDetailsScreenState
   Future<void> _fetchBookingDetails() async {
     final bookingId = widget.booking['id'];
 
-    final response = await supabase
-        .from('bookings')
-        .select('*, pets(*), furrents(*), services(*)')
-        .eq('id', bookingId)
-        .maybeSingle();
+    try {
+      final response = await supabase
+          .from('bookings')
+          .select('*, pets(*), furrents(*), services(*)')
+          .eq('id', bookingId)
+          .maybeSingle();
 
-    if (response != null) {
-      setState(() {
-        widget.booking.clear();
-        widget.booking.addAll(response);
-      });
+      if (!mounted) return;
+      if (response != null) {
+        setState(() {
+          widget.booking.clear();
+          widget.booking.addAll(response);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching booking details: $e');
     }
   }
 
@@ -96,6 +105,20 @@ class _PawtnerBookingDetailsScreenState
     final pet = booking['pets'] as Map<String, dynamic>?;
     final service = booking['services'] as Map<String, dynamic>?;
     final furrent = booking['furrents'] as Map<String, dynamic>?;
+
+    final wasRealFurrentAccount = booking['guest_name'] == null;
+    final furrentAccountDeleted =
+        wasRealFurrentAccount && booking['furrent_id'] == null;
+    final displayFurrentName = (booking['furrent_name'] ??
+            furrent?['full_name'] ??
+            booking['guest_name'] ??
+            '-') +
+        (furrentAccountDeleted ? ' (Deleted User)' : '');
+    final displayFurrentPetName =
+        booking['pet_name'] ?? pet?['name'] ?? booking['guest_pet_name'] ?? '-';
+    final displayServiceName =
+        (booking['service_name'] ?? service?['service_name'] ?? '') +
+            (booking['service_id'] == null ? ' (Deleted Service)' : '');
 
     final scheduledStart =
         DateTime.tryParse(booking['scheduled_start'] ?? '')?.toLocal();
@@ -117,7 +140,7 @@ class _PawtnerBookingDetailsScreenState
 
     if (scheduledStart != null &&
         scheduledEnd != null &&
-        scheduledStart.day != scheduledEnd.day) {
+        !DateUtils.isSameDay(scheduledStart, scheduledEnd)) {
       final time = DateFormat('h:mm a').format(scheduledStart);
 
       if (scheduledStart.month == scheduledEnd.month) {
@@ -152,7 +175,7 @@ class _PawtnerBookingDetailsScreenState
     final formattedMissedAt =
         missedAt != null ? DateFormat('MMM d, h:mm a').format(missedAt) : '-';
 
-    final price = service?['price'] ?? 0;
+    final price = booking['price'] ?? service?['price'] ?? 0;
 
     int days = 1;
 
@@ -312,7 +335,7 @@ class _PawtnerBookingDetailsScreenState
                             ),
                           );
 
-                          if (confirmed != true) return;
+                          if (confirmed != true || !mounted) return;
 
                           final reasonController = TextEditingController();
                           final reasonSubmitted = await showDialog<bool>(
@@ -422,9 +445,11 @@ class _PawtnerBookingDetailsScreenState
                             ),
                           );
 
-                          if (reasonSubmitted != true) return;
+                          if (reasonSubmitted != true || !mounted) return;
+                          if (_isSaving) return;
 
                           final bookingId = booking['id'];
+                          setState(() => _isSaving = true);
                           try {
                             await supabase.from('bookings').update({
                               'status': 'Cancelled',
@@ -438,7 +463,10 @@ class _PawtnerBookingDetailsScreenState
 
                             if (mounted) Navigator.pop(context, true);
                           } catch (e) {
+                            debugPrint('Error cancelling booking: $e');
                             _showToast('Failed to cancel booking.');
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -455,77 +483,85 @@ class _PawtnerBookingDetailsScreenState
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final currentUserId = supabase.auth.currentUser!.id;
-                          final furrent =
-                              booking['furrents'] as Map<String, dynamic>?;
-                          if (furrent == null) return;
+                    if (booking['furrent_id'] != null) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isSaving
+                              ? null
+                              : () async {
+                                  final currentUser = supabase.auth.currentUser;
+                                  if (currentUser == null) {
+                                    _showToast(
+                                        'Your session expired. Please log in again.');
+                                    return;
+                                  }
+                                  final currentUserId = currentUser.id;
+                                  final furrent = booking['furrents']
+                                      as Map<String, dynamic>?;
+                                  if (furrent == null) return;
 
-                          final furrentId = furrent['id'];
-                          if (furrentId == null) return;
+                                  final furrentId = furrent['id'];
+                                  if (furrentId == null) return;
 
-                          final existing = await supabase
-                              .from('conversations')
-                              .select()
-                              .eq('furrent_id', furrentId)
-                              .eq('pawtner_id', currentUserId)
-                              .maybeSingle();
+                                  setState(() => _isSaving = true);
+                                  String? conversationId;
+                                  try {
+                                    final existing = await supabase
+                                        .from('conversations')
+                                        .select('id')
+                                        .eq('furrent_id', furrentId)
+                                        .eq('pawtner_id', currentUserId)
+                                        .maybeSingle();
+                                    conversationId =
+                                        existing?['id']?.toString();
+                                  } catch (e) {
+                                    debugPrint('Error opening chat: $e');
+                                    _showToast('Failed to open chat.');
+                                    return;
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() => _isSaving = false);
+                                    }
+                                  }
 
-                          String conversationId;
-                          if (existing != null) {
-                            conversationId = existing['id'];
-                          } else {
-                            final inserted = await supabase
-                                .from('conversations')
-                                .insert({
-                                  'furrent_id': furrentId,
-                                  'pawtner_id': currentUserId,
-                                  'last_message': '',
-                                  'last_message_at':
-                                      DateTime.now().toIso8601String(),
-                                })
-                                .select()
-                                .single();
-                            conversationId = inserted['id'];
-                          }
+                                  if (!context.mounted) return;
 
-                          if (!context.mounted) return;
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                conversationId: conversationId,
-                                otherUserId: furrentId,
-                                otherUserName: furrent['full_name'] ?? '',
-                                otherUserAvatar:
-                                    furrent['profile_picture_url'] ?? '',
-                                currentUserType: 'pawtner',
-                                isDeletedAccount: false,
-                              ),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDDC7A9),
-                          alignment: Alignment.center,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(
-                          'Chat with Furrent',
-                          style: GoogleFonts.dosis(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF6E4B3A)),
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatScreen(
+                                        conversationId: conversationId,
+                                        otherUserId: furrentId,
+                                        otherUserName:
+                                            furrent['full_name'] ?? '',
+                                        otherUserAvatar:
+                                            furrent['profile_picture_url'] ??
+                                                '',
+                                        currentUserType: 'pawtner',
+                                        isDeletedAccount: false,
+                                      ),
+                                    ),
+                                  );
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDDC7A9),
+                            alignment: Alignment.center,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            'Chat with Furrent',
+                            style: GoogleFonts.dosis(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF6E4B3A)),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -552,7 +588,7 @@ class _PawtnerBookingDetailsScreenState
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(service?['service_name'] ?? '',
+                          Text(displayServiceName,
                               style: GoogleFonts.dosis(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
@@ -613,26 +649,52 @@ class _PawtnerBookingDetailsScreenState
                         color: Color(0xFFDDC7A9),
                       ),
                       const SizedBox(height: 8),
-                      Text('Pet Name: ${pet?['name'] ?? ''}',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
+                      Text(
+                        'Booking Source: ${booking['booking_source'] ?? '-'}',
+                        style: GoogleFonts.dosis(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6E4B3A),
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('Breed: ${pet?['breed'] ?? ''}',
+                      Text(
+                        'Pet Name: $displayFurrentPetName',
+                        style: GoogleFonts.dosis(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6E4B3A),
+                        ),
+                      ),
+                      if (pet?['breed'] != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Breed: ${pet?['breed']}',
                           style: GoogleFonts.dosis(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: const Color(0xFF6E4B3A),
-                          )),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
-                      Text('Furrent Name: ${furrent?['full_name'] ?? ''}',
-                          style: GoogleFonts.dosis(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6E4B3A),
-                          )),
+                      Text(
+                        'Furrent Name: $displayFurrentName',
+                        style: GoogleFonts.dosis(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6E4B3A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Furrent Contact Number: ${furrent?['contact_number'] ?? booking['guest_contact_number'] ?? '-'}',
+                        style: GoogleFonts.dosis(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6E4B3A),
+                        ),
+                      ),
                       if (status.toLowerCase() != 'cancelled') ...[
                         const SizedBox(height: 8),
                         const Divider(
@@ -686,9 +748,117 @@ class _PawtnerBookingDetailsScreenState
                           activeColor: const Color(0xFF6E4B3A),
                           fillColor:
                               WidgetStateProperty.all(const Color(0xFF6E4B3A)),
-                          onChanged: canMarkDone
+                          onChanged: (canMarkDone && !_isSaving)
                               ? (value) async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      backgroundColor: const Color(0xFFF8F8F8),
+                                      insetPadding: const EdgeInsets.symmetric(
+                                          horizontal: 20),
+                                      contentPadding: const EdgeInsets.fromLTRB(
+                                          24, 20, 24, 0),
+                                      content: SizedBox(
+                                        height: 140,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Are you sure you want to mark this booking as done?',
+                                              textAlign: TextAlign.center,
+                                              style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                  color:
+                                                      const Color(0xFF6E4B3A)),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'This action cannot be undone.',
+                                              textAlign: TextAlign.center,
+                                              style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 15,
+                                                  color:
+                                                      const Color(0xFF6E4B3A)),
+                                            ),
+                                            const SizedBox(height: 20),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SizedBox(
+                                                  width: 140,
+                                                  height: 40,
+                                                  child: ElevatedButton(
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          const Color(
+                                                              0xFF6E4B3A),
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                    ),
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, false),
+                                                    child: Text(
+                                                      'Cancel',
+                                                      style: GoogleFonts.dosis(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 15,
+                                                          color: const Color(
+                                                              0xFFDDC7A9)),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                SizedBox(
+                                                  width: 140,
+                                                  height: 40,
+                                                  child: ElevatedButton(
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          const Color(
+                                                              0xFF2E7D32),
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                    ),
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, true),
+                                                    child: Text(
+                                                      'Confirm',
+                                                      style: GoogleFonts.dosis(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 15,
+                                                          color: Colors.white),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+
+                                  if (confirmed != true || !mounted) return;
+
                                   final bookingId = booking['id'];
+                                  setState(() => _isSaving = true);
 
                                   try {
                                     await supabase.from('bookings').update({
@@ -704,7 +874,12 @@ class _PawtnerBookingDetailsScreenState
                                       Navigator.pop(context, true);
                                     }
                                   } catch (e) {
+                                    debugPrint('Error completing booking: $e');
                                     _showToast('Failed to complete booking.');
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() => _isSaving = false);
+                                    }
                                   }
                                 }
                               : null,
@@ -735,7 +910,7 @@ class _PawtnerBookingDetailsScreenState
                           activeColor: const Color(0xFF6E4B3A),
                           fillColor:
                               WidgetStateProperty.all(const Color(0xFF6E4B3A)),
-                          onChanged: canMarkDone
+                          onChanged: (canMarkDone && !_isSaving)
                               ? (value) async {
                                   final confirmed = await showDialog<bool>(
                                     context: context,
@@ -842,12 +1017,7 @@ class _PawtnerBookingDetailsScreenState
                                     ),
                                   );
 
-                                  if (confirmed != true) {
-                                    setState(() {
-                                      _selectedAction = null;
-                                    });
-                                    return;
-                                  }
+                                  if (confirmed != true || !mounted) return;
 
                                   final reasonController =
                                       TextEditingController();
@@ -976,14 +1146,12 @@ class _PawtnerBookingDetailsScreenState
                                     ),
                                   );
 
-                                  if (reasonSubmitted != true) {
-                                    setState(() {
-                                      _selectedAction = null;
-                                    });
+                                  if (reasonSubmitted != true || !mounted) {
                                     return;
                                   }
 
                                   final bookingId = booking['id'];
+                                  setState(() => _isSaving = true);
 
                                   try {
                                     await supabase.from('bookings').update({
@@ -1001,8 +1169,14 @@ class _PawtnerBookingDetailsScreenState
                                       Navigator.pop(context, true);
                                     }
                                   } catch (e) {
+                                    debugPrint(
+                                        'Error marking booking missed: $e');
                                     _showToast(
                                         'Failed to mark booking as missed.');
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() => _isSaving = false);
+                                    }
                                   }
                                 }
                               : null,

@@ -27,7 +27,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
   int unreadChatsCount = 0;
   int unreadNotificationsCount = 0;
 
-  late RealtimeChannel _realtimeChannel;
+  RealtimeChannel? _realtimeChannel;
 
   @override
   void initState() {
@@ -38,7 +38,9 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
 
   @override
   void dispose() {
-    supabase.removeChannel(_realtimeChannel);
+    if (_realtimeChannel != null) {
+      supabase.removeChannel(_realtimeChannel!);
+    }
     super.dispose();
   }
 
@@ -50,6 +52,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
   Future<void> _loadData() async {
     final currentUser = supabase.auth.currentUser;
     if (currentUser == null) {
+      if (!mounted) return;
       setState(() {
         chats = [];
         notifications = [];
@@ -88,6 +91,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
         return notif['is_read'] == false;
       }).length;
 
+      if (!mounted) return;
       setState(() {
         chats = List<Map<String, dynamic>>.from(chatData);
         notifications = List<Map<String, dynamic>>.from(notificationData);
@@ -124,6 +128,8 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 .eq('id', payload.newRecord['id'])
                 .single();
 
+            if (!mounted) return;
+
             if (convo['hidden_for_pawtner'] == true) {
               setState(() => chats.removeWhere((c) => c['id'] == convo['id']));
               return;
@@ -139,6 +145,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 chats.insert(0, convo);
               });
             }
+            _recalculateUnreadChats();
           },
         )
         .onPostgresChanges(
@@ -157,6 +164,8 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 .eq('id', payload.newRecord['id'])
                 .single();
 
+            if (!mounted) return;
+
             if (convo['hidden_for_pawtner'] == true) {
               setState(() => chats.removeWhere((c) => c['id'] == convo['id']));
               return;
@@ -172,9 +181,24 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 chats.insert(0, convo);
               });
             }
+            _recalculateUnreadChats();
           },
         )
         .subscribe();
+  }
+
+  void _recalculateUnreadChats() {
+    int getCount(dynamic value) {
+      if (value == null) return 0;
+      return (value as num).toInt();
+    }
+
+    final total = chats.fold<int>(
+        0, (sum, chat) => sum + getCount(chat['unread_count_pawtner']));
+
+    if (!mounted) return;
+    setState(() => unreadChatsCount = total);
+    _updateAppBadge();
   }
 
   Widget customText(String text,
@@ -219,7 +243,8 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
             .toList();
       } else {
         itemsToShow = itemsToShow
-            .where((notif) => (notif['title'] as String)
+            .where((notif) => (notif['title'] ?? '')
+                .toString()
                 .toLowerCase()
                 .contains(searchQuery.toLowerCase()))
             .toList();
@@ -256,47 +281,6 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 },
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x14000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: TextField(
-                          style: GoogleFonts.dosis(
-                            color: const Color(0xFF6E4B3A),
-                          ),
-                          onChanged: (value) =>
-                              setState(() => searchQuery = value),
-                          decoration: InputDecoration(
-                            hintText: 'Search',
-                            hintStyle: GoogleFonts.dosis(
-                              color: const Color(0xFFBDBDBD),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            fillColor: const Color(0xFFFFFFFF),
-                            filled: true,
-                            prefixIcon: const Icon(Icons.search,
-                                color: Color(0xFF6E4B3A)),
-                            contentPadding: const EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     Row(
                       children: List.generate(tabs.length, (index) {
                         final isSelected = selectedTabIndex == index;
@@ -310,7 +294,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFFDDC7A9)
+                                    ? const Color(0xFF6E4B3A)
                                     : const Color(0xFFF2F2F2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -325,7 +309,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                           ? FontWeight.w600
                                           : FontWeight.w400,
                                       color: isSelected
-                                          ? const Color(0xFF6E4B3A)
+                                          ? const Color(0xFFDDC7A9)
                                           : const Color(0xFF6E4B3A),
                                     ),
                                     if ((index == 0 && unreadChatsCount > 0) ||
@@ -359,6 +343,48 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                           ),
                         );
                       }),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          textCapitalization: TextCapitalization.sentences,
+                          style: GoogleFonts.dosis(
+                            color: const Color(0xFF6E4B3A),
+                          ),
+                          onChanged: (value) =>
+                              setState(() => searchQuery = value),
+                          decoration: InputDecoration(
+                            hintText: 'Search',
+                            hintStyle: GoogleFonts.dosis(
+                              color: const Color(0xFFBDBDBD),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            fillColor: const Color(0xFFFFFFFF),
+                            filled: true,
+                            prefixIcon: const Icon(Icons.search,
+                                color: Color(0xFF6E4B3A)),
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Expanded(
@@ -431,81 +457,156 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                       return await showDialog(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(14)),
-                                          title: customText(
-                                              'Delete this entire conversation?',
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF6E4B3A)),
-                                          content: customText(
-                                              'This action cannot be undone.',
-                                              fontSize: 16,
-                                              color: const Color(0xFF6E4B3A)),
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Are you sure you want to delete this conversation?',
+                                                textAlign: TextAlign.center,
+                                                style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'This action cannot be undone.',
+                                                textAlign: TextAlign.center,
+                                                style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 15,
+                                                  color:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          actionsAlignment:
+                                              MainAxisAlignment.center,
                                           actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, false),
-                                              child: customText('Cancel',
-                                                  fontSize: 16,
-                                                  color:
-                                                      const Color(0xFF6E4B3A)),
+                                            SizedBox(
+                                              width: 120,
+                                              height: 40,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFF6E4B3A),
+                                                ),
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, false),
+                                                child: Text(
+                                                  'Cancel',
+                                                  style: GoogleFonts.dosis(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 15,
+                                                    color:
+                                                        const Color(0xFFDDC7A9),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, true),
-                                              child: customText('Delete',
-                                                  fontSize: 16,
-                                                  color:
-                                                      const Color(0xFFFF3B30)),
+                                            const SizedBox(width: 12),
+                                            SizedBox(
+                                              width: 120,
+                                              height: 40,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFF8B0000),
+                                                ),
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx, true),
+                                                child: Text(
+                                                  'Delete',
+                                                  style: GoogleFonts.dosis(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 15,
+                                                    color:
+                                                        const Color(0xFFF8F8F8),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
                                       );
                                     },
                                     onDismissed: (_) async {
-                                      await supabase.from('messages').update({
-                                        'deleted_for_pawtner': true
-                                      }).eq('conversation_id', item['id']);
-                                      await supabase
-                                          .from('conversations')
-                                          .update({
-                                        'hidden_for_pawtner': true,
-                                        'pawtner_cleared_at':
-                                            DateTime.now().toIso8601String(),
-                                      }).eq('id', item['id']);
-                                      setState(() => chats.removeWhere(
-                                          (c) => c['id'] == item['id']));
+                                      try {
+                                        await supabase.from('messages').update({
+                                          'deleted_for_pawtner': true
+                                        }).eq('conversation_id', item['id']);
 
-                                      if (context.mounted) {
+                                        await supabase
+                                            .from('conversations')
+                                            .update({
+                                          'hidden_for_pawtner': true,
+                                          'pawtner_cleared_at': DateTime.now()
+                                              .toUtc()
+                                              .toIso8601String(),
+                                        }).eq('id', item['id']);
+
+                                        if (!context.mounted) return;
+
+                                        setState(() => chats.removeWhere(
+                                            (c) => c['id'] == item['id']));
+
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
                                           SnackBar(
                                             content: customText(
                                               'Chat has been deleted',
-                                              color: const Color(0xFF6E4B3A),
+                                              color: const Color(0xFFDDC7A9),
                                             ),
                                             backgroundColor:
-                                                const Color(0xFFDDC7A9),
+                                                const Color(0xFF6E4B3A),
                                             duration:
                                                 const Duration(seconds: 2),
                                           ),
                                         );
+                                      } catch (e) {
+                                        debugPrint('Error deleting chat: $e');
+
+                                        if (!context.mounted) return;
+
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: customText(
+                                              'Failed to delete chat. Please try again.',
+                                              color: const Color(0xFFDDC7A9),
+                                            ),
+                                            backgroundColor:
+                                                const Color(0xFF6E4B3A),
+                                            duration:
+                                                const Duration(seconds: 2),
+                                          ),
+                                        );
+
+                                        _loadData();
                                       }
                                     },
                                     background: Container(
                                       margin: const EdgeInsets.only(bottom: 12),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFF3B30),
+                                        color: const Color(0xFF8B0000),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       alignment: Alignment.centerRight,
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 20),
-                                      child: const Icon(Icons.delete,
-                                          color: Color(0xFFFFFFFF), size: 30),
+                                      child: const Icon(
+                                        Icons.delete,
+                                        color: Color(0xFFFFFFFF),
+                                        size: 30,
+                                      ),
                                     ),
+                                    movementDuration:
+                                        const Duration(milliseconds: 200),
+                                    resizeDuration:
+                                        const Duration(milliseconds: 200),
                                     child: GestureDetector(
                                       onTap: () async {
                                         await supabase
@@ -720,6 +821,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                             .from('notifications')
                                             .update({'is_read': true}).eq(
                                                 'id', item['id']);
+                                        if (!context.mounted) return;
                                         setState(() {
                                           item['is_read'] = true;
                                           unreadNotificationsCount =
@@ -862,7 +964,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDDC7A9),
+                  color: const Color(0xFF6E4B3A),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -875,7 +977,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 child: IconButton(
                   icon: const Icon(
                     Icons.add,
-                    color: Color(0xFF6E4B3A),
+                    color: Color(0xFFDDC7A9),
                   ),
                   onPressed: () {
                     Navigator.push(

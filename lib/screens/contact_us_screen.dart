@@ -33,6 +33,14 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     _messageController.addListener(_validateForm);
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
   bool get isFormValid {
     final nameValid = _nameController.text.trim().isNotEmpty;
     final emailFieldValid = _emailController.text.trim().isNotEmpty &&

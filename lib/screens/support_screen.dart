@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'contact_us_screen.dart';
 import 'furrent_faq_screen.dart';
+import 'pawtner_faq_screen.dart';
 
-class FurrentSupportScreen extends StatelessWidget {
-  const FurrentSupportScreen({super.key});
+class SupportScreen extends StatelessWidget {
+  final String userType;
+
+  const SupportScreen({
+    super.key,
+    required this.userType,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +29,10 @@ class FurrentSupportScreen extends StatelessWidget {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF6E4B3A)),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Color(0xFF6E4B3A),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -38,7 +47,9 @@ class FurrentSupportScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FurrentFAQScreen(),
+                  builder: (_) => userType == 'pawtner'
+                      ? const PawtnerFAQScreen()
+                      : const FurrentFAQScreen(),
                 ),
               );
             },
@@ -52,8 +63,8 @@ class FurrentSupportScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const ContactUsScreen(
-                    userType: 'furrent',
+                  builder: (_) => ContactUsScreen(
+                    userType: userType,
                   ),
                 ),
               );
@@ -64,10 +75,12 @@ class FurrentSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _supportOption(BuildContext context,
-      {required IconData icon,
-      required String title,
-      required VoidCallback onTap}) {
+  Widget _supportOption(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -76,11 +89,13 @@ class FurrentSupportScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          // No border, no shadow → completely flat
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF6E4B3A)),
+            Icon(
+              icon,
+              color: const Color(0xFF6E4B3A),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -92,8 +107,11 @@ class FurrentSupportScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                color: Color(0xFF6E4B3A), size: 18),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Color(0xFF6E4B3A),
+              size: 18,
+            ),
           ],
         ),
       ),

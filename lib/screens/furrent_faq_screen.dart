@@ -18,7 +18,7 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
   Map<String, bool> expandedCategories = {};
   bool isLoading = true;
   String searchQuery = '';
-  final Map<dynamic, ExpansibleController> _faqControllers = {};
+  final Map<String, ExpansibleController> _faqControllers = {};
 
   @override
   void initState() {
@@ -26,7 +26,16 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
     _fetchFAQs();
   }
 
+  @override
+  void dispose() {
+    for (final controller in _faqControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _fetchFAQs() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
@@ -46,12 +55,14 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
         grouped[category]!.add(faq);
       }
 
+      if (!mounted) return;
       setState(() {
         faqsByCategory = grouped;
         expandedCategories = {for (var k in grouped.keys) k: true};
       });
     } catch (e) {
       debugPrint('Error fetching FAQs: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -66,7 +77,7 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
         ),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -126,11 +137,13 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
                       child: SizedBox(
                         height: 40, // smaller height
                         child: TextField(
+                          textCapitalization: TextCapitalization.sentences,
                           onTapOutside: (_) {
                             FocusScope.of(context).unfocus();
                           },
                           style: GoogleFonts.dosis(
                             color: const Color(0xFF6E4B3A),
+                            fontSize: 16,
                           ),
                           onChanged: (value) =>
                               setState(() => searchQuery = value),
@@ -224,7 +237,7 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
   }
 
   Widget _buildFAQTile(Map<String, dynamic> faq) {
-    final faqKey = faq['id'] ?? faq;
+    final faqKey = faq['id']?.toString() ?? faq['question']?.toString() ?? '';
     final controller = _faqControllers.putIfAbsent(
       faqKey,
       () => ExpansibleController(),
@@ -272,7 +285,10 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
     if (searchQuery.isEmpty) {
       return Text(
         text,
-        style: GoogleFonts.dosis(fontSize: 16, color: const Color(0xFF6E4B3A)),
+        style: GoogleFonts.dosis(
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF6E4B3A)),
       );
     }
 
@@ -287,19 +303,24 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
         spans.add(TextSpan(
             text: text.substring(start),
             style: GoogleFonts.dosis(
-                fontSize: 16, color: const Color(0xFF6E4B3A))));
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6E4B3A))));
         break;
       }
       if (index > start) {
         spans.add(TextSpan(
             text: text.substring(start, index),
             style: GoogleFonts.dosis(
-                fontSize: 16, color: const Color(0xFF6E4B3A))));
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6E4B3A))));
       }
       spans.add(TextSpan(
           text: text.substring(index, index + query.length),
           style: GoogleFonts.dosis(
-              fontSize: 16,
+              fontSize: 17,
+              fontWeight: FontWeight.w500,
               color: const Color(0xFF6E4B3A),
               backgroundColor: const Color(0xFFFFF59D))));
       start = index + query.length;
@@ -308,7 +329,8 @@ class _FurrentFAQScreenState extends State<FurrentFAQScreen> {
     return Text.rich(
       TextSpan(children: spans),
       style: GoogleFonts.dosis(
-        fontSize: 16,
+        fontSize: 17,
+        fontWeight: FontWeight.w500,
         color: const Color(0xFF6E4B3A),
       ),
     );

@@ -20,6 +20,8 @@ class _PasswordResetCodeScreenState extends State<PasswordResetCodeScreen> {
   final _otpFocusNode = FocusNode();
   bool _isLoading = false;
   bool _isResending = false;
+  int _selectedOtpIndex = -1;
+  bool _isEditingOtp = false;
 
   int _secondsRemaining = 300; // 5 minutes
   Timer? _timer;
@@ -28,6 +30,16 @@ class _PasswordResetCodeScreenState extends State<PasswordResetCodeScreen> {
   @override
   void initState() {
     super.initState();
+
+    _otpFocusNode.addListener(() {
+      if (!_otpFocusNode.hasFocus && mounted) {
+        setState(() {
+          _selectedOtpIndex = -1;
+          _isEditingOtp = false;
+        });
+      }
+    });
+
     _startTimer();
   }
 
@@ -146,155 +158,206 @@ class _PasswordResetCodeScreenState extends State<PasswordResetCodeScreen> {
         title: const SizedBox.shrink(),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-                  Text(
-                    "Enter the 6-digit code\nwe sent to",
-                    textAlign: TextAlign.left,
-                    style: GoogleFonts.dosis(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF6E4B3A),
-                      height: 1.2,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      "Enter the 6-digit code\nwe sent to",
+                      textAlign: TextAlign.left,
+                      style: GoogleFonts.dosis(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF6E4B3A),
+                        height: 1.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.email,
-                    textAlign: TextAlign.left,
-                    style: GoogleFonts.dosis(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF6E4B3A),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.email,
+                      textAlign: TextAlign.left,
+                      style: GoogleFonts.dosis(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF6E4B3A),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                  GestureDetector(
-                    onTap: () {
-                      FocusScope.of(context).requestFocus(_otpFocusNode);
-                    },
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Opacity(
-                          opacity: 0,
-                          child: SizedBox(
-                            width: 1,
-                            height: 1,
-                            child: TextField(
-                              controller: _otpController,
-                              autofocus: true,
-                              focusNode: _otpFocusNode,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              maxLength: 6,
-                              onChanged: (_) => setState(() {}),
-                              decoration: const InputDecoration(
-                                counterText: '',
-                                border: InputBorder.none,
+                    const SizedBox(height: 40),
+                    GestureDetector(
+                      onTap: () {
+                        FocusScope.of(context).requestFocus(_otpFocusNode);
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Opacity(
+                            opacity: 0,
+                            child: SizedBox(
+                              width: 1,
+                              height: 1,
+                              child: TextField(
+                                controller: _otpController,
+                                autofocus: true,
+                                focusNode: _otpFocusNode,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                maxLength: 6,
+                                onChanged: (value) {
+                                  setState(() {});
+
+                                  if (_isEditingOtp && _selectedOtpIndex >= 0) {
+                                    if (_selectedOtpIndex < value.length) {
+                                      _otpController.selection = TextSelection(
+                                        baseOffset: _selectedOtpIndex,
+                                        extentOffset: _selectedOtpIndex + 1,
+                                      );
+                                    } else {
+                                      _otpController.selection =
+                                          TextSelection.collapsed(
+                                        offset: value.length,
+                                      );
+                                    }
+                                    return;
+                                  }
+
+                                  if (value.length == 6) {
+                                    _otpFocusNode.unfocus();
+                                  }
+                                },
+                                decoration: const InputDecoration(
+                                  counterText: '',
+                                  border: InputBorder.none,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List.generate(6, (index) {
-                            final text = _otpController.text;
-                            return Container(
-                              width: 48,
-                              height: 56,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(0xFF6E4B3A),
-                                  width: 2,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: List.generate(6, (index) {
+                              final text = _otpController.text;
+                              return GestureDetector(
+                                onTap: () {
+                                  final selectedIndex =
+                                      index < text.length ? index : text.length;
+
+                                  setState(() {
+                                    _selectedOtpIndex = selectedIndex;
+                                    _isEditingOtp = selectedIndex < text.length;
+                                  });
+
+                                  _otpFocusNode.requestFocus();
+
+                                  if (selectedIndex < text.length) {
+                                    _otpController.selection = TextSelection(
+                                      baseOffset: selectedIndex,
+                                      extentOffset: selectedIndex + 1,
+                                    );
+                                  } else {
+                                    _otpController.selection =
+                                        TextSelection.collapsed(
+                                      offset: text.length,
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  width: 48,
+                                  height: 56,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: const Color(0xFF6E4B3A),
+                                      width: _selectedOtpIndex == index ? 4 : 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    index < text.length ? text[index] : '',
+                                    style: GoogleFonts.dosis(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF6E4B3A),
+                                    ),
+                                  ),
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                index < text.length ? text[index] : '',
-                                style: GoogleFonts.dosis(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF6E4B3A),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (!_canResend)
-                      Text(
-                        'Code expires in $_timerText',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.dosis(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                      )
-                    else
-                      GestureDetector(
-                        onTap: _isResending ? null : _resendCode,
-                        child: Text(
-                          'Resend code',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.dosis(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6E4B3A),
-                            decoration: TextDecoration.underline,
+                              );
+                            }),
                           ),
-                        ),
-                      ),
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _verifyCode,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6E4B3A),
-                          foregroundColor: const Color(0xFFDDC7A9),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Color(0xFFDDC7A9),
-                                strokeWidth: 2.5,
-                              )
-                            : Text(
-                                'Verify',
-                                style: GoogleFonts.dosis(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!_canResend)
+                        Text(
+                          'Code expires in $_timerText',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.dosis(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                        )
+                      else
+                        GestureDetector(
+                          onTap: _isResending ? null : _resendCode,
+                          child: Text(
+                            'Resend code',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.dosis(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF6E4B3A),
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _verifyCode,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6E4B3A),
+                            foregroundColor: const Color(0xFFDDC7A9),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Color(0xFFDDC7A9),
+                                  strokeWidth: 2.5,
+                                )
+                              : Text(
+                                  'Verify',
+                                  style: GoogleFonts.dosis(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

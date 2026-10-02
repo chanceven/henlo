@@ -109,8 +109,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
           content: Text('Booking not found.',
               style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
           backgroundColor: const Color(0xFF6E4B3A),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ));
         Navigator.pop(context);
         return;
@@ -133,8 +131,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         content: Text('Failed to load booking details.',
             style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
         backgroundColor: const Color(0xFF6E4B3A),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       ));
       return;
     }
@@ -360,8 +356,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
         content: Text('Failed to load available times.',
             style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
         backgroundColor: const Color(0xFF6E4B3A),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
       ));
     }
   }
@@ -511,8 +505,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                                 style: GoogleFonts.dosis(
                                     color: const Color(0xFFDDC7A9))),
                             backgroundColor: const Color(0xFF6E4B3A),
-                            behavior: SnackBarBehavior.floating,
-                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                           ));
                           return;
                         }
@@ -540,8 +532,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                                 style: GoogleFonts.dosis(
                                     color: const Color(0xFFDDC7A9))),
                             backgroundColor: const Color(0xFF6E4B3A),
-                            behavior: SnackBarBehavior.floating,
-                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                           ));
                           _loadAvailableTimes(selectedDate);
                           return;
@@ -568,8 +558,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                               style: GoogleFonts.dosis(
                                   color: const Color(0xFFDDC7A9))),
                           backgroundColor: const Color(0xFF6E4B3A),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                         ));
 
                         Navigator.pop(context);
@@ -583,8 +571,6 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                               style: GoogleFonts.dosis(
                                   color: const Color(0xFFDDC7A9))),
                           backgroundColor: const Color(0xFF6E4B3A),
-                          behavior: SnackBarBehavior.floating,
-                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                         ));
                       }
                     }
@@ -619,30 +605,37 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
               children: [
                 _buildServiceSubtypeTabs(),
                 const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Text('Select Date',
-                      style: TextStyle(
-                          color: Color(0xFF6E4B3A),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    'Select Date',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _buildCalendar(),
                 const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Text('Select Time',
-                      style: TextStyle(
-                          color: Color(0xFF6E4B3A),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    'Select Time',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _buildTimeSlots(),
                 const SizedBox(height: 16),
                 TextField(
                   controller: notesController,
+                  textCapitalization: TextCapitalization.sentences,
                   style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
                   decoration: InputDecoration(
                     hintText: 'Notes to Pawtner',
@@ -1032,42 +1025,50 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
 
       dayWidgets.add(
         GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: isPast ? null : () => _onSelectDate(current),
           child: Container(
+            width: double.infinity,
+            height: double.infinity,
             alignment: Alignment.center,
-            decoration: isStart || isEnd
-                ? const BoxDecoration(
-                    color: Color(0xFF6E4B3A),
-                    shape: BoxShape.circle,
-                  )
-                : (isOriginal || isOriginalEnd) && hasChangedDate
-                    ? const BoxDecoration(
-                        color: Color(0xFFD9D9D9),
-                        shape: BoxShape.circle,
-                      )
-                    : isInRange
-                        ? BoxDecoration(
-                            color:
-                                const Color(0xFF6E4B3A).withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          )
-                        : isOriginalRange && hasChangedDate
-                            ? BoxDecoration(
-                                color: const Color(0xFFD9D9D9)
-                                    .withValues(alpha: 0.5),
-                                shape: BoxShape.circle,
-                              )
-                            : null,
-            child: Text(
-              '$day',
-              style: GoogleFonts.dosis(
-                fontSize: 16,
-                color: isPast
-                    ? Colors.grey
-                    : (isStart || isEnd
-                        ? Colors.white
-                        : const Color(0xFF6E4B3A)),
-                fontWeight: FontWeight.w600,
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: isStart || isEnd
+                  ? const BoxDecoration(
+                      color: Color(0xFF6E4B3A),
+                      shape: BoxShape.circle,
+                    )
+                  : (isOriginal || isOriginalEnd) && hasChangedDate
+                      ? const BoxDecoration(
+                          color: Color(0xFFD9D9D9),
+                          shape: BoxShape.circle,
+                        )
+                      : isInRange
+                          ? BoxDecoration(
+                              color: const Color(0xFF6E4B3A)
+                                  .withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            )
+                          : isOriginalRange && hasChangedDate
+                              ? BoxDecoration(
+                                  color: const Color(0xFFD9D9D9)
+                                      .withValues(alpha: 0.5),
+                                  shape: BoxShape.circle,
+                                )
+                              : null,
+              child: Text(
+                '$day',
+                style: GoogleFonts.dosis(
+                  fontSize: 17,
+                  color: isPast
+                      ? Colors.grey
+                      : (isStart || isEnd
+                          ? Colors.white
+                          : const Color(0xFF6E4B3A)),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -1091,7 +1092,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                 child: Text(
                   d,
                   style: GoogleFonts.dosis(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF6E4B3A),
                   ),
@@ -1133,6 +1134,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     final now = DateTime.now();
                     final currentMonth = DateTime(now.year, now.month, 1);
@@ -1141,36 +1143,43 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                     if (prevMonth.isBefore(currentMonth)) return;
                     setState(() => viewedMonth = prevMonth);
                   },
-                  child: const Text(
-                    "<",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6E4B3A),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      "<",
+                      style: GoogleFonts.dosis(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6E4B3A),
+                      ),
                     ),
                   ),
                 ),
                 Text(
                   "${_monthName(viewedMonth.month)} ${viewedMonth.year}",
                   style: GoogleFonts.dosis(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     setState(() {
                       viewedMonth =
                           DateTime(viewedMonth.year, viewedMonth.month + 1, 1);
                     });
                   },
-                  child: const Text(
-                    ">",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6E4B3A),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      ">",
+                      style: GoogleFonts.dosis(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6E4B3A),
+                      ),
                     ),
                   ),
                 ),
@@ -1240,23 +1249,23 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
               return GestureDetector(
                 onTap: () => setState(() => selectedTime = time),
                 child: Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF6E4B3A)
-                        : (isOriginalTime && hasChangedTime)
-                            ? const Color(0xFFD9D9D9)
-                            : null,
-                    border: Border.all(color: const Color(0xFF6E4B3A)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(time.format(context),
-                      style: GoogleFonts.dosis(
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF6E4B3A),
-                          fontWeight: FontWeight.w600)),
-                ),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF6E4B3A)
+                          : (isOriginalTime && hasChangedTime)
+                              ? const Color(0xFFD9D9D9)
+                              : null,
+                      border: Border.all(color: const Color(0xFF6E4B3A)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(time.format(context),
+                        style: GoogleFonts.dosis(
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF6E4B3A),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16))),
               );
             },
           ),
@@ -1386,9 +1395,13 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                           ),
                         ),
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text(
+                        child: Text(
                           "Cancel",
-                          style: TextStyle(color: Colors.white),
+                          style: GoogleFonts.dosis(
+                            color: const Color(0xFFF8F8F8),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -1409,6 +1422,7 @@ class _FurrentRescheduleScreenState extends State<FurrentRescheduleScreen> {
                           style: GoogleFonts.dosis(
                             color: const Color(0xFFDDC7A9),
                             fontWeight: FontWeight.w600,
+                            fontSize: 16,
                           ),
                         ),
                       ),

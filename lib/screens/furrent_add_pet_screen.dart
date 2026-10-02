@@ -73,7 +73,7 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         content: Text(
           message,
           style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
@@ -180,13 +180,17 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
           source: source, maxWidth: 800, maxHeight: 800, imageQuality: 80);
 
       if (image != null) {
+        if (source == ImageSource.camera) {
+          await Future.delayed(const Duration(milliseconds: 300));
+        }
+        if (!mounted) return;
+
         final bytes = await image.readAsBytes();
+        if (!mounted) return;
         _petImageExtension = image.path.split('.').last.toLowerCase();
 
         if (bytes.length > 3 * 1024 * 1024) {
-          if (mounted) {
-            _showToast('Image must be smaller than 3MB');
-          }
+          _showToast('Image must be smaller than 3MB');
           return;
         }
 

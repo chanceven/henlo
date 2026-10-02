@@ -70,8 +70,6 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
   void _showToast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         content: Text(
           message,
           style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
@@ -195,6 +193,14 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
       );
 
       if (image == null) return;
+
+      if (source == ImageSource.camera) {
+        // Let Android fully reattach the Activity/surface after the
+        // external camera Activity closes before we touch context or
+        // start network I/O. Gallery already works, so it's untouched.
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (!mounted) return;
+      }
 
       final bytes = await image.readAsBytes();
 
@@ -423,7 +429,7 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                                         furrentData?['profile_picture_url'] !=
                                                 null
                                             ? NetworkImage(
-                                                '${furrentData!['profile_picture_url']}?t=${DateTime.now().millisecondsSinceEpoch}',
+                                                '${furrentData!['profile_picture_url']}',
                                               )
                                             : null,
                                     child:
@@ -662,7 +668,7 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.dosis(
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                                  fontSize: 17,
                                   color: const Color(0xFF6E4B3A),
                                 ),
                               ),
@@ -681,7 +687,7 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                                   'Cancel',
                                   style: GoogleFonts.dosis(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 15,
+                                      fontSize: 16,
                                       color: const Color(0xFFDDC7A9)),
                                 ),
                               ),
@@ -698,7 +704,7 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
                                   'Logout',
                                   style: GoogleFonts.dosis(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 15,
+                                      fontSize: 16,
                                       color: const Color(0xFFF8F8F8)),
                                 ),
                               ),
@@ -709,6 +715,17 @@ class _FurrentProfileScreenState extends State<FurrentProfileScreen> {
 
                       if (confirmed != true) return;
                       if (!context.mounted) return;
+
+                      try {
+                        final uid = supabase.auth.currentUser?.id;
+                        if (uid != null) {
+                          await supabase
+                              .from('furrents')
+                              .update({'fcm_token': null}).eq('id', uid);
+                        }
+                      } catch (e) {
+                        debugPrint('Error clearing FCM token: $e');
+                      }
 
                       try {
                         await supabase.auth.signOut();

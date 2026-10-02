@@ -281,6 +281,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                 },
                 child: Column(
                   children: [
+                    const SizedBox(height: 16),
                     Row(
                       children: List.generate(tabs.length, (index) {
                         final isSelected = selectedTabIndex == index;
@@ -457,6 +458,8 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                       return await showDialog(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
+                                          backgroundColor:
+                                              const Color(0xFFF8F8F8),
                                           content: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -465,7 +468,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                 textAlign: TextAlign.center,
                                                 style: GoogleFonts.dosis(
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
+                                                  fontSize: 16,
                                                   color:
                                                       const Color(0xFF6E4B3A),
                                                 ),
@@ -500,7 +503,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                   'Cancel',
                                                   style: GoogleFonts.dosis(
                                                     fontWeight: FontWeight.w600,
-                                                    fontSize: 15,
+                                                    fontSize: 16,
                                                     color:
                                                         const Color(0xFFDDC7A9),
                                                   ),
@@ -522,7 +525,7 @@ class _PawtnerMessagesScreenState extends State<PawtnerMessagesScreen> {
                                                   'Delete',
                                                   style: GoogleFonts.dosis(
                                                     fontWeight: FontWeight.w600,
-                                                    fontSize: 15,
+                                                    fontSize: 16,
                                                     color:
                                                         const Color(0xFFF8F8F8),
                                                   ),

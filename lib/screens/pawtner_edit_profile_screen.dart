@@ -420,15 +420,13 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
   void _showToast(String message, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         content: Text(
           message,
           style: GoogleFonts.dosis(
-            color: const Color(0xFF6E4B3A),
+            color: const Color(0xFFDDC7A9),
           ),
         ),
-        backgroundColor: const Color(0xFFDDC7A9),
+        backgroundColor: const Color(0xFF6E4B3A),
       ),
     );
   }
@@ -458,12 +456,12 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
   }
 
   Future<void> _chooseAndUploadFile(String type) async {
-    final result = await showModalBottomSheet<FilePickerResult?>(
+    final choice = await showModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -484,14 +482,7 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF6E4B3A))),
-              onTap: () async {
-                final picked = await FilePicker.platform.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-                  withData: true,
-                );
-                if (mounted) Navigator.pop(context, picked);
-              },
+              onTap: () => Navigator.pop(sheetContext, 'file'),
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Color(0xFF6E4B3A)),
@@ -500,25 +491,7 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF6E4B3A))),
-              onTap: () async {
-                final picker = ImagePicker();
-                final XFile? image = await picker.pickImage(
-                  source: ImageSource.camera,
-                  maxWidth: 800,
-                  maxHeight: 800,
-                  imageQuality: 80,
-                );
-                if (image == null) {
-                  if (mounted) Navigator.pop(context, null);
-                  return;
-                }
-                final bytes = await image.readAsBytes();
-                final result = FilePickerResult([
-                  PlatformFile(
-                      name: image.name, bytes: bytes, size: bytes.length),
-                ]);
-                if (mounted) Navigator.pop(context, result);
-              },
+              onTap: () => Navigator.pop(sheetContext, 'camera'),
             ),
             ListTile(
               leading: const Icon(Icons.close, color: Color(0xFF8B0000)),
@@ -527,7 +500,7 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF8B0000))),
-              onTap: () => Navigator.pop(context, null),
+              onTap: () => Navigator.pop(sheetContext),
             ),
             const SizedBox(height: 8),
           ],
@@ -535,19 +508,46 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
       ),
     );
 
-    if (result == null) return;
+    if (choice == null) return;
 
-    final picked = result.files.first;
-    final bytes = picked.bytes;
-    final name = picked.name;
+    Uint8List? bytes;
+    String name = '';
+
+    try {
+      if (choice == 'camera') {
+        final XFile? image = await ImagePicker().pickImage(
+          source: ImageSource.camera,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 80,
+        );
+        if (image == null) return;
+        bytes = await image.readAsBytes();
+        name = image.name;
+      } else {
+        final picked = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+          withData: true,
+        );
+        if (picked == null || picked.files.isEmpty) return;
+        bytes = picked.files.first.bytes;
+        name = picked.files.first.name;
+      }
+    } catch (e) {
+      debugPrint('Error picking $type file: $e');
+      if (mounted) _showToast('Could not open camera or files.');
+      return;
+    }
+
     if (bytes == null) return;
 
     if (bytes.length > 6 * 1024 * 1024) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('File must be smaller than 6MB.',
-              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-          backgroundColor: const Color(0xFFDDC7A9),
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
         ));
       }
       return;
@@ -597,8 +597,8 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Upload failed.',
-              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-          backgroundColor: const Color(0xFFDDC7A9),
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
         ));
       }
       return;
@@ -628,8 +628,8 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Upload successful.',
-              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-          backgroundColor: const Color(0xFFDDC7A9),
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
         ));
       }
     } catch (e) {
@@ -637,8 +637,8 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Failed to save file info.',
-              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-          backgroundColor: const Color(0xFFDDC7A9),
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
         ));
       }
     }
@@ -890,6 +890,10 @@ class _PawtnerEditProfileScreenState extends State<PawtnerEditProfileScreen> {
                   label == "Available Areas",
               keyboardType: keyboardType,
               inputFormatters: inputFormatters,
+              textCapitalization:
+                  label == "Full Name" || label == "Business Name"
+                      ? TextCapitalization.words
+                      : TextCapitalization.none,
               onTap: () {
                 setState(() {
                   if (label == "Service Type") {

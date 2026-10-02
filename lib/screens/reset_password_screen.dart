@@ -13,6 +13,7 @@ class ResetPasswordScreen extends StatefulWidget {
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -29,7 +30,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ),
         backgroundColor: const Color(0xFF6E4B3A),
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 140),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       ),
     );
   }
@@ -67,6 +68,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
       if (!mounted) return;
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Password reset successfully.',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (!mounted) return;
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const SignInScreen()),
@@ -74,7 +94,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      _showToast('Something went wrong: $e');
+
+      if (e is AuthApiException &&
+          e.message.toLowerCase().contains(
+                'new password should be different from the old password',
+              )) {
+        _showToast('New password should be different from the old password.');
+      } else {
+        _showToast('Something went wrong: $e');
+      }
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -90,62 +118,81 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF6E4B3A)),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 24),
-              Text(
-                'Enter your new password',
-                textAlign: TextAlign.left,
-                style: GoogleFonts.dosis(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF6E4B3A),
-                ),
-              ),
-              const SizedBox(height: 40),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF6E4B3A)),
-                  hintText: 'New Password',
-                  hintStyle: GoogleFonts.dosis(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFFBDBDBD),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Enter your new password',
+                  textAlign: TextAlign.left,
+                  style: GoogleFonts.dosis(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF6E4B3A),
                   ),
-                  filled: true,
-                  fillColor: const Color(0xFFFFFFFF),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: const Color(0xFF6E4B3A).withValues(alpha: 0.3),
-                      width: 1,
+                ),
+                const SizedBox(height: 40),
+                TextField(
+                  controller: passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    prefixIcon:
+                        const Icon(Icons.lock, color: Color(0xFF6E4B3A)),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: const Color(0xFF6E4B3A),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                    hintText: 'New Password',
+                    hintStyle: GoogleFonts.dosis(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFFBDBDBD),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFFFFFFF),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: const Color(0xFF6E4B3A).withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF6E4B3A),
+                        width: 1.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 12,
                     ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF6E4B3A),
-                      width: 1.5,
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 12,
+                  style: GoogleFonts.dosis(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF6E4B3A),
                   ),
                 ),
-                style: GoogleFonts.dosis(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6E4B3A),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

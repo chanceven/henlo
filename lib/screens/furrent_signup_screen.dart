@@ -50,7 +50,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
           ),
           backgroundColor: const Color(0xFF6E4B3A),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
         ),
       );
       return;
@@ -82,7 +82,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
             ),
             backgroundColor: const Color(0xFF6E4B3A),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
           ),
         );
         return;
@@ -112,7 +112,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
           ),
           backgroundColor: const Color(0xFF6E4B3A),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
         ),
       );
     } catch (e) {
@@ -124,7 +124,7 @@ class _FurrentSignUpScreenState extends State<FurrentSignUpScreen> {
               style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
           backgroundColor: const Color(0xFF6E4B3A),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
         ),
       );
     } finally {

@@ -505,9 +505,29 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ),
                   onTap: () async {
                     setState(() => _showAttachmentOptions = false);
-                    final photo = await ImagePicker()
-                        .pickImage(source: ImageSource.camera);
-                    if (photo != null) _uploadFile(File(photo.path));
+                    try {
+                      final photo = await ImagePicker().pickImage(
+                        source: ImageSource.camera,
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        imageQuality: 80,
+                      );
+                      if (photo != null) _uploadFile(File(photo.path));
+                    } catch (e) {
+                      debugPrint('Error taking photo: $e');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not open the camera.',
+                              style: GoogleFonts.dosis(
+                                  color: const Color(0xFFF8F8F8)),
+                            ),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                          ),
+                        );
+                      }
+                    }
                   },
                 ),
               ],

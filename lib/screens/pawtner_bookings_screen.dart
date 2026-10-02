@@ -163,8 +163,6 @@ furrents(full_name)
           ),
           backgroundColor: const Color(0xFF6E4B3A),
           duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         ),
       );
     }
@@ -297,6 +295,7 @@ furrents(full_name)
               },
               child: Column(
                 children: [
+                  const SizedBox(height: 16),
                   Row(
                     children: List.generate(tabs.length, (index) {
                       final isSelected = selectedTabIndex == index;
@@ -420,7 +419,7 @@ furrents(full_name)
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   Expanded(
                     child: bookingsToShow.isEmpty
                         ? Center(
@@ -566,7 +565,10 @@ furrents(full_name)
                                                     MaterialPageRoute(
                                                       builder: (_) =>
                                                           PawtnerBookingDetailsScreen(
-                                                              booking: booking),
+                                                        booking: booking,
+                                                        fromPawtnerBookingsScreen:
+                                                            true,
+                                                      ),
                                                     ),
                                                   );
 

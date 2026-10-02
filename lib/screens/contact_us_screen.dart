@@ -174,6 +174,9 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        textCapitalization: keyboardType == TextInputType.emailAddress
+            ? TextCapitalization.none
+            : TextCapitalization.words,
         onTap: _hideSubjectDropdown,
         onTapOutside: (_) {
           FocusScope.of(context).unfocus();
@@ -210,19 +213,22 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildTextField(controller, placeholder,
+            keyboardType: TextInputType.emailAddress),
         if (!emailValid)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4, left: 4),
-            child: Text(
-              'Please enter a valid email',
-              style: GoogleFonts.dosis(
-                color: const Color(0xFF8B0000),
-                fontSize: 12,
+          Transform.translate(
+            offset: const Offset(0, -12),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Text(
+                'Please enter a valid email',
+                style: GoogleFonts.dosis(
+                  color: const Color(0xFF8B0000),
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
-        _buildTextField(controller, placeholder,
-            keyboardType: TextInputType.emailAddress),
       ],
     );
   }
@@ -391,6 +397,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
       child: TextField(
         controller: controller,
         maxLines: 6,
+        textCapitalization: TextCapitalization.sentences,
         onTap: _hideSubjectDropdown,
         onTapOutside: (_) {
           FocusScope.of(context).unfocus();

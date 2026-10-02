@@ -210,8 +210,8 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('You must be logged in to add a service.',
-            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-        backgroundColor: const Color(0xFFDDC7A9),
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+        backgroundColor: const Color(0xFF6E4B3A),
       ));
       return;
     }
@@ -220,8 +220,8 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
     if (validationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(validationError,
-            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-        backgroundColor: const Color(0xFFDDC7A9),
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+        backgroundColor: const Color(0xFF6E4B3A),
       ));
       return;
     }
@@ -276,16 +276,16 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Service added successfully.',
-            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-        backgroundColor: const Color(0xFFDDC7A9),
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+        backgroundColor: const Color(0xFF6E4B3A),
       ));
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Failed to save service. Please try again.',
-            style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-        backgroundColor: const Color(0xFFDDC7A9),
+            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+        backgroundColor: const Color(0xFF6E4B3A),
       ));
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -431,6 +431,11 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
           },
           controller: controller,
           keyboardType: keyboardType,
+          textCapitalization: label == 'Service Name'
+              ? TextCapitalization.words
+              : label == 'Description'
+                  ? TextCapitalization.sentences
+                  : TextCapitalization.none,
           inputFormatters: inputFormatters,
           style: GoogleFonts.dosis(
             color: const Color(0xFF6E4B3A),
@@ -745,13 +750,13 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6E4B3A),
+                      backgroundColor: const Color(0xFF8B0000),
                     ),
                     onPressed: _isSaving ? null : () => Navigator.pop(context),
                     child: Text(
                       'Cancel',
                       style: GoogleFonts.dosis(
-                        color: const Color(0xFFDDC7A9),
+                        color: const Color(0xFFF8F8F8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -761,7 +766,7 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDDC7A9),
+                      backgroundColor: const Color(0xFF6E4B3A),
                     ),
                     onPressed: _isSaving ? null : _saveService,
                     child: _isSaving
@@ -770,13 +775,13 @@ class _PawtnerAddServiceScreenState extends State<PawtnerAddServiceScreen> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Color(0xFF6E4B3A),
+                              color: Color(0xFFDDC7A9),
                             ),
                           )
                         : Text(
                             'Save Changes',
                             style: GoogleFonts.dosis(
-                              color: const Color(0xFF6E4B3A),
+                              color: const Color(0xFFDDC7A9),
                               fontWeight: FontWeight.w600,
                             ),
                           ),

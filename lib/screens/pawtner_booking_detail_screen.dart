@@ -8,8 +8,13 @@ import 'chat_screen.dart';
 
 class PawtnerBookingDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> booking;
+  final bool fromPawtnerBookingsScreen;
 
-  const PawtnerBookingDetailsScreen({super.key, required this.booking});
+  const PawtnerBookingDetailsScreen({
+    super.key,
+    required this.booking,
+    this.fromPawtnerBookingsScreen = false,
+  });
 
   @override
   State<PawtnerBookingDetailsScreen> createState() =>
@@ -39,6 +44,7 @@ class _PawtnerBookingDetailsScreenState
 
   void _showToast(String message) {
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -48,8 +54,12 @@ class _PawtnerBookingDetailsScreenState
           ),
         ),
         backgroundColor: const Color(0xFF6E4B3A),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        behavior: widget.fromPawtnerBookingsScreen
+            ? SnackBarBehavior.floating
+            : SnackBarBehavior.fixed,
+        margin: widget.fromPawtnerBookingsScreen
+            ? const EdgeInsets.fromLTRB(16, 0, 16, 80)
+            : null,
       ),
     );
   }
@@ -241,248 +251,6 @@ class _PawtnerBookingDetailsScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              backgroundColor: const Color(0xFFF8F8F8),
-                              insetPadding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              contentPadding:
-                                  const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                              content: SizedBox(
-                                height: 140,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Are you sure you want to cancel this booking?',
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.dosis(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
-                                          color: const Color(0xFF6E4B3A)),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'This action cannot be undone.',
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.dosis(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 15,
-                                          color: const Color(0xFF6E4B3A)),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 140,
-                                          height: 40,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color(0xFF6E4B3A),
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8)),
-                                            ),
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: Text(
-                                              'Keep Booking',
-                                              style: GoogleFonts.dosis(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
-                                                  color:
-                                                      const Color(0xFFDDC7A9)),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        SizedBox(
-                                          width: 140,
-                                          height: 40,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color(0xFF8B0000),
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8)),
-                                            ),
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            child: Text(
-                                              'Confirm',
-                                              style: GoogleFonts.dosis(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
-                                                  color: Colors.white),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-
-                          if (confirmed != true || !mounted) return;
-
-                          final reasonController = TextEditingController();
-                          final reasonSubmitted = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => Dialog(
-                              backgroundColor: Colors.transparent,
-                              insetPadding: EdgeInsets.zero,
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                child: Container(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8F8F8),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                          color: Color(0x33000000),
-                                          blurRadius: 4,
-                                          offset: Offset(0, 2))
-                                    ],
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Why are you cancelling this booking?',
-                                        textAlign: TextAlign.center,
-                                        style: GoogleFonts.dosis(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                            color: const Color(0xFF6E4B3A)),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      TextField(
-                                        controller: reasonController,
-                                        maxLines: 3,
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              'Enter your reason for cancellation',
-                                          hintStyle: GoogleFonts.dosis(
-                                              fontSize: 14,
-                                              color: const Color(0xFFAAAAAA)),
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            borderSide: const BorderSide(
-                                                color: Color(0xFF6E4B3A),
-                                                width: 1.5),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            borderSide: const BorderSide(
-                                                color: Color(0xFF6E4B3A),
-                                                width: 1.5),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            borderSide: const BorderSide(
-                                                color: Color(0xFF6E4B3A),
-                                                width: 2),
-                                          ),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 12, vertical: 8),
-                                        ),
-                                        style: GoogleFonts.dosis(
-                                            fontSize: 14,
-                                            color: const Color(0xFF6E4B3A)),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      SizedBox(
-                                        width: 140,
-                                        height: 40,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                const Color(0xFF8B0000),
-                                            shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8)),
-                                          ),
-                                          onPressed: () {
-                                            if (reasonController.text
-                                                .trim()
-                                                .isEmpty) {
-                                              return;
-                                            }
-                                            Navigator.pop(context, true);
-                                          },
-                                          child: Text(
-                                            'Submit',
-                                            style: GoogleFonts.dosis(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 15,
-                                                color: Colors.white),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-
-                          if (reasonSubmitted != true || !mounted) return;
-                          if (_isSaving) return;
-
-                          final bookingId = booking['id'];
-                          setState(() => _isSaving = true);
-                          try {
-                            await supabase.from('bookings').update({
-                              'status': 'Cancelled',
-                              'cancelled_reason': reasonController.text.trim(),
-                              'cancelled_at':
-                                  DateTime.now().toUtc().toIso8601String(),
-                              'cancelled_by': 'Pawtner',
-                            }).eq('id', bookingId);
-
-                            _showToast('Booking cancelled.');
-
-                            if (mounted) Navigator.pop(context, true);
-                          } catch (e) {
-                            debugPrint('Error cancelling booking: $e');
-                            _showToast('Failed to cancel booking.');
-                          } finally {
-                            if (mounted) setState(() => _isSaving = false);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8B0000),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: GoogleFonts.dosis(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white),
-                        ),
-                      ),
-                    ),
                     if (booking['furrent_id'] != null) ...[
                       const SizedBox(height: 12),
                       SizedBox(
@@ -562,6 +330,260 @@ class _PawtnerBookingDetailsScreenState
                         ),
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: const Color(0xFFF8F8F8),
+                              insetPadding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              contentPadding:
+                                  const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                              content: SizedBox(
+                                height: 130,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Are you sure you want to cancel this booking?',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.dosis(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                          color: const Color(0xFF6E4B3A)),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'This action cannot be undone.',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.dosis(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 15,
+                                          color: const Color(0xFF6E4B3A)),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 140,
+                                          height: 40,
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF6E4B3A),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: Text(
+                                              'Keep Booking',
+                                              style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                  color:
+                                                      const Color(0xFFDDC7A9)),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        SizedBox(
+                                          width: 140,
+                                          height: 40,
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF8B0000),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: Text(
+                                              'Confirm',
+                                              style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+
+                          if (confirmed != true || !mounted) return;
+
+                          String reasonText = '';
+                          final reasonSubmitted = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => StatefulBuilder(
+                              builder: (context, setDialogState) => Dialog(
+                                backgroundColor: Colors.transparent,
+                                insetPadding: EdgeInsets.zero,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Container(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        24, 20, 24, 24),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8F8F8),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                            color: Color(0x33000000),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2))
+                                      ],
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Why are you cancelling this booking?',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.dosis(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                              color: const Color(0xFF6E4B3A)),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        TextField(
+                                          textCapitalization:
+                                              TextCapitalization.sentences,
+                                          maxLines: 3,
+                                          onChanged: (value) {
+                                            setDialogState(() {
+                                              reasonText = value;
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            hintText:
+                                                'Enter your reason for cancellation',
+                                            hintStyle: GoogleFonts.dosis(
+                                                fontSize: 14,
+                                                color: const Color(0xFFAAAAAA)),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: const BorderSide(
+                                                  color: Color(0xFF6E4B3A),
+                                                  width: 1.5),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: const BorderSide(
+                                                  color: Color(0xFF6E4B3A),
+                                                  width: 1.5),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: const BorderSide(
+                                                  color: Color(0xFF6E4B3A),
+                                                  width: 2),
+                                            ),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 8),
+                                          ),
+                                          style: GoogleFonts.dosis(
+                                              fontSize: 14,
+                                              color: const Color(0xFF6E4B3A)),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        SizedBox(
+                                          width: 140,
+                                          height: 40,
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  reasonText.trim().isEmpty
+                                                      ? const Color(0xFFD9D9D9)
+                                                      : const Color(0xFF8B0000),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                            ),
+                                            onPressed: reasonText.trim().isEmpty
+                                                ? null
+                                                : () {
+                                                    Navigator.pop(
+                                                        context, true);
+                                                  },
+                                            child: Text(
+                                              'Submit',
+                                              style: GoogleFonts.dosis(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+
+                          if (reasonSubmitted != true || !mounted) return;
+                          if (_isSaving) return;
+
+                          reasonText = reasonText.trim();
+
+                          final bookingId = booking['id'];
+                          setState(() => _isSaving = true);
+                          try {
+                            await supabase.from('bookings').update({
+                              'status': 'Cancelled',
+                              'cancelled_reason': reasonText,
+                              'cancelled_at':
+                                  DateTime.now().toUtc().toIso8601String(),
+                              'cancelled_by': 'Pawtner',
+                            }).eq('id', bookingId);
+
+                            _showToast('Booking cancelled.');
+
+                            if (mounted) Navigator.pop(context, true);
+                          } catch (e) {
+                            debugPrint('Error cancelling booking: $e');
+                            _showToast('Failed to cancel booking.');
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8B0000),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          'Cancel Booking',
+                          style: GoogleFonts.dosis(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -759,7 +781,7 @@ class _PawtnerBookingDetailsScreenState
                                       contentPadding: const EdgeInsets.fromLTRB(
                                           24, 20, 24, 0),
                                       content: SizedBox(
-                                        height: 140,
+                                        height: 130,
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -768,7 +790,7 @@ class _PawtnerBookingDetailsScreenState
                                               textAlign: TextAlign.center,
                                               style: GoogleFonts.dosis(
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
+                                                  fontSize: 16,
                                                   color:
                                                       const Color(0xFF6E4B3A)),
                                             ),
@@ -811,7 +833,7 @@ class _PawtnerBookingDetailsScreenState
                                                       style: GoogleFonts.dosis(
                                                           fontWeight:
                                                               FontWeight.w600,
-                                                          fontSize: 15,
+                                                          fontSize: 16,
                                                           color: const Color(
                                                               0xFFDDC7A9)),
                                                     ),
@@ -842,7 +864,7 @@ class _PawtnerBookingDetailsScreenState
                                                       style: GoogleFonts.dosis(
                                                           fontWeight:
                                                               FontWeight.w600,
-                                                          fontSize: 15,
+                                                          fontSize: 16,
                                                           color: Colors.white),
                                                     ),
                                                   ),
@@ -921,7 +943,7 @@ class _PawtnerBookingDetailsScreenState
                                       contentPadding: const EdgeInsets.fromLTRB(
                                           24, 20, 24, 0),
                                       content: SizedBox(
-                                        height: 140,
+                                        height: 130,
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -930,7 +952,7 @@ class _PawtnerBookingDetailsScreenState
                                               textAlign: TextAlign.center,
                                               style: GoogleFonts.dosis(
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: 14,
+                                                  fontSize: 16,
                                                   color:
                                                       const Color(0xFF6E4B3A)),
                                             ),
@@ -940,7 +962,7 @@ class _PawtnerBookingDetailsScreenState
                                               textAlign: TextAlign.center,
                                               style: GoogleFonts.dosis(
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: 14,
+                                                  fontSize: 15,
                                                   color:
                                                       const Color(0xFF6E4B3A)),
                                             ),
@@ -973,7 +995,7 @@ class _PawtnerBookingDetailsScreenState
                                                       style: GoogleFonts.dosis(
                                                           fontWeight:
                                                               FontWeight.w600,
-                                                          fontSize: 15,
+                                                          fontSize: 16,
                                                           color: const Color(
                                                               0xFFDDC7A9)),
                                                     ),
@@ -1004,7 +1026,7 @@ class _PawtnerBookingDetailsScreenState
                                                       style: GoogleFonts.dosis(
                                                           fontWeight:
                                                               FontWeight.w600,
-                                                          fontSize: 15,
+                                                          fontSize: 16,
                                                           color: Colors.white),
                                                     ),
                                                   ),
@@ -1134,7 +1156,7 @@ class _PawtnerBookingDetailsScreenState
                                                     style: GoogleFonts.dosis(
                                                         fontWeight:
                                                             FontWeight.w600,
-                                                        fontSize: 15,
+                                                        fontSize: 16,
                                                         color: Colors.white),
                                                   ),
                                                 ),

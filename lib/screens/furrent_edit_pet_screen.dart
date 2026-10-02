@@ -26,7 +26,7 @@ class _FurrentEditPetScreenState extends State<FurrentEditPetScreen> {
           16,
           0,
           16,
-          24,
+          0,
         ),
         content: Text(
           message,

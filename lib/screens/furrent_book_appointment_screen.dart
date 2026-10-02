@@ -698,30 +698,38 @@ class _FurrentBookAppointmentScreenState
 
       dayWidgets.add(
         GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: isPast ? null : () => _onSelectDate(current),
           child: Container(
+            width: double.infinity,
+            height: double.infinity,
             alignment: Alignment.center,
-            decoration: isStart || isEnd
-                ? const BoxDecoration(
-                    color: Color(0xFF6E4B3A),
-                    shape: BoxShape.circle,
-                  )
-                : isInRange
-                    ? BoxDecoration(
-                        color: const Color(0xFF6E4B3A).withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      )
-                    : null,
-            child: Text(
-              '$day',
-              style: GoogleFonts.dosis(
-                fontSize: 16,
-                color: isPast
-                    ? Colors.grey
-                    : (isStart || isEnd
-                        ? Colors.white
-                        : const Color(0xFF6E4B3A)),
-                fontWeight: FontWeight.w600,
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: isStart || isEnd
+                  ? const BoxDecoration(
+                      color: Color(0xFF6E4B3A),
+                      shape: BoxShape.circle,
+                    )
+                  : isInRange
+                      ? BoxDecoration(
+                          color: const Color(0xFF6E4B3A).withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        )
+                      : null,
+              child: Text(
+                '$day',
+                style: GoogleFonts.dosis(
+                  fontSize: 17,
+                  color: isPast
+                      ? Colors.grey
+                      : (isStart || isEnd
+                          ? Colors.white
+                          : const Color(0xFF6E4B3A)),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -743,7 +751,7 @@ class _FurrentBookAppointmentScreenState
                 child: Text(
                   d,
                   style: GoogleFonts.dosis(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF6E4B3A),
                   ),
@@ -777,6 +785,7 @@ class _FurrentBookAppointmentScreenState
             child: Row(
               children: [
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     final now = DateTime.now();
                     final currentMonth = DateTime(now.year, now.month, 1);
@@ -785,12 +794,15 @@ class _FurrentBookAppointmentScreenState
                     if (prevMonth.isBefore(currentMonth)) return;
                     setState(() => calendarMonth = prevMonth);
                   },
-                  child: const Text(
-                    "<",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6E4B3A),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      "<",
+                      style: GoogleFonts.dosis(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6E4B3A),
+                      ),
                     ),
                   ),
                 ),
@@ -799,7 +811,7 @@ class _FurrentBookAppointmentScreenState
                     child: Text(
                       "${_monthName(calendarMonth.month)} ${calendarMonth.year}",
                       style: GoogleFonts.dosis(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF6E4B3A),
                       ),
@@ -807,18 +819,22 @@ class _FurrentBookAppointmentScreenState
                   ),
                 ),
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     setState(() {
                       calendarMonth = DateTime(
                           calendarMonth.year, calendarMonth.month + 1, 1);
                     });
                   },
-                  child: const Text(
-                    ">",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6E4B3A),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      ">",
+                      style: GoogleFonts.dosis(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6E4B3A),
+                      ),
                     ),
                   ),
                 ),
@@ -916,6 +932,7 @@ class _FurrentBookAppointmentScreenState
                       color:
                           isSelected ? Colors.white : const Color(0xFF6E4B3A),
                       fontWeight: FontWeight.w600,
+                      fontSize: 16,
                     ),
                   ),
                 ),
@@ -1049,9 +1066,13 @@ class _FurrentBookAppointmentScreenState
                           ),
                         ),
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text(
+                        child: Text(
                           "Cancel",
-                          style: TextStyle(color: Colors.white),
+                          style: GoogleFonts.dosis(
+                            color: const Color(0xFFF8F8F8),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -1072,6 +1093,7 @@ class _FurrentBookAppointmentScreenState
                           style: GoogleFonts.dosis(
                             color: const Color(0xFFDDC7A9),
                             fontWeight: FontWeight.w600,
+                            fontSize: 16,
                           ),
                         ),
                       ),
@@ -1304,25 +1326,28 @@ class _FurrentBookAppointmentScreenState
               children: [
                 _buildServiceSubtypeTabs(),
                 const SizedBox(height: 16),
-                const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Text('Select Date',
-                        style: TextStyle(
-                          color: Color(0xFF6E4B3A),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ))),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    'Select Date',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 _buildCalendar(),
                 const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
                   child: Text(
                     'Select Time',
-                    style: TextStyle(
-                      color: Color(0xFF6E4B3A),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -1331,6 +1356,7 @@ class _FurrentBookAppointmentScreenState
                 const SizedBox(height: 16),
                 TextField(
                   controller: notesController,
+                  textCapitalization: TextCapitalization.sentences,
                   style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
                   decoration: InputDecoration(
                     hintText: 'Notes to Pawtner',

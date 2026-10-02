@@ -97,10 +97,15 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Oops! Something went wrong. Please try again."),
-            duration: Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
+          SnackBar(
+            content: Text(
+              "Oops! Something went wrong. Please try again.",
+              style: GoogleFonts.dosis(
+                color: const Color(0xFFDDC7A9),
+              ),
+            ),
+            backgroundColor: const Color(0xFF6E4B3A),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -488,7 +493,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                     const EdgeInsets.fromLTRB(
                                                         24, 20, 24, 0),
                                                 content: SizedBox(
-                                                  height: 140,
+                                                  height: 130,
                                                   child: Column(
                                                     mainAxisSize:
                                                         MainAxisSize.min,
@@ -500,7 +505,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                         style: GoogleFonts.dosis(
                                                             fontWeight:
                                                                 FontWeight.w600,
-                                                            fontSize: 15,
+                                                            fontSize: 16,
                                                             color: const Color(
                                                                 0xFF6E4B3A)),
                                                       ),
@@ -512,7 +517,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                         style: GoogleFonts.dosis(
                                                             fontWeight:
                                                                 FontWeight.w500,
-                                                            fontSize: 15,
+                                                            fontSize: 16,
                                                             color: const Color(
                                                                 0xFF6E4B3A)),
                                                       ),
@@ -554,7 +559,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                                   fontWeight:
                                                                       FontWeight
                                                                           .w600,
-                                                                  fontSize: 15,
+                                                                  fontSize: 16,
                                                                   color: const Color(
                                                                       0xFFDDC7A9),
                                                                 ),
@@ -594,7 +599,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                                   fontWeight:
                                                                       FontWeight
                                                                           .w600,
-                                                                  fontSize: 15,
+                                                                  fontSize: 16,
                                                                   color: Colors
                                                                       .white,
                                                                 ),
@@ -612,171 +617,184 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                             if (confirmed != true) return;
                                             if (!context.mounted) return;
 
-                                            final reasonController =
-                                                TextEditingController();
+                                            String reasonText = '';
                                             final reasonSubmitted =
                                                 await showDialog<bool>(
                                               context: context,
-                                              builder: (context) => Dialog(
-                                                backgroundColor:
-                                                    Colors.transparent,
-                                                insetPadding: EdgeInsets.zero,
-                                                child: Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 16),
-                                                  child: Container(
+                                              builder: (context) =>
+                                                  StatefulBuilder(
+                                                builder:
+                                                    (context, setDialogState) =>
+                                                        Dialog(
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                  insetPadding: EdgeInsets.zero,
+                                                  child: Padding(
                                                     padding: const EdgeInsets
-                                                        .fromLTRB(
-                                                        24, 20, 24, 24),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(
-                                                          0xFFF8F8F8),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                      boxShadow: const [
-                                                        BoxShadow(
-                                                          color:
-                                                              Color(0x33000000),
-                                                          blurRadius: 4,
-                                                          offset: Offset(0, 2),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    child: Column(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text(
-                                                          'Why are you cancelling this booking?',
-                                                          textAlign:
-                                                              TextAlign.center,
-                                                          style:
-                                                              GoogleFonts.dosis(
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                            fontSize: 16,
-                                                            color: const Color(
-                                                                0xFF6E4B3A),
+                                                        .symmetric(
+                                                        horizontal: 16),
+                                                    child: Container(
+                                                      padding: const EdgeInsets
+                                                          .fromLTRB(
+                                                          24, 20, 24, 24),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(
+                                                            0xFFF8F8F8),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                        boxShadow: const [
+                                                          BoxShadow(
+                                                            color: Color(
+                                                                0x33000000),
+                                                            blurRadius: 4,
+                                                            offset:
+                                                                Offset(0, 2),
                                                           ),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 12),
-                                                        TextField(
-                                                          controller:
-                                                              reasonController,
-                                                          maxLines: 3,
-                                                          decoration:
-                                                              InputDecoration(
-                                                            hintText:
-                                                                'Enter your reason for cancellation',
-                                                            hintStyle:
-                                                                GoogleFonts
-                                                                    .dosis(
-                                                              fontSize: 14,
+                                                        ],
+                                                      ),
+                                                      child: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            'Why are you cancelling this booking?',
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            style: GoogleFonts
+                                                                .dosis(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                              fontSize: 16,
                                                               color: const Color(
-                                                                  0xFFAAAAAA),
+                                                                  0xFF6E4B3A),
                                                             ),
-                                                            border:
-                                                                OutlineInputBorder(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                              borderSide:
-                                                                  const BorderSide(
-                                                                      color: Color(
-                                                                          0xFF6E4B3A),
-                                                                      width:
-                                                                          1.5),
-                                                            ),
-                                                            enabledBorder:
-                                                                OutlineInputBorder(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                              borderSide:
-                                                                  const BorderSide(
-                                                                      color: Color(
-                                                                          0xFF6E4B3A),
-                                                                      width:
-                                                                          1.5),
-                                                            ),
-                                                            focusedBorder:
-                                                                OutlineInputBorder(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                              borderSide:
-                                                                  const BorderSide(
-                                                                      color: Color(
-                                                                          0xFF6E4B3A),
-                                                                      width: 2),
-                                                            ),
-                                                            contentPadding:
-                                                                const EdgeInsets
-                                                                    .symmetric(
-                                                                    horizontal:
-                                                                        12,
-                                                                    vertical:
-                                                                        8),
                                                           ),
-                                                          style:
-                                                              GoogleFonts.dosis(
-                                                            fontSize: 14,
-                                                            color: const Color(
-                                                                0xFF6E4B3A),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 16),
-                                                        SizedBox(
-                                                          width: 140,
-                                                          height: 40,
-                                                          child: ElevatedButton(
-                                                            style:
-                                                                ElevatedButton
-                                                                    .styleFrom(
-                                                              backgroundColor:
-                                                                  const Color(
-                                                                      0xFF8B0000),
-                                                              shape:
-                                                                  RoundedRectangleBorder(
+                                                          const SizedBox(
+                                                              height: 12),
+                                                          TextField(
+                                                            textCapitalization:
+                                                                TextCapitalization
+                                                                    .sentences,
+                                                            onChanged: (value) {
+                                                              setDialogState(
+                                                                  () {
+                                                                reasonText =
+                                                                    value;
+                                                              });
+                                                            },
+                                                            maxLines: 3,
+                                                            decoration:
+                                                                InputDecoration(
+                                                              hintText:
+                                                                  'Enter your reason for cancellation',
+                                                              hintStyle:
+                                                                  GoogleFonts
+                                                                      .dosis(
+                                                                fontSize: 14,
+                                                                color: const Color(
+                                                                    0xFFAAAAAA),
+                                                              ),
+                                                              border:
+                                                                  OutlineInputBorder(
                                                                 borderRadius:
                                                                     BorderRadius
                                                                         .circular(
                                                                             8),
+                                                                borderSide: const BorderSide(
+                                                                    color: Color(
+                                                                        0xFF6E4B3A),
+                                                                    width: 1.5),
                                                               ),
+                                                              enabledBorder:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
+                                                                borderSide: const BorderSide(
+                                                                    color: Color(
+                                                                        0xFF6E4B3A),
+                                                                    width: 1.5),
+                                                              ),
+                                                              focusedBorder:
+                                                                  OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
+                                                                borderSide: const BorderSide(
+                                                                    color: Color(
+                                                                        0xFF6E4B3A),
+                                                                    width: 2),
+                                                              ),
+                                                              contentPadding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          12,
+                                                                      vertical:
+                                                                          8),
                                                             ),
-                                                            onPressed: () {
-                                                              if (reasonController
-                                                                  .text
-                                                                  .trim()
-                                                                  .isEmpty) {
-                                                                return;
-                                                              }
-                                                              Navigator.pop(
-                                                                  context,
-                                                                  true);
-                                                            },
-                                                            child: Text(
-                                                              'Submit',
-                                                              style: GoogleFonts
-                                                                  .dosis(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                fontSize: 15,
-                                                                color: Colors
-                                                                    .white,
+                                                            style: GoogleFonts
+                                                                .dosis(
+                                                              fontSize: 14,
+                                                              color: const Color(
+                                                                  0xFF6E4B3A),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 16),
+                                                          SizedBox(
+                                                            width: 140,
+                                                            height: 40,
+                                                            child:
+                                                                ElevatedButton(
+                                                              style:
+                                                                  ElevatedButton
+                                                                      .styleFrom(
+                                                                backgroundColor: reasonText
+                                                                        .trim()
+                                                                        .isEmpty
+                                                                    ? const Color(
+                                                                        0xFFD9D9D9)
+                                                                    : const Color(
+                                                                        0xFF8B0000),
+                                                                shape:
+                                                                    RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              8),
+                                                                ),
+                                                              ),
+                                                              onPressed: reasonText
+                                                                      .trim()
+                                                                      .isEmpty
+                                                                  ? null
+                                                                  : () {
+                                                                      Navigator.pop(
+                                                                          context,
+                                                                          true);
+                                                                    },
+                                                              child: Text(
+                                                                'Submit',
+                                                                style:
+                                                                    GoogleFonts
+                                                                        .dosis(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  fontSize: 16,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
+                                                        ],
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -786,6 +804,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                             if (reasonSubmitted != true) return;
 
                                             final bookingId = booking['id'];
+                                            reasonText = reasonText.trim();
                                             try {
                                               final cancelledAtUtc =
                                                   DateTime.now()
@@ -796,9 +815,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                   .from('bookings')
                                                   .update({
                                                 'status': 'Cancelled',
-                                                'cancelled_reason':
-                                                    reasonController.text
-                                                        .trim(),
+                                                'cancelled_reason': reasonText,
                                                 'cancelled_at': cancelledAtUtc,
                                                 'cancelled_by': 'Furrent',
                                               }).eq('id', bookingId);
@@ -813,8 +830,7 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                         b['id'] == bookingId);
                                                 booking['status'] = 'Cancelled';
                                                 booking['cancelled_reason'] =
-                                                    reasonController.text
-                                                        .trim();
+                                                    reasonText;
                                                 booking['cancelled_at'] =
                                                     cancelledAtUtc;
                                               });
@@ -838,11 +854,17 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                                   'Error cancelling booking: $e');
                                               if (!context.mounted) return;
                                               ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                const SnackBar(
-                                                    content: Text(
-                                                        'Failed to cancel booking.')),
-                                              );
+                                                  .showSnackBar(SnackBar(
+                                                content: Text(
+                                                  'Failed to cancel booking.',
+                                                  style: GoogleFonts.dosis(
+                                                    color:
+                                                        const Color(0xFFDDC7A9),
+                                                  ),
+                                                ),
+                                                backgroundColor:
+                                                    const Color(0xFF6E4B3A),
+                                              ));
                                             }
                                           },
                                           style: ElevatedButton.styleFrom(
@@ -855,12 +877,12 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                             ),
                                             padding: EdgeInsets.zero,
                                           ),
-                                          child: const Center(
+                                          child: Center(
                                             child: Text(
                                               'Cancel',
-                                              style: TextStyle(
-                                                color: Color(0xFFFFFFFF),
-                                                fontSize: 14,
+                                              style: GoogleFonts.dosis(
+                                                color: const Color(0xFFF8F8F8),
+                                                fontSize: 15,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                               softWrap: false,
@@ -897,13 +919,13 @@ class _FurrentDashboardScreenState extends State<FurrentDashboardScreen> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 4),
                                           ),
-                                          child: const Align(
+                                          child: Align(
                                             alignment: Alignment.center,
                                             child: Text(
                                               'Reschedule',
-                                              style: TextStyle(
-                                                color: Color(0xFFDDC7A9),
-                                                fontSize: 14,
+                                              style: GoogleFonts.dosis(
+                                                color: const Color(0xFFDDC7A9),
+                                                fontSize: 15,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                               softWrap: false,

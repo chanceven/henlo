@@ -155,7 +155,27 @@ class _MyAppState extends State<MyApp> {
           MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
         );
       }
+      if (event == AuthChangeEvent.signedIn) {
+        _saveFcmToken();
+      }
     });
+  }
+
+  Future<void> _saveFcmToken() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+      final token = await messaging.getToken();
+      if (token == null) return;
+      await Supabase.instance.client
+          .from('furrents')
+          .update({'fcm_token': token}).eq('id', userId);
+      await Supabase.instance.client
+          .from('pawtners')
+          .update({'fcm_token': token}).eq('id', userId);
+    } catch (e) {
+      debugPrint('Error saving FCM token: $e');
+    }
   }
 
   Future<void> _initFCM() async {
@@ -222,7 +242,7 @@ class _MyAppState extends State<MyApp> {
         }
       }
     } catch (e) {
-      throw Exception('FCM_INIT_FAILED: $e | Log: ${log.join(" | ")}');
+      debugPrint('FCM_INIT_FAILED: $e | Log: ${log.join(" | ")}');
     }
   }
 

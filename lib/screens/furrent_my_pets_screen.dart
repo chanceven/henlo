@@ -131,6 +131,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
         return await showDialog(
           context: context,
           builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFFF8F8F8),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -139,7 +140,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.dosis(
                     fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                    fontSize: 16,
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
@@ -169,7 +170,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                     'Cancel',
                     style: GoogleFonts.dosis(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: 16,
                       color: const Color(0xFFDDC7A9),
                     ),
                   ),
@@ -188,7 +189,7 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                     'Delete',
                     style: GoogleFonts.dosis(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: 16,
                       color: const Color(0xFFF8F8F8),
                     ),
                   ),
@@ -257,17 +258,17 @@ class _FurrentMyPetsScreenState extends State<FurrentMyPetsScreen> {
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF6E4B3A),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   styledText(
                     "${pet['type'] ?? ''} • $breed",
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF6E4B3A),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   styledText(
                     "$age • ${pet['gender'] ?? ''}",
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF6E4B3A),
                   ),

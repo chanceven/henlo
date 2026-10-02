@@ -163,12 +163,10 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
         content: Text(
           message,
           style: GoogleFonts.dosis(
-            color: const Color(0xFF6E4B3A),
+            color: const Color(0xFFDDC7A9),
           ),
         ),
-        backgroundColor: const Color(0xFFDDC7A9),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        backgroundColor: const Color(0xFF6E4B3A),
       ),
     );
   }
@@ -479,6 +477,11 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
           },
           controller: controller,
           keyboardType: keyboardType,
+          textCapitalization: label == 'Service Name'
+              ? TextCapitalization.words
+              : label == 'Description'
+                  ? TextCapitalization.sentences
+                  : TextCapitalization.none,
           inputFormatters: inputFormatters,
           style: GoogleFonts.dosis(
             color: const Color(0xFF6E4B3A),
@@ -850,7 +853,7 @@ class _PawtnerEditServiceScreenState extends State<PawtnerEditServiceScreen> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Color(0xFF6E4B3A),
+                              color: Color(0xFFDDC7A9),
                             ),
                           )
                         : Text(

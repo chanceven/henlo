@@ -58,7 +58,15 @@ class _PawtnerServicesTrainingScreenState
       if (!mounted) return;
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load services. Try again.')),
+        SnackBar(
+          content: Text(
+            'Failed to load services. Try again.',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
+        ),
       );
     }
   }
@@ -67,6 +75,7 @@ class _PawtnerServicesTrainingScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFF8F8F8),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -75,7 +84,7 @@ class _PawtnerServicesTrainingScreenState
               textAlign: TextAlign.center,
               style: GoogleFonts.dosis(
                   fontWeight: FontWeight.w600,
-                  fontSize: 15,
+                  fontSize: 16,
                   color: const Color(0xFF6E4B3A)),
             ),
             const SizedBox(height: 8),
@@ -140,8 +149,8 @@ class _PawtnerServicesTrainingScreenState
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Service deleted successfully',
-              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-          backgroundColor: const Color(0xFFDDC7A9),
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
         ));
 
         await fetchTrainingServices();
@@ -150,8 +159,8 @@ class _PawtnerServicesTrainingScreenState
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Failed to delete service. Please try again.',
-              style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A))),
-          backgroundColor: const Color(0xFFDDC7A9),
+              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9))),
+          backgroundColor: const Color(0xFF6E4B3A),
         ));
       } finally {
         if (mounted) setState(() => isActionInProgress = false);
@@ -274,6 +283,7 @@ class _PawtnerServicesTrainingScreenState
                                             'Delete Service',
                                             style: GoogleFonts.dosis(
                                                 color: const Color(0xFFF8F8F8),
+                                                fontSize: 16,
                                                 fontWeight: FontWeight.w600),
                                           ),
                                         ),
@@ -311,6 +321,7 @@ class _PawtnerServicesTrainingScreenState
                                             'Edit Service',
                                             style: GoogleFonts.dosis(
                                                 color: const Color(0xFFDDC7A9),
+                                                fontSize: 16,
                                                 fontWeight: FontWeight.w600),
                                           ),
                                         ),

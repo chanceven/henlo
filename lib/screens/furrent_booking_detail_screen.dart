@@ -114,7 +114,9 @@ class _FurrentBookingDetailsScreenState
 
     if (scheduledStart != null &&
         scheduledEnd != null &&
-        scheduledStart.day != scheduledEnd.day) {
+        (scheduledStart.year != scheduledEnd.year ||
+            scheduledStart.month != scheduledEnd.month ||
+            scheduledStart.day != scheduledEnd.day)) {
       final time = DateFormat('h:mm a').format(scheduledStart);
 
       if (scheduledStart.month == scheduledEnd.month) {
@@ -257,9 +259,15 @@ class _FurrentBookingDetailsScreenState
                       if (currentUser == null) {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Your session expired. Please log in again.')),
+                          SnackBar(
+                            content: Text(
+                              'Your session expired. Please log in again.',
+                              style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9),
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                          ),
                         );
                         return;
                       }
@@ -287,9 +295,15 @@ class _FurrentBookingDetailsScreenState
                         debugPrint('Error checking existing conversation: $e');
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Failed to open chat. Please try again.')),
+                          SnackBar(
+                            content: Text(
+                              'Failed to open chat. Please try again.',
+                              style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9),
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                          ),
                         );
                         return;
                       }
@@ -333,185 +347,24 @@ class _FurrentBookingDetailsScreenState
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      final reasonController = TextEditingController();
-                      final reasonSubmitted = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => Dialog(
-                          backgroundColor: Colors.transparent,
-                          insetPadding: EdgeInsets.zero,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Container(
-                              padding:
-                                  const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8F8F8),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x33000000),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Why are you cancelling this booking?',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.dosis(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 16,
-                                      color: const Color(0xFF6E4B3A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                    controller: reasonController,
-                                    maxLines: 3,
-                                    decoration: InputDecoration(
-                                      hintText:
-                                          'Enter your reason for cancellation',
-                                      hintStyle: GoogleFonts.dosis(
-                                        fontSize: 14,
-                                        color: const Color(0xFFAAAAAA),
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: const BorderSide(
-                                            color: Color(0xFF6E4B3A),
-                                            width: 1.5),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: const BorderSide(
-                                            color: Color(0xFF6E4B3A),
-                                            width: 1.5),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: const BorderSide(
-                                            color: Color(0xFF6E4B3A), width: 2),
-                                      ),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                    ),
-                                    style: GoogleFonts.dosis(
-                                      fontSize: 14,
-                                      color: const Color(0xFF6E4B3A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF8B0000),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        if (reasonController.text
-                                            .trim()
-                                            .isEmpty) {
-                                          return;
-                                        }
-                                        Navigator.pop(context, true);
-                                      },
-                                      child: Text(
-                                        'Submit',
-                                        style: GoogleFonts.dosis(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-
-                      if (reasonSubmitted != true) {
-                        reasonController.dispose();
-                        return;
-                      }
-
-                      final reasonText = reasonController.text.trim();
-                      reasonController.dispose();
-
-                      try {
-                        final cancelledAtUtc =
-                            DateTime.now().toUtc().toIso8601String();
-
-                        await supabase.from('bookings').update({
-                          'status': 'Cancelled',
-                          'cancelled_reason': reasonText,
-                          'cancelled_at': cancelledAtUtc,
-                          'cancelled_by': 'Furrent',
-                        }).eq('id', booking['id']);
-
-                        if (!mounted) return;
-                        setState(() {
-                          booking['status'] = 'Cancelled';
-                          booking['cancelled_reason'] = reasonText;
-                          booking['cancelled_at'] = cancelledAtUtc;
-                        });
-
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Booking cancelled.')),
-                        );
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Failed to cancel booking.')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B0000),
-                      alignment: Alignment.center,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text(
-                      'Cancel Booking',
-                      style: GoogleFonts.dosis(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
                     onPressed: () {
                       if (booking['pawtner_id'] == null ||
                           booking['service_id'] == null ||
                           booking['pet_id'] == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'This booking can no longer be rescheduled.')),
+                          SnackBar(
+                            content: Text(
+                              'This booking can no longer be rescheduled.',
+                              style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9),
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                          ),
                         );
                         return;
                       }
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -528,14 +381,220 @@ class _FurrentBookingDetailsScreenState
                       backgroundColor: const Color(0xFF6E4B3A),
                       alignment: Alignment.center,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: Text(
                       'Reschedule',
                       style: GoogleFonts.dosis(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFDDC7A9)),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFDDC7A9),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      String reasonText = '';
+
+                      final reasonSubmitted = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => StatefulBuilder(
+                          builder: (context, setDialogState) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            insetPadding: EdgeInsets.zero,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8F8F8),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x33000000),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Why are you cancelling this booking?',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.dosis(
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16,
+                                        color: const Color(0xFF6E4B3A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                      onChanged: (value) {
+                                        setDialogState(() {
+                                          reasonText = value;
+                                        });
+                                      },
+                                      maxLines: 3,
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'Enter your reason for cancellation',
+                                        hintStyle: GoogleFonts.dosis(
+                                          fontSize: 14,
+                                          color: const Color(0xFFAAAAAA),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF6E4B3A),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF6E4B3A),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          borderSide: const BorderSide(
+                                            color: Color(0xFF6E4B3A),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                      style: GoogleFonts.dosis(
+                                        fontSize: 14,
+                                        color: const Color(0xFF6E4B3A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 50,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              reasonText.trim().isEmpty
+                                                  ? const Color(0xFFD9D9D9)
+                                                  : const Color(0xFF8B0000),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        onPressed: reasonText.trim().isEmpty
+                                            ? null
+                                            : () {
+                                                Navigator.pop(context, true);
+                                              },
+                                        child: Text(
+                                          'Submit',
+                                          style: GoogleFonts.dosis(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+
+                      if (reasonSubmitted != true) {
+                        return;
+                      }
+
+                      reasonText = reasonText.trim();
+
+                      try {
+                        final cancelledAtUtc =
+                            DateTime.now().toUtc().toIso8601String();
+
+                        await supabase.from('bookings').update({
+                          'status': 'Cancelled',
+                          'cancelled_reason': reasonText,
+                          'cancelled_at': cancelledAtUtc,
+                          'cancelled_by': 'Furrent',
+                        }).eq('id', booking['id']);
+
+                        if (!mounted) return;
+
+                        setState(() {
+                          booking['status'] = 'Cancelled';
+                          booking['cancelled_reason'] = reasonText;
+                          booking['cancelled_at'] = cancelledAtUtc;
+                        });
+
+                        if (!context.mounted) return;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Booking cancelled.',
+                              style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9),
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Failed to cancel booking.',
+                              style: GoogleFonts.dosis(
+                                color: const Color(0xFFDDC7A9),
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF6E4B3A),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B0000),
+                      alignment: Alignment.center,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel Booking',
+                      style: GoogleFonts.dosis(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),

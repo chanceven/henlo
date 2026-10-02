@@ -512,6 +512,8 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                       return await showDialog(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
+                                          backgroundColor:
+                                              const Color(0xFFF8F8F8),
                                           content: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -520,7 +522,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                 textAlign: TextAlign.center,
                                                 style: GoogleFonts.dosis(
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
+                                                  fontSize: 16,
                                                   color:
                                                       const Color(0xFF6E4B3A),
                                                 ),
@@ -555,7 +557,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                   'Cancel',
                                                   style: GoogleFonts.dosis(
                                                     fontWeight: FontWeight.w600,
-                                                    fontSize: 15,
+                                                    fontSize: 16,
                                                     color:
                                                         const Color(0xFFDDC7A9),
                                                   ),
@@ -577,7 +579,7 @@ class _FurrentMessagesScreenState extends State<FurrentMessagesScreen> {
                                                   'Delete',
                                                   style: GoogleFonts.dosis(
                                                     fontWeight: FontWeight.w600,
-                                                    fontSize: 15,
+                                                    fontSize: 16,
                                                     color:
                                                         const Color(0xFFF8F8F8),
                                                   ),

@@ -55,6 +55,19 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
     }
   }
 
+  Future<void> _deleteOldProfilePhoto(String? oldUrl) async {
+    if (oldUrl == null || oldUrl.isEmpty) return;
+    try {
+      const marker = '/profile_pictures/';
+      final markerIndex = oldUrl.indexOf(marker);
+      if (markerIndex == -1) return;
+      final oldPath = oldUrl.substring(markerIndex + marker.length);
+      await supabase.storage.from('profile_pictures').remove([oldPath]);
+    } catch (e) {
+      debugPrint('Error deleting old profile photo: $e');
+    }
+  }
+
   Future<void> _pickProfileImage() async {
     try {
       final picker = ImagePicker();
@@ -110,23 +123,23 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
       if (choice == 'remove') {
         final userId = supabase.auth.currentUser?.id;
         if (userId == null) return;
+        final oldUrl = pawtnerData?['profile_picture_url'] as String?;
         try {
           await supabase
               .from('pawtners')
               .update({'profile_picture_url': null}).eq('id', userId);
+          await _deleteOldProfilePhoto(oldUrl);
           if (!mounted) return;
           setState(() => pawtnerData?['profile_picture_url'] = null);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               content: Text(
                 'Profile picture has been removed',
                 style: GoogleFonts.dosis(
-                  color: const Color(0xFF6E4B3A),
+                  color: const Color(0xFFDDC7A9),
                 ),
               ),
-              backgroundColor: const Color(0xFFDDC7A9),
+              backgroundColor: const Color(0xFF6E4B3A),
             ),
           );
           if (widget.onProfileUpdated != null) widget.onProfileUpdated!();
@@ -135,13 +148,11 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               content: Text(
                 'Failed to remove profile picture. Please try again.',
-                style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
+                style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
               ),
-              backgroundColor: const Color(0xFFDDC7A9),
+              backgroundColor: const Color(0xFF6E4B3A),
             ),
           );
         }
@@ -159,19 +170,25 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
       );
 
       if (image != null) {
+        if (source == ImageSource.camera) {
+          // Let Android fully reattach the Activity/surface after the
+          // external camera Activity closes before we touch context or
+          // start network I/O. Gallery already works, so it's untouched.
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (!mounted) return;
+        }
+
         final bytes = await image.readAsBytes();
 
         if (bytes.length > 3 * 1024 * 1024) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                behavior: SnackBarBehavior.floating,
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 content: Text(
                   'Image must be smaller than 3MB',
-                  style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
+                  style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
                 ),
-                backgroundColor: const Color(0xFFDDC7A9),
+                backgroundColor: const Color(0xFF6E4B3A),
               ),
             );
           }
@@ -182,27 +199,9 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
         if (userId == null) return;
         final ext = image.path.split('.').last.toLowerCase();
         final contentType = ext == 'png' ? 'image/png' : 'image/jpeg';
-        final filePath = '$userId/profile.$ext';
-
-        // If an old photo exists at a different extension/path, delete it
-        // first so it doesn't get orphaned in storage.
+        final filePath =
+            '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.$ext';
         final oldUrl = pawtnerData?['profile_picture_url'] as String?;
-        if (oldUrl != null && oldUrl.isNotEmpty) {
-          const marker = '/profile_pictures/';
-          final markerIndex = oldUrl.indexOf(marker);
-          if (markerIndex != -1) {
-            final oldPath = oldUrl.substring(markerIndex + marker.length);
-            if (oldPath != filePath) {
-              try {
-                await supabase.storage
-                    .from('profile_pictures')
-                    .remove([oldPath]);
-              } catch (e) {
-                debugPrint('Error deleting old profile photo: $e');
-              }
-            }
-          }
-        }
 
         try {
           await supabase.storage.from('profile_pictures').uploadBinary(
@@ -221,6 +220,8 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
               .from('pawtners')
               .update({'profile_picture_url': publicUrl}).eq('id', userId);
 
+          await _deleteOldProfilePhoto(oldUrl);
+
           if (!mounted) return;
           setState(() {
             profileImageBytes = bytes;
@@ -235,13 +236,11 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               content: Text(
                 'Failed to upload profile picture. Please try again.',
-                style: GoogleFonts.dosis(color: const Color(0xFF6E4B3A)),
+                style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
               ),
-              backgroundColor: const Color(0xFFDDC7A9),
+              backgroundColor: const Color(0xFF6E4B3A),
             ),
           );
         }
@@ -330,11 +329,11 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                             pawtnerData?['profile_picture_url'] != null
                                 ? Colors.transparent
                                 : const Color(0xFF6E4B3A),
-                        backgroundImage: pawtnerData?['profile_picture_url'] !=
-                                null
-                            ? NetworkImage(
-                                '${pawtnerData!['profile_picture_url']}?t=${DateTime.now().millisecondsSinceEpoch}')
-                            : null,
+                        backgroundImage:
+                            pawtnerData?['profile_picture_url'] != null
+                                ? NetworkImage(
+                                    '${pawtnerData!['profile_picture_url']}')
+                                : null,
                         child: pawtnerData?['profile_picture_url'] == null
                             ? const Icon(Icons.person,
                                 size: 75, color: Color(0xFFDDC7A9))
@@ -469,7 +468,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.dosis(
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                                  fontSize: 17,
                                   color: const Color(0xFF6E4B3A),
                                 ),
                               ),
@@ -488,7 +487,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                                   'Cancel',
                                   style: GoogleFonts.dosis(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 15,
+                                      fontSize: 16,
                                       color: const Color(0xFFDDC7A9)),
                                 ),
                               ),
@@ -505,7 +504,7 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
                                   'Logout',
                                   style: GoogleFonts.dosis(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 15,
+                                      fontSize: 16,
                                       color: const Color(0xFFF8F8F8)),
                                 ),
                               ),
@@ -516,6 +515,17 @@ class _PawtnerProfileScreenState extends State<PawtnerProfileScreen> {
 
                       if (confirmed != true) return;
                       if (!context.mounted) return;
+
+                      try {
+                        final uid = supabase.auth.currentUser?.id;
+                        if (uid != null) {
+                          await supabase
+                              .from('pawtners')
+                              .update({'fcm_token': null}).eq('id', uid);
+                        }
+                      } catch (e) {
+                        debugPrint('Error clearing FCM token: $e');
+                      }
 
                       try {
                         await supabase.auth.signOut();

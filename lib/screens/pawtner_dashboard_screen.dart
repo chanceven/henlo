@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -299,12 +300,12 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
 
   Future<String?> _uploadDocumentFromModal(String type,
       {String? oldUrl}) async {
-    final result = await showModalBottomSheet<FilePickerResult?>(
+    final choice = await showModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -325,19 +326,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF6E4B3A))),
-              onTap: () async {
-                try {
-                  final picked = await FilePicker.platform.pickFiles(
-                    type: FileType.custom,
-                    allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-                    withData: true,
-                  );
-                  if (mounted) Navigator.pop(context, picked);
-                } catch (e) {
-                  debugPrint('Error picking file: $e');
-                  if (mounted) Navigator.pop(context, null);
-                }
-              },
+              onTap: () => Navigator.pop(sheetContext, 'file'),
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Color(0xFF6E4B3A)),
@@ -346,30 +335,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF6E4B3A))),
-              onTap: () async {
-                try {
-                  final picker = ImagePicker();
-                  final XFile? image = await picker.pickImage(
-                    source: ImageSource.camera,
-                    maxWidth: 800,
-                    maxHeight: 800,
-                    imageQuality: 80,
-                  );
-                  if (image == null) {
-                    if (mounted) Navigator.pop(context, null);
-                    return;
-                  }
-                  final bytes = await image.readAsBytes();
-                  final result = FilePickerResult([
-                    PlatformFile(
-                        name: image.name, bytes: bytes, size: bytes.length),
-                  ]);
-                  if (mounted) Navigator.pop(context, result);
-                } catch (e) {
-                  debugPrint('Error taking photo: $e');
-                  if (mounted) Navigator.pop(context, null);
-                }
-              },
+              onTap: () => Navigator.pop(sheetContext, 'camera'),
             ),
             ListTile(
               leading: const Icon(Icons.close, color: Color(0xFF8B0000)),
@@ -378,7 +344,7 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF8B0000))),
-              onTap: () => Navigator.pop(context, null),
+              onTap: () => Navigator.pop(sheetContext),
             ),
             const SizedBox(height: 8),
           ],
@@ -386,11 +352,45 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
       ),
     );
 
-    if (result == null) return null;
+    if (choice == null) return null;
 
-    final picked = result.files.first;
-    final bytes = picked.bytes;
-    final name = picked.name;
+    Uint8List? bytes;
+    String name = '';
+
+    try {
+      if (choice == 'camera') {
+        final XFile? image = await ImagePicker().pickImage(
+          source: ImageSource.camera,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 80,
+        );
+        if (image == null) return null;
+        bytes = await image.readAsBytes();
+        name = image.name;
+      } else {
+        final picked = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+          withData: true,
+        );
+        if (picked == null || picked.files.isEmpty) return null;
+        bytes = picked.files.first.bytes;
+        name = picked.files.first.name;
+      }
+    } catch (e) {
+      debugPrint('Error picking $type file: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open camera or files.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return null;
+    }
+
     if (bytes == null) return null;
 
     if (bytes.length > 6 * 1024 * 1024) {
@@ -460,6 +460,14 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
       return name;
     } catch (e) {
       debugPrint('Upload error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Upload failed. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       return null;
     }
   }
@@ -518,11 +526,24 @@ class _PawtnerDashboardScreenState extends State<PawtnerDashboardScreen> {
       });
 
       if (pawtner != null) {
-        final hasPermit = pawtner['business_permit_url'] != null;
-        final hasGovtId = pawtner['govt_id_url'] != null;
-        if (!hasPermit || !hasGovtId) {
-          if (mounted) await _showDocumentUploadModal(pawtner);
+        var current = pawtner;
+        bool docsMissing(Map<String, dynamic> p) =>
+            (p['business_permit_url']?.toString() ?? '').isEmpty ||
+            (p['govt_id_url']?.toString() ?? '').isEmpty;
+
+        while (mounted && docsMissing(current)) {
+          await _showDocumentUploadModal(current);
+          if (!mounted) return;
+          final fresh = await supabase
+              .from('pawtners')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle();
+          if (fresh == null) break;
+          current = fresh;
         }
+
+        if (mounted) setState(() => pawtnerData = current);
       }
     } catch (e) {
       debugPrint('Error loading dashboard: $e');

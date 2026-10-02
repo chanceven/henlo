@@ -208,9 +208,13 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
             content: Text(
               "This email is already registered. Please sign in instead.",
-              style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+              style: GoogleFonts.dosis(
+                color: const Color(0xFFDDC7A9),
+              ),
             ),
             backgroundColor: const Color(0xFF6E4B3A),
           ),
@@ -228,9 +232,16 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       setState(() => _isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Something went wrong. Try again."),
-          backgroundColor: Color(0xFF6E4B3A),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          content: Text(
+            "Something went wrong. Try again.",
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
     }
@@ -428,7 +439,6 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       ),
     );
     debounce?.cancel();
-    searchController.dispose();
   }
 
   void _goToBusinessStep() {
@@ -440,10 +450,17 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
   void _goToReviewStep() {
     if (businessNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter your business name."),
-          duration: Duration(seconds: 2),
+        SnackBar(
           behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          content: Text(
+            "Please enter your business name.",
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
       return;
@@ -451,10 +468,17 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
     if (selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please select at least one service type."),
-          duration: Duration(seconds: 2),
+        SnackBar(
           behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          content: Text(
+            "Please select at least one service type.",
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
       return;
@@ -462,10 +486,17 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
     if (selectedBusinessTypes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please select at least one business type."),
-          duration: Duration(seconds: 2),
+        SnackBar(
           behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          content: Text(
+            "Please select at least one business type.",
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
       return;
@@ -473,10 +504,17 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
     if (selectedBusinessTypes.contains("Home") && selectedAreas.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please select at least one available area."),
-          duration: Duration(seconds: 2),
+        SnackBar(
           behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          content: Text(
+            "Please select at least one available area.",
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
       return;
@@ -484,10 +522,17 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
 
     if (locationController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter your business location."),
-          duration: Duration(seconds: 2),
+        SnackBar(
           behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          content: Text(
+            "Please enter your business location.",
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
       return;
@@ -1088,18 +1133,6 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
   }
 
   Future<void> _createAccount() async {
-    if (!agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text("Please agree to the Terms & Conditions and Privacy Policy"),
-          duration: Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
     setState(() => isLoading = true);
 
     final email = _emailCtrl.text.trim().toLowerCase();
@@ -1115,9 +1148,13 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
           content: Text(
             "Please wait a moment before trying again.",
-            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
           ),
           backgroundColor: const Color(0xFF6E4B3A),
         ),
@@ -1136,9 +1173,13 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
           content: Text(
             "This email is already registered. Please sign in instead.",
-            style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
           ),
           backgroundColor: const Color(0xFF6E4B3A),
         ),
@@ -1168,9 +1209,16 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error: $e"),
-          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          content: Text(
+            "Error: $e",
+            style: GoogleFonts.dosis(
+              color: const Color(0xFFDDC7A9),
+            ),
+          ),
+          duration: const Duration(seconds: 3),
+          backgroundColor: const Color(0xFF6E4B3A),
         ),
       );
     } finally {

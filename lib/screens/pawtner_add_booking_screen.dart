@@ -200,7 +200,7 @@ class _PawtnerAddBookingScreenState extends State<PawtnerAddBookingScreen> {
           ),
           backgroundColor: const Color(0xFF6E4B3A),
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
         ),
       );
     }
@@ -470,7 +470,7 @@ class _PawtnerAddBookingScreenState extends State<PawtnerAddBookingScreen> {
         ),
         backgroundColor: const Color(0xFF6E4B3A),
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
       ),
     );
   }
@@ -1257,6 +1257,7 @@ class _PawtnerAddBookingScreenState extends State<PawtnerAddBookingScreen> {
       child: TextField(
         controller: controller,
         onTap: () => _openOnly('none'),
+        textCapitalization: TextCapitalization.words,
         style: GoogleFonts.dosis(
           fontSize: 16,
           color: const Color(0xFF6E4B3A),
@@ -1598,6 +1599,7 @@ class _PawtnerAddBookingScreenState extends State<PawtnerAddBookingScreen> {
                         controller: customerNameController,
                         onTap: () => _openOnly('none'),
                         readOnly: matchedFurrentId != null,
+                        textCapitalization: TextCapitalization.words,
                         style: GoogleFonts.dosis(
                           fontSize: 16,
                           color: const Color(0xFF6E4B3A),
@@ -2049,6 +2051,7 @@ class _PawtnerAddBookingScreenState extends State<PawtnerAddBookingScreen> {
                       controller: notesController,
                       onTap: () => _openOnly('none'),
                       maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
                       style: GoogleFonts.dosis(
                         fontSize: 16,
                         color: const Color(0xFF6E4B3A),

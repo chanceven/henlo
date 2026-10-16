@@ -724,7 +724,7 @@ class _FurrentPawtnerDetailScreenState extends State<FurrentPawtnerDetailScreen>
                     color: isSelected
                         ? const Color(0xFFDDC7A9)
                         : const Color(0xFF6E4B3A),
-                    fontSize: 14,
+                    fontSize: 16,
                   ),
                 ),
               ),

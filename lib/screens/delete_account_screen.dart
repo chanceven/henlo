@@ -437,11 +437,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFFF8F8F8),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Delete Account?',
+                  'Are you sure you want to delete this account?',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.dosis(
                     fontWeight: FontWeight.w600,
@@ -459,7 +460,6 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     color: const Color(0xFF6E4B3A),
                   ),
                 ),
-                const SizedBox(height: 12),
               ],
             ),
             actionsAlignment: MainAxisAlignment.center,
@@ -476,7 +476,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     'Cancel',
                     style: GoogleFonts.dosis(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: 16,
                       color: const Color(0xFFDDC7A9),
                     ),
                   ),
@@ -495,7 +495,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     'Delete',
                     style: GoogleFonts.dosis(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: 16,
                       color: const Color(0xFFF8F8F8),
                     ),
                   ),
@@ -538,6 +538,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
       if (!mounted) return;
 
+      _showToast('Account deleted successfully.');
+
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/sign_in',
         (route) => false,
@@ -561,7 +563,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         backgroundColor: const Color(0xFF6E4B3A),
         content: Text(
           message,

@@ -87,6 +87,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   String get userId => supabase.auth.currentUser!.id;
 
+  bool _isBlocked = false;
+
+  Future<void> _checkBlocked() async {
+    try {
+      final res = await supabase
+          .rpc('is_blocked_with', params: {'other': widget.otherUserId});
+      if (!mounted) return;
+      setState(() => _isBlocked = res == true);
+    } catch (e) {
+      debugPrint('Error checking block status: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +118,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     _conversationId = widget.conversationId;
+    _checkBlocked();
 
     WidgetsBinding.instance.addObserver(this);
     if (_conversationId != null) {
@@ -312,7 +326,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to send message. Please try again.',
+              (e is PostgrestException && e.code == '42501')
+                  ? 'You can no longer message this user.'
+                  : 'Failed to send message. Please try again.',
               style: GoogleFonts.dosis(color: const Color(0xFFF8F8F8)),
             ),
             backgroundColor: const Color(0xFF6E4B3A),
@@ -388,6 +404,232 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         );
       }
     }
+  }
+
+  void _showHenloToast(String message, {double bottom = 16}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.dosis(color: const Color(0xFFDDC7A9)),
+        ),
+        backgroundColor: const Color(0xFF6E4B3A),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(left: 16, right: 16, bottom: bottom),
+      ),
+    );
+  }
+
+  Future<void> _showReportDialog() async {
+    const reasons = [
+      'Spam',
+      'Harassment or abusive behavior',
+      'Inappropriate content',
+      'Scam or fraud',
+      'Other',
+    ];
+    String? selectedReason;
+    String details = '';
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFFF8F8F8),
+          title: Text(
+            'Report ${widget.otherUserName}',
+            style: GoogleFonts.dosis(
+              color: const Color(0xFF6E4B3A),
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...reasons.map(
+                  (r) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      selectedReason == r
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                      color: const Color(0xFF6E4B3A),
+                      size: 20,
+                    ),
+                    title: Text(
+                      r,
+                      style: GoogleFonts.dosis(
+                        color: const Color(0xFF6E4B3A),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onTap: () => setDialogState(() => selectedReason = r),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  maxLines: 3,
+                  maxLength: 500,
+                  textCapitalization: TextCapitalization.sentences,
+                  onChanged: (v) => details = v,
+                  style: GoogleFonts.dosis(
+                    color: const Color(0xFF6E4B3A),
+                    fontSize: 16, // <-- TYPED TEXT SIZE
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Additional details (optional)',
+                    hintStyle: GoogleFonts.dosis(
+                      color: const Color(0xFFBDBDBD),
+                      fontSize: 15,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Color(0xFF6E4B3A)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Color(0xFF6E4B3A)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.dosis(
+                  color: const Color(0xFF6E4B3A),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: selectedReason == null
+                  ? null
+                  : () => Navigator.pop(dialogContext, true),
+              child: Text(
+                'Report',
+                style: GoogleFonts.dosis(
+                  color: selectedReason == null
+                      ? const Color(0xFFBDBDBD)
+                      : const Color(0xFF8B0000),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (submitted != true || selectedReason == null) return;
+
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    try {
+      await supabase.from('user_reports').insert({
+        'reporter_id': currentUserId,
+        'reported_id': widget.otherUserId,
+        'conversation_id': _conversationId,
+        'reason': selectedReason,
+        'details': details.trim().isEmpty ? null : details.trim(),
+      });
+      if (!mounted) return;
+      _showHenloToast('Report submitted. Thank you.', bottom: 80);
+    } catch (e) {
+      debugPrint('Error reporting user: $e');
+      if (!mounted) return;
+      _showHenloToast('Failed to submit report. Please try again.', bottom: 80);
+    }
+  }
+
+  Future<void> _confirmBlockUser() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFFF8F8F8),
+        title: Text(
+          'Block ${widget.otherUserName}?',
+          style: GoogleFonts.dosis(
+            color: const Color(0xFF6E4B3A),
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'You will no longer be able to message each other.',
+          style: GoogleFonts.dosis(
+            color: const Color(0xFF6E4B3A),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.dosis(
+                color: const Color(0xFF6E4B3A),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              'Block',
+              style: GoogleFonts.dosis(
+                color: const Color(0xFF8B0000),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    try {
+      await supabase.from('user_blocks').insert({
+        'blocker_id': currentUserId,
+        'blocked_id': widget.otherUserId,
+      });
+    } on PostgrestException catch (e) {
+      // 23505 = already blocked, treat as success
+      if (e.code != '23505') {
+        debugPrint('Error blocking user: $e');
+        if (!mounted) return;
+        _showHenloToast('Failed to block user. Please try again.', bottom: 80);
+        return;
+      }
+    } catch (e) {
+      debugPrint('Error blocking user: $e');
+      if (!mounted) return;
+      _showHenloToast('Failed to block user. Please try again.', bottom: 80);
+      return;
+    }
+
+    if (!mounted) return;
+    _showHenloToast('${widget.otherUserName} has been blocked.');
+    Navigator.pop(context);
   }
 
   bool _showDateHeader(int reversedIndex) {
@@ -589,6 +831,51 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
             ],
           ),
+          actions: [
+            PopupMenuButton<String>(
+              position: PopupMenuPosition.under,
+              offset: const Offset(0, 16),
+              icon: const Icon(Icons.more_vert, color: Color(0xFF6E4B3A)),
+              color: const Color(0xFFF8F8F8),
+              constraints: const BoxConstraints(
+                minWidth: 140, // <-- BOX WIDTH
+                maxWidth: 140, // <-- BOX WIDTH (keep same as above)
+              ),
+              onSelected: (value) {
+                if (value == 'report') {
+                  _showReportDialog();
+                } else if (value == 'block') {
+                  _confirmBlockUser();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'report',
+                  height: 40, // <-- HEIGHT OF EACH ITEM
+                  child: Text(
+                    'Report User',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF6E4B3A),
+                      fontSize: 16, // <-- FONT SIZE
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'block',
+                  height: 40, // <-- HEIGHT OF EACH ITEM
+                  child: Text(
+                    'Block User',
+                    style: GoogleFonts.dosis(
+                      color: const Color(0xFF8B0000),
+                      fontSize: 16, // <-- FONT SIZE
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           bottom: const PreferredSize(
             preferredSize: Size.fromHeight(1),
             child: Divider(height: 1, color: Color(0xFFE0E0E0)),
@@ -779,7 +1066,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_showAttachmentOptions) _buildAttachmentPanel(),
+                    if (_showAttachmentOptions)
+                      Transform.translate(
+                        offset: const Offset(0, -4),
+                        child: _buildAttachmentPanel(),
+                      ),
                     Container(
                       color: const Color(0xFFF8F8F8),
                       child: Padding(
@@ -794,7 +1085,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     : Icons.add,
                                 color: const Color(0xFF6E4B3A),
                               ),
-                              onPressed: widget.isDeletedAccount
+                              onPressed: (widget.isDeletedAccount || _isBlocked)
                                   ? null
                                   : () {
                                       setState(() => _showAttachmentOptions =
@@ -802,7 +1093,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     },
                             ),
                             Expanded(
-                              child: widget.isDeletedAccount
+                              child: (widget.isDeletedAccount || _isBlocked)
                                   ? Container(
                                       height: 50,
                                       alignment: Alignment.centerLeft,
@@ -814,7 +1105,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                         borderRadius: BorderRadius.circular(24),
                                       ),
                                       child: Text(
-                                        'This account has been deleted.',
+                                        widget.isDeletedAccount
+                                            ? 'This account has been deleted.'
+                                            : 'You can no longer message this user.',
                                         style: GoogleFonts.dosis(
                                           color: const Color(0xFFBDBDBD),
                                         ),
@@ -871,11 +1164,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               child: IconButton(
                                 icon: const Icon(Icons.send,
                                     color: Color(0xFFDDC7A9)),
-                                onPressed: widget.isDeletedAccount
-                                    ? null
-                                    : () => _sendMessage(
-                                          text: _messageController.text,
-                                        ),
+                                onPressed:
+                                    (widget.isDeletedAccount || _isBlocked)
+                                        ? null
+                                        : () => _sendMessage(
+                                              text: _messageController.text,
+                                            ),
                               ),
                             ),
                           ],

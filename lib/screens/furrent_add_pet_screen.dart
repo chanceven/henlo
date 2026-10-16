@@ -282,6 +282,7 @@ class _FurrentAddPetScreenState extends State<FurrentAddPetScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          textCapitalization: TextCapitalization.words,
           onTap: _hideDropdowns,
           style: GoogleFonts.dosis(
               color: const Color(0xFF6E4B3A), fontWeight: FontWeight.w400),

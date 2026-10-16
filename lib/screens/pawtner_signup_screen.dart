@@ -209,7 +209,7 @@ class _PawtnerSignUpScreenState extends State<PawtnerSignUpScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
             content: Text(
               "This email is already registered. Please sign in instead.",
               style: GoogleFonts.dosis(
